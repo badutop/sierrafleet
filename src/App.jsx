@@ -5,7 +5,15 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-// Add page imports here
+import AppLayout from '@/components/layout/AppLayout';
+import Dashboard from '@/pages/Dashboard';
+import Vehicles from '@/pages/Vehicles';
+import Journal from '@/pages/Journal';
+import FuelManagement from '@/pages/FuelManagement';
+import MaintenancePage from '@/pages/MaintenancePage';
+import Drivers from '@/pages/Drivers';
+import Reports from '@/pages/Reports';
+import SettingsPage from '@/pages/SettingsPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -33,7 +41,16 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/vehicles" element={<Vehicles />} />
+        <Route path="/journal" element={<Journal />} />
+        <Route path="/fuel" element={<FuelManagement />} />
+        <Route path="/maintenance" element={<MaintenancePage />} />
+        <Route path="/drivers" element={<Drivers />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

@@ -1,0 +1,41 @@
+{
+  "name": "Driver",
+  "type": "object",
+  "properties": {
+    "nom": {
+      "type": "string"
+    },
+    "prenom": {
+      "type": "string"
+    },
+    "telephone": {
+      "type": "string"
+    },
+    "numero_permis": {
+      "type": "string"
+    },
+    "categorie_permis": {
+      "type": "string"
+    },
+    "date_expiration_permis": {
+      "type": "string",
+      "format": "date"
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "actif",
+        "inactif",
+        "en_mission"
+      ],
+      "default": "actif"
+    }
+  },
+  "required": [
+    "nom",
+    "prenom"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "FuelEntry",
+  "type": "object",
+  "properties": {
+    "vehicle_id": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "station": {
+      "type": "string"
+    },
+    "litres": {
+      "type": "number"
+    },
+    "prix_litre": {
+      "type": "number"
+    },
+    "montant_total": {
+      "type": "number"
+    },
+    "km_compteur": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "vehicle_id",
+    "litres",
+    "montant_total"
+  ]
+}

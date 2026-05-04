@@ -1,0 +1,83 @@
+{
+  "name": "Vehicle",
+  "type": "object",
+  "properties": {
+    "immatriculation": {
+      "type": "string",
+      "description": "Num\u00e9ro d'immatriculation"
+    },
+    "marque": {
+      "type": "string"
+    },
+    "modele": {
+      "type": "string"
+    },
+    "type_vehicule": {
+      "type": "string",
+      "enum": [
+        "camion",
+        "utilitaire",
+        "liaison",
+        "remorque"
+      ],
+      "default": "camion"
+    },
+    "annee": {
+      "type": "number"
+    },
+    "couleur": {
+      "type": "string"
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "disponible",
+        "en_mission",
+        "en_maintenance",
+        "hors_service"
+      ],
+      "default": "disponible"
+    },
+    "km_actuel": {
+      "type": "number",
+      "default": 0
+    },
+    "capacite_charge_tonnes": {
+      "type": "number"
+    },
+    "consommation_moyenne": {
+      "type": "number"
+    },
+    "date_assurance": {
+      "type": "string",
+      "format": "date"
+    },
+    "date_visite_technique": {
+      "type": "string",
+      "format": "date"
+    },
+    "date_vignette": {
+      "type": "string",
+      "format": "date"
+    },
+    "km_derniere_vidange": {
+      "type": "number",
+      "default": 0
+    },
+    "date_derniere_vidange": {
+      "type": "string",
+      "format": "date"
+    },
+    "km_prochaine_vidange": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "immatriculation",
+    "marque",
+    "modele"
+  ]
+}

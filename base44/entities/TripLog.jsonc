@@ -1,0 +1,68 @@
+{
+  "name": "TripLog",
+  "type": "object",
+  "properties": {
+    "vehicle_id": {
+      "type": "string",
+      "description": "ID du v\u00e9hicule"
+    },
+    "driver_id": {
+      "type": "string",
+      "description": "ID du chauffeur"
+    },
+    "date_depart": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "date_retour": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mission": {
+      "type": "string"
+    },
+    "destination": {
+      "type": "string"
+    },
+    "departement": {
+      "type": "string"
+    },
+    "km_depart": {
+      "type": "number"
+    },
+    "km_arrivee": {
+      "type": "number"
+    },
+    "km_parcourus": {
+      "type": "number"
+    },
+    "litres_carburant": {
+      "type": "number"
+    },
+    "cout_carburant": {
+      "type": "number"
+    },
+    "consommation_l100": {
+      "type": "number"
+    },
+    "cout_par_km": {
+      "type": "number"
+    },
+    "observations": {
+      "type": "string"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "en_cours",
+        "termine"
+      ],
+      "default": "termine"
+    }
+  },
+  "required": [
+    "vehicle_id",
+    "driver_id",
+    "mission"
+  ]
+}

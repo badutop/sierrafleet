@@ -1,0 +1,61 @@
+{
+  "name": "Maintenance",
+  "type": "object",
+  "properties": {
+    "vehicle_id": {
+      "type": "string"
+    },
+    "type_entretien": {
+      "type": "string",
+      "enum": [
+        "vidange",
+        "revision",
+        "pneus",
+        "filtres",
+        "freins",
+        "controle_technique",
+        "assurance",
+        "autre"
+      ],
+      "default": "vidange"
+    },
+    "designation": {
+      "type": "string"
+    },
+    "date_entretien": {
+      "type": "string",
+      "format": "date"
+    },
+    "prestataire": {
+      "type": "string"
+    },
+    "cout": {
+      "type": "number"
+    },
+    "pieces_remplacees": {
+      "type": "string"
+    },
+    "km_entretien": {
+      "type": "number"
+    },
+    "prochaine_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "prochain_km": {
+      "type": "number"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "planifie",
+        "realise"
+      ],
+      "default": "realise"
+    }
+  },
+  "required": [
+    "vehicle_id",
+    "type_entretien"
+  ]
+}
