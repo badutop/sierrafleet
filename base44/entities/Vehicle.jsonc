@@ -2,6 +2,10 @@
   "name": "Vehicle",
   "type": "object",
   "properties": {
+    "code_camion": {
+      "type": "string",
+      "description": "Code court du camion (ex: CT32)"
+    },
     "immatriculation": {
       "type": "string",
       "description": "Num\u00e9ro d'immatriculation"

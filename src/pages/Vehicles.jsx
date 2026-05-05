@@ -16,7 +16,7 @@ const statusLabels = { disponible: "Disponible", en_mission: "En mission", en_ma
 const statusColors = { disponible: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", en_mission: "bg-blue-500/10 text-blue-600 border-blue-500/20", en_maintenance: "bg-amber-500/10 text-amber-600 border-amber-500/20", hors_service: "bg-destructive/10 text-destructive border-destructive/20" };
 const typeLabels = { camion: "Camion", utilitaire: "Utilitaire", liaison: "Liaison", remorque: "Remorque" };
 
-const emptyForm = { immatriculation: "", marque: "", modele: "", annee: "", couleur: "", km_actuel: "", type_vehicule: "camion", capacite_charge_tonnes: "", consommation_moyenne: "", date_assurance: "", date_visite_technique: "", date_vignette: "" };
+const emptyForm = { code_camion: "", immatriculation: "", marque: "", modele: "", annee: "", couleur: "", km_actuel: "", type_vehicule: "camion", capacite_charge_tonnes: "", consommation_moyenne: "", date_assurance: "", date_visite_technique: "", date_vignette: "" };
 
 export default function Vehicles() {
   const [search, setSearch] = useState("");
@@ -119,7 +119,7 @@ export default function Vehicles() {
                     </div>
                     <div>
                       <CardTitle className="text-base">{v.immatriculation}</CardTitle>
-                      <p className="text-xs text-muted-foreground">{v.marque} {v.modele}</p>
+                      <p className="text-xs text-muted-foreground">{v.code_camion && <span className="font-mono font-bold text-secondary mr-1">{v.code_camion}</span>}{v.marque} {v.modele}</p>
                     </div>
                   </div>
                   <Badge className={cn("text-[10px]", statusColors[v.statut])}>{statusLabels[v.statut]}</Badge>
@@ -148,7 +148,7 @@ export default function Vehicles() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingVehicle ? "Modifier le véhicule" : "Nouveau véhicule"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3 mt-2">
-            {[["immatriculation","Immatriculation"],["marque","Marque"],["modele","Modèle"],["annee","Année"],["couleur","Couleur"],["km_actuel","Km actuel"],["consommation_moyenne","Conso moy. (L/100)"],["capacite_charge_tonnes","Capacité (tonnes)"]].map(([key, label]) => (
+            {[["code_camion","Code camion (CT)"],["immatriculation","Immatriculation"],["marque","Marque"],["modele","Modèle"],["annee","Année"],["couleur","Couleur"],["km_actuel","Km actuel"],["consommation_moyenne","Conso moy. (L/100)"],["capacite_charge_tonnes","Capacité (tonnes)"]].map(([key, label]) => (
               <div key={key}>
                 <Label className="text-xs">{label}</Label>
                 <Input className="mt-1" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })} />

@@ -19,6 +19,17 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
   const totalPoids = rows.reduce((s, r) => s + (Number(r.poids_kg) || 0), 0);
   const validRows = rows.filter(r => r.vehicle_id && r.poids_kg);
 
+  // Index des véhicules par code_camion (insensible à la casse)
+  const vehicleByCode = Object.fromEntries(
+    vehicles.filter(v => v.code_camion).map(v => [v.code_camion.toLowerCase().trim(), v])
+  );
+
+  const handleCodeChange = (i, code) => {
+    updateRow(i, "code_ct", code);
+    const found = vehicleByCode[code.toLowerCase().trim()];
+    if (found) updateRow(i, "vehicle_id", found.id);
+  };
+
   return (
     <>
       <DialogHeader>
@@ -65,16 +76,22 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
                 <TableRow key={i} className={cn(isRefuel && "bg-amber-50 dark:bg-amber-950/20")}>
                   <TableCell className="font-semibold text-sm text-muted-foreground">{i + 1}</TableCell>
                   <TableCell>
-                    <Input className="h-7 text-xs font-bold w-16" placeholder="CT32" value={row.code_ct} onChange={e => updateRow(i, "code_ct", e.target.value)} />
+                   <Input
+                     className={cn("h-7 text-xs font-bold w-16", vehicleByCode[row.code_ct?.toLowerCase()?.trim()] && "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20")}
+                     placeholder="CT32"
+                     value={row.code_ct}
+                     onChange={e => handleCodeChange(i, e.target.value)}
+                   />
                   </TableCell>
                   <TableCell>
-                    <Select value={row.vehicle_id || "none"} onValueChange={v => updateRow(i, "vehicle_id", v === "none" ? "" : v)}>
-                      <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Sélectionner camion" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">-- Sélectionner --</SelectItem>
-                        {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}{v.marque ? ` · ${v.marque}` : ""}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                   <Select value={row.vehicle_id || "none"} onValueChange={v => updateRow(i, "vehicle_id", v === "none" ? "" : v)}>
+                     <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Sélectionner camion" /></SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="none">-- Sélectionner --</SelectItem>
+                       {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation}{v.marque ? ` · ${v.marque}` : ""}</SelectItem>)}
+                     </SelectContent>
+                   </Select>
+                   {row.vehicle_id && (() => { const v = vehicles.find(x => x.id === row.vehicle_id); return v ? <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">{v.immatriculation} · {v.marque} {v.modele}</p> : null; })()}
                   </TableCell>
                   <TableCell>
                     <Input className="h-7 text-xs font-mono w-24" placeholder="6693" value={row.bl} onChange={e => updateRow(i, "bl", e.target.value)} />
