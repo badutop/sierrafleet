@@ -12,7 +12,13 @@ const navItems = [
   { path: "/", label: "Tableau de bord", icon: LayoutDashboard },
   { path: "/vehicles", label: "Parc Véhicules", icon: Truck },
   { path: "/journal", label: "Journal de Bord", icon: BookOpen },
-  { path: "/fuel", label: "Carburant", icon: Fuel },
+  {
+    label: "Carburant", icon: Fuel, group: true,
+    children: [
+      { path: "/fuel", label: "Gestion Carburant", icon: Fuel },
+      { path: "/fuel-supply", label: "Approvisionnements", icon: Fuel },
+    ]
+  },
   { path: "/maintenance", label: "Maintenance", icon: Wrench },
   { path: "/drivers", label: "Chauffeurs", icon: Users },
   { path: "/spare-parts", label: "Pièces Détachées", icon: Package },
@@ -31,7 +37,7 @@ const navItems = [
 
 export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const location = useLocation();
-  const [expandedGroups, setExpandedGroups] = useState({ "Campagnes": true });
+  const [expandedGroups, setExpandedGroups] = useState({ "Campagnes": true, "Carburant": false });
   const toggleGroup = (label) => setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
 
   return (

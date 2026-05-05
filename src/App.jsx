@@ -10,6 +10,7 @@ import Dashboard from '@/pages/Dashboard';
 import Vehicles from '@/pages/Vehicles';
 import Journal from '@/pages/Journal';
 import FuelManagement from '@/pages/FuelManagement';
+import FuelSupplyPage from '@/pages/fuel/FuelSupplyPage';
 import MaintenancePage from '@/pages/MaintenancePage';
 import Drivers from '@/pages/Drivers';
 import Reports from '@/pages/Reports';
@@ -52,6 +53,7 @@ const AuthenticatedApp = () => {
         <Route path="/vehicles" element={<Vehicles />} />
         <Route path="/journal" element={<Journal />} />
         <Route path="/fuel" element={<FuelManagement />} />
+        <Route path="/fuel-supply" element={<FuelSupplyPage />} />
         <Route path="/maintenance" element={<MaintenancePage />} />
         <Route path="/drivers" element={<Drivers />} />
         <Route path="/reports" element={<Reports />} />
