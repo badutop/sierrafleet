@@ -305,7 +305,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ve
         await base44.entities.Rotation.create({
           campaign_id: campaign.id,
           vehicle_id: row.vehicle_id,
-          driver_id: "",
+          driver_id: row.driver_id || "",
           numero_rotation: rotCount,
           numero_bon_client: row.bl || "",
           date_rotation: new Date(date + "T12:00:00").toISOString(),

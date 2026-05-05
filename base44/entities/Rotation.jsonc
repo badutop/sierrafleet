@@ -56,7 +56,6 @@
   },
   "required": [
     "campaign_id",
-    "vehicle_id",
-    "driver_id"
+    "vehicle_id"
   ]
 }
