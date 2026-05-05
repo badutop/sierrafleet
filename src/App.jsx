@@ -14,6 +14,9 @@ import MaintenancePage from '@/pages/MaintenancePage';
 import Drivers from '@/pages/Drivers';
 import Reports from '@/pages/Reports';
 import SettingsPage from '@/pages/SettingsPage';
+import SpareParts from '@/pages/SpareParts';
+import ExpensesPage from '@/pages/ExpensesPage';
+import UsersPage from '@/pages/UsersPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -50,6 +53,9 @@ const AuthenticatedApp = () => {
         <Route path="/drivers" element={<Drivers />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/spare-parts" element={<SpareParts />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
+        <Route path="/users" element={<UsersPage />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

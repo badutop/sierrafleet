@@ -2,7 +2,8 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Truck, BookOpen, Fuel, Wrench, 
-  Users, BarChart3, Settings, ChevronLeft, ChevronRight, Menu
+  Users, BarChart3, Settings, ChevronLeft, ChevronRight, Menu,
+  Package, Receipt, UserCog
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,9 @@ const navItems = [
   { path: "/fuel", label: "Carburant", icon: Fuel },
   { path: "/maintenance", label: "Maintenance", icon: Wrench },
   { path: "/drivers", label: "Chauffeurs", icon: Users },
+  { path: "/spare-parts", label: "Pièces Détachées", icon: Package },
+  { path: "/expenses", label: "Frais", icon: Receipt },
+  { path: "/users", label: "Utilisateurs", icon: UserCog },
   { path: "/reports", label: "Rapports", icon: BarChart3 },
   { path: "/settings", label: "Paramètres", icon: Settings },
 ];

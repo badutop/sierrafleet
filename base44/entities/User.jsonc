@@ -1,0 +1,17 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "responsable_exploitation",
+        "responsable_operations",
+        "collecteur_bons",
+        "executeur_depenses"
+      ],
+      "default": "collecteur_bons"
+    }
+  }
+}

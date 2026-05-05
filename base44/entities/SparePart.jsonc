@@ -1,0 +1,58 @@
+{
+  "name": "SparePart",
+  "type": "object",
+  "properties": {
+    "reference": {
+      "type": "string",
+      "description": "R\u00e9f\u00e9rence de la pi\u00e8ce"
+    },
+    "designation": {
+      "type": "string",
+      "description": "D\u00e9signation de la pi\u00e8ce"
+    },
+    "categorie": {
+      "type": "string",
+      "enum": [
+        "moteur",
+        "freinage",
+        "suspension",
+        "transmission",
+        "electricite",
+        "carrosserie",
+        "filtres",
+        "pneumatiques",
+        "autre"
+      ],
+      "default": "autre"
+    },
+    "marque_vehicule": {
+      "type": "string",
+      "description": "Marque(s) de v\u00e9hicule compatible(s)"
+    },
+    "quantite_stock": {
+      "type": "number",
+      "default": 0
+    },
+    "quantite_min": {
+      "type": "number",
+      "default": 1,
+      "description": "Seuil d'alerte minimum"
+    },
+    "prix_unitaire": {
+      "type": "number"
+    },
+    "fournisseur": {
+      "type": "string"
+    },
+    "localisation": {
+      "type": "string",
+      "description": "Emplacement dans le garage"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "designation"
+  ]
+}
