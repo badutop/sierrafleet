@@ -1,0 +1,42 @@
+{
+  "name": "Client",
+  "type": "object",
+  "properties": {
+    "nom": {
+      "type": "string"
+    },
+    "code_client": {
+      "type": "string"
+    },
+    "zone": {
+      "type": "string",
+      "enum": [
+        "zone1",
+        "zone2",
+        "zone3",
+        "zone4"
+      ],
+      "default": "zone1"
+    },
+    "adresse_depot": {
+      "type": "string"
+    },
+    "contact_nom": {
+      "type": "string"
+    },
+    "contact_telephone": {
+      "type": "string"
+    },
+    "consommation_estimee_litres": {
+      "type": "number"
+    },
+    "actif": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "nom",
+    "zone"
+  ]
+}

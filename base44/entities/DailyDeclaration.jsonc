@@ -1,0 +1,72 @@
+{
+  "name": "DailyDeclaration",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string"
+    },
+    "vehicle_id": {
+      "type": "string"
+    },
+    "driver_id": {
+      "type": "string"
+    },
+    "date_declaration": {
+      "type": "string",
+      "format": "date"
+    },
+    "bl_navire": {
+      "type": "string"
+    },
+    "type_marchandise": {
+      "type": "string"
+    },
+    "nombre_rotations_jour": {
+      "type": "number",
+      "default": 0
+    },
+    "tonnage_total_jour": {
+      "type": "number",
+      "default": 0
+    },
+    "bons_systeme": {
+      "type": "number",
+      "default": 0,
+      "description": "Bons enregistr\u00e9s dans le syst\u00e8me"
+    },
+    "bons_physiques": {
+      "type": "number",
+      "default": 0,
+      "description": "Bons physiques collect\u00e9s"
+    },
+    "ecart_bons": {
+      "type": "number",
+      "default": 0
+    },
+    "litres_carburant_consommes": {
+      "type": "number",
+      "default": 0
+    },
+    "statut_validation": {
+      "type": "string",
+      "enum": [
+        "brouillon",
+        "soumis",
+        "valide",
+        "ecart_detecte"
+      ],
+      "default": "brouillon"
+    },
+    "valide_par": {
+      "type": "string"
+    },
+    "observations": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "vehicle_id",
+    "date_declaration"
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "name": "Rotation",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string"
+    },
+    "vehicle_id": {
+      "type": "string"
+    },
+    "driver_id": {
+      "type": "string"
+    },
+    "numero_rotation": {
+      "type": "number"
+    },
+    "numero_bon_client": {
+      "type": "string"
+    },
+    "date_rotation": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "heure_depart_port": {
+      "type": "string"
+    },
+    "heure_arrivee_depot": {
+      "type": "string"
+    },
+    "poids_charge_tonnes": {
+      "type": "number"
+    },
+    "litres_carburant_alloues": {
+      "type": "number"
+    },
+    "refuel_declenche": {
+      "type": "boolean",
+      "default": false
+    },
+    "bon_physique_recu": {
+      "type": "boolean",
+      "default": false
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "en_cours",
+        "livree",
+        "annulee"
+      ],
+      "default": "en_cours"
+    },
+    "observations": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "vehicle_id",
+    "driver_id"
+  ]
+}

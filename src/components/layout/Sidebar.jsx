@@ -3,9 +3,10 @@ import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Truck, BookOpen, Fuel, Wrench, 
   Users, BarChart3, Settings, ChevronLeft, ChevronRight, Menu,
-  Package, Receipt, UserCog
+  Package, Receipt, UserCog, Ship, Building2, ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 const navItems = [
   { path: "/", label: "Tableau de bord", icon: LayoutDashboard },
@@ -16,6 +17,13 @@ const navItems = [
   { path: "/drivers", label: "Chauffeurs", icon: Users },
   { path: "/spare-parts", label: "Pièces Détachées", icon: Package },
   { path: "/expenses", label: "Frais", icon: Receipt },
+  {
+    label: "Campagnes", icon: Ship, group: true,
+    children: [
+      { path: "/campaigns", label: "Campagnes", icon: Ship },
+      { path: "/clients", label: "Clients", icon: Building2 },
+    ]
+  },
   { path: "/users", label: "Utilisateurs", icon: UserCog },
   { path: "/reports", label: "Rapports", icon: BarChart3 },
   { path: "/settings", label: "Paramètres", icon: Settings },
@@ -23,6 +31,8 @@ const navItems = [
 
 export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const location = useLocation();
+  const [expandedGroups, setExpandedGroups] = useState({ "Campagnes": true });
+  const toggleGroup = (label) => setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
 
   return (
     <>
@@ -49,19 +59,46 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
 
         <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
           {navItems.map(item => {
+            if (item.group) {
+              const isExpanded = expandedGroups[item.label];
+              const anyChildActive = item.children.some(c => location.pathname === c.path || location.pathname.startsWith(c.path + "/"));
+              return (
+                <div key={item.label}>
+                  <button
+                    onClick={() => toggleGroup(item.label)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                      anyChildActive ? "text-sidebar-primary-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    )}
+                  >
+                    <item.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <><span className="truncate flex-1 text-left">{item.label}</span><ChevronDown className={cn("w-4 h-4 transition-transform", isExpanded && "rotate-180")} /></>}
+                  </button>
+                  {!collapsed && isExpanded && (
+                    <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
+                      {item.children.map(child => {
+                        const active = location.pathname === child.path || location.pathname.startsWith(child.path + "/");
+                        return (
+                          <Link key={child.path} to={child.path} onClick={() => setMobileOpen(false)}
+                            className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                              active ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            )}>
+                            <child.icon className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{child.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
             const active = location.pathname === item.path;
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                  active
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
+              <Link key={item.path} to={item.path} onClick={() => setMobileOpen(false)}
+                className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                  active ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                )}>
                 <item.icon className={cn("w-5 h-5 shrink-0", active && "drop-shadow-sm")} />
                 {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>

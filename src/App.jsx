@@ -17,6 +17,9 @@ import SettingsPage from '@/pages/SettingsPage';
 import SpareParts from '@/pages/SpareParts';
 import ExpensesPage from '@/pages/ExpensesPage';
 import UsersPage from '@/pages/UsersPage';
+import CampaignsList from '@/pages/campaigns/CampaignsList';
+import CampaignDetail from '@/pages/campaigns/CampaignDetail';
+import ClientsPage from '@/pages/campaigns/ClientsPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -56,6 +59,9 @@ const AuthenticatedApp = () => {
         <Route path="/spare-parts" element={<SpareParts />} />
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/users" element={<UsersPage />} />
+        <Route path="/campaigns" element={<CampaignsList />} />
+        <Route path="/campaigns/:id" element={<CampaignDetail />} />
+        <Route path="/clients" element={<ClientsPage />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

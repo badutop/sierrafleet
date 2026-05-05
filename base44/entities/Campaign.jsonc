@@ -1,0 +1,68 @@
+{
+  "name": "Campaign",
+  "type": "object",
+  "properties": {
+    "reference": {
+      "type": "string"
+    },
+    "client_id": {
+      "type": "string"
+    },
+    "nom_campagne": {
+      "type": "string"
+    },
+    "type_marchandise": {
+      "type": "string"
+    },
+    "port_origine": {
+      "type": "string"
+    },
+    "depot_destination": {
+      "type": "string"
+    },
+    "date_debut": {
+      "type": "string",
+      "format": "date"
+    },
+    "date_fin_prevue": {
+      "type": "string",
+      "format": "date"
+    },
+    "tonnage_total_prevu": {
+      "type": "number"
+    },
+    "tonnage_realise": {
+      "type": "number",
+      "default": 0
+    },
+    "nombre_rotations_prevues": {
+      "type": "number"
+    },
+    "nombre_rotations_realisees": {
+      "type": "number",
+      "default": 0
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "planifiee",
+        "en_cours",
+        "terminee",
+        "suspendue"
+      ],
+      "default": "planifiee"
+    },
+    "bl_navire": {
+      "type": "string",
+      "description": "Bon de livraison navire"
+    },
+    "observations": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "client_id",
+    "nom_campagne",
+    "type_marchandise"
+  ]
+}
