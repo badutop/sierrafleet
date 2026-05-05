@@ -159,7 +159,7 @@ export default function CampaignsList() {
             </div>
             <div><Label className="text-xs">Référence</Label><Input className="mt-1" value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></div>
             <div>
-              <Label className="text-xs">Client *</Label>
+              <Label className="text-xs">Client</Label>
               <Select value={form.client_id || "none"} onValueChange={v => setForm({ ...form, client_id: v === "none" ? "" : v })}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                 <SelectContent>
@@ -187,7 +187,7 @@ export default function CampaignsList() {
           </div>
           <div className="flex gap-2 mt-4">
             <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.nom_campagne || !form.client_id}>
+            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.nom_campagne || !form.type_marchandise}>
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>

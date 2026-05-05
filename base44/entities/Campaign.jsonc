@@ -6,7 +6,8 @@
       "type": "string"
     },
     "client_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Optionnel \u2014 r\u00e9f\u00e9rence au client"
     },
     "nom_campagne": {
       "type": "string"
@@ -61,7 +62,6 @@
     }
   },
   "required": [
-    "client_id",
     "nom_campagne",
     "type_marchandise"
   ]
