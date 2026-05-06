@@ -6,6 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Fuel } from "lucide-react";
 
+const stations = [
+  { label: "Star Oil - Pompier", value: "Star Oil - Pompier" },
+  { label: "Star Oil - SIPS", value: "Star Oil - SIPS" },
+  { label: "Star Oil - Sangalkam", value: "Star Oil - Sangalkam" },
+  { label: "Elton", value: "Elton" },
+  { label: "TOTAL", value: "TOTAL" },
+  { label: "SHELL", value: "SHELL" },
+];
+
 const emptyForm = {
   vehicle_id: "",
   date: new Date().toISOString().split("T")[0],
@@ -72,9 +81,18 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
             <Input type="date" className="mt-1" value={form.date} onChange={e => set("date", e.target.value)} />
           </div>
 
-          <div>
+          <div className="col-span-2">
             <Label className="text-xs">Station</Label>
-            <Input className="mt-1" placeholder="Nom de la station" value={form.station} onChange={e => set("station", e.target.value)} />
+            <Select value={form.station} onValueChange={v => set("station", v)}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Sélectionner une station" />
+              </SelectTrigger>
+              <SelectContent>
+                {stations.map(s => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
