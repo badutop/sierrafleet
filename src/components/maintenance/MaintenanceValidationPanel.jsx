@@ -7,10 +7,17 @@ import { cn } from "@/lib/utils";
 import MaintenanceStatusStepper from "./MaintenanceStatusStepper";
 
 const TRANSITIONS = {
-  planifie:  { next: "en_cours",  nextLabel: "Démarrer l'intervention", nextIcon: PlayCircle,    nextClass: "bg-amber-500 hover:bg-amber-600 text-white" },
-  en_cours:  { next: "realise",   nextLabel: "Valider terminé",          nextIcon: CheckCircle2,  nextClass: "bg-emerald-600 hover:bg-emerald-700 text-white" },
+  planifie:  { next: "en_cours",  nextLabel: "▶ Démarrer l'intervention", nextIcon: PlayCircle,    nextClass: "bg-amber-500 hover:bg-amber-600 text-white" },
+  en_cours:  { next: "realise",   nextLabel: "✔ Valider terminé",          nextIcon: CheckCircle2,  nextClass: "bg-emerald-600 hover:bg-emerald-700 text-white" },
   realise:   { next: null },
   annule:    { next: null },
+};
+
+const STATUT_LABELS = {
+  planifie: "Prévu",
+  en_cours: "En cours",
+  realise: "Réalisé",
+  annule: "Annulé",
 };
 
 export default function MaintenanceValidationPanel({ maintenance, onStatusChange, isPending }) {

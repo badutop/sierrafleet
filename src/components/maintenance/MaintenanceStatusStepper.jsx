@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Clock, Wrench, CheckCircle2, XCircle, ChevronRight } from "lucide-react";
 
 const STEPS = [
-  { key: "planifie",  label: "Planifié",   icon: Clock,         color: "text-blue-600",    bg: "bg-blue-500",    ring: "ring-blue-400" },
+  { key: "planifie",  label: "Prévu",      icon: Clock,         color: "text-blue-600",    bg: "bg-blue-500",    ring: "ring-blue-400" },
   { key: "en_cours",  label: "En cours",   icon: Wrench,        color: "text-amber-600",   bg: "bg-amber-500",   ring: "ring-amber-400" },
   { key: "realise",   label: "Réalisé",    icon: CheckCircle2,  color: "text-emerald-600", bg: "bg-emerald-500", ring: "ring-emerald-400" },
 ];

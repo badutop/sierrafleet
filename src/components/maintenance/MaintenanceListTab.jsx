@@ -85,7 +85,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
           ))}
         </div>
         <div className="flex gap-1 flex-wrap">
-          {[["all","Tous statuts"],["planifie","Planifié"],["en_cours","En cours"],["realise","Réalisé"]].map(([v,l]) => (
+          {[["all","Tous statuts"],["planifie","Prévu"],["en_cours","En cours"],["realise","Réalisé"]].map(([v,l]) => (
             <Button key={v} size="sm" variant={filterStatut === v ? "default" : "outline"} onClick={() => setFilterStatut(v)} className={filterStatut === v ? "bg-primary text-xs" : "text-xs"}>{l}</Button>
           ))}
         </div>
@@ -138,7 +138,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(m)}><Pencil className="w-3 h-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(m)} title="Voir détails"><Pencil className="w-3 h-3" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(m.id)}><Trash2 className="w-3 h-3" /></Button>
                     </div>
                   </TableCell>

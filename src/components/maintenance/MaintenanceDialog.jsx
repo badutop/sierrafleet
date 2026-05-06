@@ -24,18 +24,19 @@ const emptyForm = {
   date_fin_intervention: "", duree_immobilisation_jours: "", prestataire: "",
   cout: "", cout_pieces: "", cout_main_oeuvre: "", pieces_remplacees: "",
   km_entretien: "", prochaine_date: "", prochain_km: "", prochain_nb_rotations: "",
-  statut: "realise", gravite: "moyenne", observations: "",
+  statut: "planifie", gravite: "moyenne", observations: "",
 };
 
 export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry, onSave, isPending }) {
   const [form, setForm] = useState(emptyForm);
+  const isReadOnly = !!entry; // une fiche existante ne peut plus être modifiée
 
   useEffect(() => {
     if (entry) setForm({ ...emptyForm, ...entry });
     else setForm(emptyForm);
   }, [entry, open]);
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k, v) => { if (!isReadOnly) setForm(f => ({ ...f, [k]: v })); };
 
   const coutTotal = (Number(form.cout_pieces) || 0) + (Number(form.cout_main_oeuvre) || 0) || Number(form.cout) || 0;
   const isCorrective = form.categorie === "corrective";
@@ -55,7 +56,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wrench className="w-4 h-4 text-secondary" />
-            {entry ? "Modifier l'intervention" : "Nouvelle intervention"}
+            {entry ? "Détail de l'intervention" : "Nouvelle intervention"}
           </DialogTitle>
         </DialogHeader>
 
@@ -88,19 +89,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
             </Select>
           </div>
 
-          {/* Statut */}
-          <div>
-            <Label className="text-xs">Statut</Label>
-            <Select value={form.statut} onValueChange={v => set("statut", v)}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="planifie">Planifié</SelectItem>
-                <SelectItem value="en_cours">En cours</SelectItem>
-                <SelectItem value="realise">Réalisé</SelectItem>
-                <SelectItem value="annule">Annulé</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
 
           {/* Type */}
           <div>
@@ -216,10 +205,12 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
         </div>
 
         <div className="flex gap-2 mt-4">
-          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={!isValid || isPending}>
-            {isPending ? "Enregistrement..." : "Enregistrer"}
-          </Button>
+          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>{entry ? "Fermer" : "Annuler"}</Button>
+          {!entry && (
+            <Button className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={!isValid || isPending}>
+              {isPending ? "Enregistrement..." : "Enregistrer"}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
