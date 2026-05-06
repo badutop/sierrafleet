@@ -23,15 +23,24 @@
         "pneumatiques",
         "autre"
       ],
-      "default": "autre"
+      "default": "autre",
+      "description": "Cat\u00e9gorie de la pi\u00e8ce"
     },
-    "marque_vehicule": {
+    "etat": {
       "type": "string",
-      "description": "Marque(s) de v\u00e9hicule compatible(s)"
+      "enum": [
+        "neuve",
+        "occasion",
+        "reconditionnee",
+        "degats"
+      ],
+      "default": "neuve",
+      "description": "\u00c9tat de la pi\u00e8ce"
     },
     "quantite_stock": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Quantit\u00e9 en stock"
     },
     "quantite_min": {
       "type": "number",
@@ -39,17 +48,16 @@
       "description": "Seuil d'alerte minimum"
     },
     "prix_unitaire": {
-      "type": "number"
+      "type": "number",
+      "description": "Prix unitaire"
     },
-    "fournisseur": {
-      "type": "string"
-    },
-    "localisation": {
+    "supplier_id": {
       "type": "string",
-      "description": "Emplacement dans le garage"
+      "description": "ID du fournisseur"
     },
     "notes": {
-      "type": "string"
+      "type": "string",
+      "description": "Notes additionnelles"
     }
   },
   "required": [

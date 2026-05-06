@@ -14,8 +14,10 @@ import { toast } from "sonner";
 
 const categorieLabels = { moteur: "Moteur", freinage: "Freinage", suspension: "Suspension", transmission: "Transmission", electricite: "Électricité", carrosserie: "Carrosserie", filtres: "Filtres", pneumatiques: "Pneumatiques", autre: "Autre" };
 const categorieColors = { moteur: "bg-red-500/10 text-red-600", freinage: "bg-orange-500/10 text-orange-600", suspension: "bg-yellow-500/10 text-yellow-700", transmission: "bg-blue-500/10 text-blue-600", electricite: "bg-purple-500/10 text-purple-600", carrosserie: "bg-slate-500/10 text-slate-600", filtres: "bg-green-500/10 text-green-600", pneumatiques: "bg-cyan-500/10 text-cyan-600", autre: "bg-muted text-muted-foreground" };
+const etatLabels = { neuve: "Neuve", occasion: "Occasion", reconditionnee: "Reconditionée", degats: "Dégâts" };
+const etatColors = { neuve: "bg-green-500/10 text-green-700", occasion: "bg-blue-500/10 text-blue-700", reconditionnee: "bg-amber-500/10 text-amber-700", degats: "bg-red-500/10 text-red-700" };
 
-const emptyForm = { reference: "", designation: "", categorie: "autre", marque_vehicule: "", quantite_stock: "", quantite_min: "1", prix_unitaire: "", fournisseur: "", localisation: "", notes: "" };
+const emptyForm = { reference: "", designation: "", categorie: "autre", etat: "neuve", quantite_stock: "", quantite_min: "1", prix_unitaire: "", supplier_id: "", notes: "" };
 
 export default function SpareParts() {
   const [search, setSearch] = useState("");
@@ -28,6 +30,11 @@ export default function SpareParts() {
   const { data: parts = [], isLoading } = useQuery({
     queryKey: ["spareParts"],
     queryFn: () => base44.entities.SparePart.list(),
+  });
+
+  const { data: suppliers = [] } = useQuery({
+    queryKey: ["suppliers"],
+    queryFn: () => base44.entities.Supplier.list(),
   });
 
   const createMutation = useMutation({
@@ -126,8 +133,8 @@ export default function SpareParts() {
                   </div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Seuil min.</span><span className="font-medium">{p.quantite_min || 1}</span></div>
                   {p.prix_unitaire > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Prix unitaire</span><span className="font-medium">{p.prix_unitaire?.toLocaleString("fr-FR")} FCFA</span></div>}
-                  {p.fournisseur && <div className="flex justify-between"><span className="text-muted-foreground">Fournisseur</span><span className="font-medium truncate ml-2">{p.fournisseur}</span></div>}
-                  {p.localisation && <div className="flex justify-between"><span className="text-muted-foreground">Localisation</span><span className="font-medium">{p.localisation}</span></div>}
+                  {p.etat && <div className="flex items-center justify-between"><span className="text-muted-foreground">État</span><Badge className={cn("text-[10px]", etatColors[p.etat])}>{etatLabels[p.etat]}</Badge></div>}
+                  {p.supplier_id && <div className="flex justify-between"><span className="text-muted-foreground">Fournisseur</span><span className="font-medium truncate ml-2">{suppliers.find(s => s.id === p.supplier_id)?.nom || "—"}</span></div>}
                   <div className="flex gap-2 pt-2 border-t border-border">
                     <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => openEdit(p)}>
                       <Pencil className="w-3 h-3 mr-1" /> Modifier
@@ -165,12 +172,23 @@ export default function SpareParts() {
                 <SelectContent>{Object.entries(categorieLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            <div>
+              <Label className="text-xs">État</Label>
+              <Select value={form.etat} onValueChange={v => setForm({ ...form, etat: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>{Object.entries(etatLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div><Label className="text-xs">Stock actuel</Label><Input type="number" className="mt-1" value={form.quantite_stock} onChange={e => setForm({ ...form, quantite_stock: e.target.value })} /></div>
             <div><Label className="text-xs">Seuil min.</Label><Input type="number" className="mt-1" value={form.quantite_min} onChange={e => setForm({ ...form, quantite_min: e.target.value })} /></div>
-            <div><Label className="text-xs">Prix unitaire (FCFA)</Label><Input type="number" className="mt-1" value={form.prix_unitaire} onChange={e => setForm({ ...form, prix_unitaire: e.target.value })} /></div>
-            <div><Label className="text-xs">Fournisseur</Label><Input className="mt-1" value={form.fournisseur} onChange={e => setForm({ ...form, fournisseur: e.target.value })} /></div>
-            <div><Label className="text-xs">Véhicule(s) compatible(s)</Label><Input className="mt-1" value={form.marque_vehicule} onChange={e => setForm({ ...form, marque_vehicule: e.target.value })} /></div>
-            <div><Label className="text-xs">Localisation garage</Label><Input className="mt-1" value={form.localisation} onChange={e => setForm({ ...form, localisation: e.target.value })} /></div>
+            <div className="col-span-2"><Label className="text-xs">Prix unitaire (FCFA)</Label><Input type="number" className="mt-1" value={form.prix_unitaire} onChange={e => setForm({ ...form, prix_unitaire: e.target.value })} /></div>
+            <div className="col-span-2">
+              <Label className="text-xs">Fournisseur</Label>
+              <Select value={form.supplier_id || ""} onValueChange={v => setForm({ ...form, supplier_id: v })}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner un fournisseur..." /></SelectTrigger>
+                <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.nom}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div className="col-span-2"><Label className="text-xs">Notes</Label><Input className="mt-1" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           </div>
           <div className="flex gap-2 mt-4">
