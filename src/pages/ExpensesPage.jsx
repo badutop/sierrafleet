@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search, Receipt, Pencil, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -209,13 +208,22 @@ export default function ExpensesPage() {
               </Select>
             </div>
             <div className="col-span-2"><Label className="text-xs">Description</Label><Input className="mt-1" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-          </div>
-          <div className="flex gap-2 mt-4">
+            {editingExpense && (
+              <div className="col-span-2">
+                <Label className="text-xs">Statut</Label>
+                <Select value={form.statut} onValueChange={v => setForm({ ...form, statut: v })}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(statutLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
+            </div>
+            <div className="flex gap-2 mt-4">
             <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
             <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.montant || !form.date_frais}>
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
-          </div>
+            </div>
         </DialogContent>
       </Dialog>
     </div>
