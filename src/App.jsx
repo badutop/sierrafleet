@@ -18,6 +18,7 @@ import SettingsPage from '@/pages/SettingsPage';
 import SpareParts from '@/pages/SpareParts';
 import ExpensesPage from '@/pages/ExpensesPage';
 import UsersPage from '@/pages/UsersPage';
+import LandingPage from '@/pages/LandingPage';
 import CampaignsList from '@/pages/campaigns/CampaignsList';
 import CampaignDetail from '@/pages/campaigns/CampaignDetail';
 import ClientsPage from '@/pages/campaigns/ClientsPage';
@@ -40,15 +41,15 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
+      // Show landing page instead of auto-redirecting
+      return <LandingPage />;
     }
   }
 
   // Render the main app
   return (
     <Routes>
+      <Route path="/landing" element={<LandingPage />} />
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/vehicles" element={<Vehicles />} />
