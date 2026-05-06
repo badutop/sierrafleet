@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Truck, GripVertical, Ship } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Truck, GripVertical, Ship, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -19,6 +21,8 @@ const statutLabels = { planifiee: "Planifiée", en_cours: "En cours", terminee: 
 export default function TruckAssignmentBoard({ campaigns }) {
   const queryClient = useQueryClient();
   const [isDragging, setIsDragging] = useState(false);
+  // Per-campaign: which vehicle is being selected to add
+  const [addingTo, setAddingTo] = useState({}); // { [campaignId]: selectedVehicleId }
 
   const { data: rotations = [] } = useQuery({
     queryKey: ["rotations-all"],
@@ -29,6 +33,7 @@ export default function TruckAssignmentBoard({ campaigns }) {
     queryFn: () => base44.entities.Vehicle.list()
   });
 
+  // Move truck: update existing rotation to new campaign
   const moveMutation = useMutation({
     mutationFn: ({ rotationId, newCampaignId }) =>
       base44.entities.Rotation.update(rotationId, { campaign_id: newCampaignId }),
@@ -38,25 +43,62 @@ export default function TruckAssignmentBoard({ campaigns }) {
     },
   });
 
-  const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
-
-  // Build per-campaign truck assignments from latest rotations (unique vehicles per campaign)
-  const campaignTrucks = {};
-  campaigns.filter(c => c.statut !== "terminee").forEach(c => { campaignTrucks[c.id] = []; });
-
-  // Get the latest rotation per vehicle per campaign
-  const seen = {};
-  [...rotations].sort((a, b) => new Date(b.date_rotation) - new Date(a.date_rotation)).forEach(r => {
-    if (!campaignTrucks[r.campaign_id]) return;
-    const key = `${r.campaign_id}-${r.vehicle_id}`;
-    if (!seen[key]) {
-      seen[key] = true;
-      campaignTrucks[r.campaign_id].push(r);
-    }
+  // Assign new truck to campaign: create a rotation entry
+  const assignMutation = useMutation({
+    mutationFn: ({ vehicle_id, campaign_id }) =>
+      base44.entities.Rotation.create({
+        campaign_id,
+        vehicle_id,
+        date_rotation: new Date().toISOString(),
+        statut: "en_cours",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rotations-all"] });
+      toast.success("Camion affecté à la campagne");
+    },
   });
 
-  const onDragStart = () => setIsDragging(true);
+  // Remove truck from campaign: delete the rotation
+  const removeMutation = useMutation({
+    mutationFn: (rotationId) => base44.entities.Rotation.delete(rotationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rotations-all"] });
+      toast.success("Camion retiré de la campagne");
+    },
+  });
 
+  const vehicleMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
+
+  const activeCampaigns = campaigns.filter(c => c.statut !== "terminee");
+
+  // Build per-campaign assignments (unique vehicle per campaign, latest rotation)
+  const campaignTrucks = useMemo(() => {
+    const result = {};
+    activeCampaigns.forEach(c => { result[c.id] = []; });
+    const seen = {};
+    [...rotations]
+      .sort((a, b) => new Date(b.date_rotation) - new Date(a.date_rotation))
+      .forEach(r => {
+        if (!result[r.campaign_id]) return;
+        const key = `${r.campaign_id}-${r.vehicle_id}`;
+        if (!seen[key]) {
+          seen[key] = true;
+          result[r.campaign_id].push(r);
+        }
+      });
+    return result;
+  }, [rotations, activeCampaigns]);
+
+  // Vehicles already assigned to a given campaign
+  const assignedVehicleIds = useMemo(() => {
+    const map = {};
+    activeCampaigns.forEach(c => {
+      map[c.id] = new Set((campaignTrucks[c.id] || []).map(r => r.vehicle_id));
+    });
+    return map;
+  }, [campaignTrucks, activeCampaigns]);
+
+  const onDragStart = () => setIsDragging(true);
   const onDragEnd = (result) => {
     setIsDragging(false);
     const { source, destination, draggableId } = result;
@@ -64,7 +106,12 @@ export default function TruckAssignmentBoard({ campaigns }) {
     moveMutation.mutate({ rotationId: draggableId, newCampaignId: destination.droppableId });
   };
 
-  const activeCampaigns = campaigns.filter(c => c.statut !== "terminee");
+  const handleAssign = (campaignId) => {
+    const vehicleId = addingTo[campaignId];
+    if (!vehicleId) return;
+    assignMutation.mutate({ vehicle_id: vehicleId, campaign_id: campaignId });
+    setAddingTo(prev => ({ ...prev, [campaignId]: undefined }));
+  };
 
   if (activeCampaigns.length === 0) {
     return (
@@ -79,36 +126,43 @@ export default function TruckAssignmentBoard({ campaigns }) {
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground flex items-center gap-1.5">
         <GripVertical className="w-3.5 h-3.5" />
-        Glissez un camion d'une colonne à une autre pour le réaffecter à une autre campagne.
+        Glissez un camion d'une colonne à une autre pour le transférer, ou utilisez le sélecteur pour en affecter un nouveau.
       </p>
       <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {activeCampaigns.map(campaign => {
             const trucks = campaignTrucks[campaign.id] || [];
+            const alreadyAssigned = assignedVehicleIds[campaign.id] || new Set();
+            const availableVehicles = vehicles.filter(v => !alreadyAssigned.has(v.id));
+            const selectedVehicle = addingTo[campaign.id];
+
             return (
               <Card key={campaign.id} className={cn("transition-all", isDragging && "ring-2 ring-primary/20")}>
                 <CardHeader className="pb-2 pt-4 px-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <CardTitle className="text-sm truncate">{campaign.nom_campagne}</CardTitle>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{trucks.length} camion{trucks.length > 1 ? "s" : ""} assigné{trucks.length > 1 ? "s" : ""}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {trucks.length} camion{trucks.length !== 1 ? "s" : ""} assigné{trucks.length !== 1 ? "s" : ""}
+                      </p>
                     </div>
                     <Badge className={cn("text-[10px] shrink-0", statutColors[campaign.statut])}>{statutLabels[campaign.statut]}</Badge>
                   </div>
                 </CardHeader>
+
                 <Droppable droppableId={campaign.id}>
                   {(provided, snapshot) => (
                     <CardContent
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       className={cn(
-                        "min-h-[120px] px-4 pb-4 space-y-2 rounded-b-xl transition-colors",
+                        "min-h-[100px] px-4 pb-3 space-y-2 rounded-b-xl transition-colors",
                         snapshot.isDraggingOver && "bg-primary/5"
                       )}
                     >
                       {trucks.length === 0 && !snapshot.isDraggingOver && (
-                        <div className="flex items-center justify-center h-20 border-2 border-dashed border-muted rounded-lg">
-                          <p className="text-xs text-muted-foreground">Déposer un camion ici</p>
+                        <div className="flex items-center justify-center h-16 border-2 border-dashed border-muted rounded-lg">
+                          <p className="text-xs text-muted-foreground">Déposer ou affecter un camion</p>
                         </div>
                       )}
                       {trucks.map((rotation, index) => {
@@ -120,26 +174,64 @@ export default function TruckAssignmentBoard({ campaigns }) {
                               <div
                                 ref={prov.innerRef}
                                 {...prov.draggableProps}
-                                {...prov.dragHandleProps}
                                 className={cn(
-                                  "flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg text-xs cursor-grab select-none transition-shadow",
+                                  "flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg text-xs select-none transition-shadow",
                                   snap.isDragging && "shadow-xl ring-2 ring-primary cursor-grabbing"
                                 )}
                               >
-                                <GripVertical className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <div {...prov.dragHandleProps} className="cursor-grab">
+                                  <GripVertical className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                </div>
                                 <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
                                   <Truck className="w-4 h-4 text-primary" />
                                 </div>
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <p className="font-bold truncate">{vehicle.immatriculation}</p>
                                   <p className="text-muted-foreground truncate">{vehicle.code_camion && `${vehicle.code_camion} · `}{vehicle.marque} {vehicle.modele}</p>
                                 </div>
+                                <button
+                                  onClick={() => { if (confirm(`Retirer ${vehicle.immatriculation} de cette campagne ?`)) removeMutation.mutate(rotation.id); }}
+                                  className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             )}
                           </Draggable>
                         );
                       })}
                       {provided.placeholder}
+
+                      {/* Add truck row */}
+                      {availableVehicles.length > 0 && (
+                        <div className="flex gap-2 pt-1">
+                          <Select
+                            value={selectedVehicle || ""}
+                            onValueChange={v => setAddingTo(prev => ({ ...prev, [campaign.id]: v }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs flex-1">
+                              <SelectValue placeholder="+ Affecter un camion…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableVehicles.map(v => (
+                                <SelectItem key={v.id} value={v.id}>
+                                  {v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation}{v.marque ? ` — ${v.marque}` : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {selectedVehicle && (
+                            <Button
+                              size="sm"
+                              className="h-8 px-3 text-xs bg-secondary hover:bg-secondary/90"
+                              onClick={() => handleAssign(campaign.id)}
+                              disabled={assignMutation.isPending}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   )}
                 </Droppable>
