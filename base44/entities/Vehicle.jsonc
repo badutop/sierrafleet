@@ -22,7 +22,8 @@
         "camion",
         "utilitaire",
         "liaison",
-        "remorque"
+        "remorque",
+        "bc"
       ],
       "default": "camion"
     },
@@ -52,9 +53,6 @@
     "capacite_charge_tonnes": {
       "type": "number"
     },
-    "consommation_moyenne": {
-      "type": "number"
-    },
     "date_assurance": {
       "type": "string",
       "format": "date"
@@ -63,7 +61,7 @@
       "type": "string",
       "format": "date"
     },
-    "date_vignette": {
+    "date_carte_grise": {
       "type": "string",
       "format": "date"
     },

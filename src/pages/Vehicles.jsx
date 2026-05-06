@@ -14,9 +14,9 @@ import { toast } from "sonner";
 
 const statusLabels = { disponible: "Disponible", en_mission: "En mission", en_maintenance: "Maintenance", hors_service: "Hors service" };
 const statusColors = { disponible: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", en_mission: "bg-blue-500/10 text-blue-600 border-blue-500/20", en_maintenance: "bg-amber-500/10 text-amber-600 border-amber-500/20", hors_service: "bg-destructive/10 text-destructive border-destructive/20" };
-const typeLabels = { camion: "Camion", utilitaire: "Utilitaire", liaison: "Liaison", remorque: "Remorque" };
+const typeLabels = { camion: "Camion", utilitaire: "Utilitaire", liaison: "Liaison", remorque: "Remorque", bc: "BC - Benne Céréalière" };
 
-const emptyForm = { code_camion: "", immatriculation: "", marque: "", modele: "", annee: "", couleur: "", km_actuel: "", type_vehicule: "camion", capacite_charge_tonnes: "", consommation_moyenne: "", date_assurance: "", date_visite_technique: "", date_vignette: "" };
+const emptyForm = { code_camion: "", immatriculation: "", marque: "", modele: "", type_vehicule: "camion", annee: "", couleur: "", km_actuel: "", capacite_charge_tonnes: "", date_assurance: "", date_visite_technique: "", date_carte_grise: "" };
 
 export default function Vehicles() {
   const [search, setSearch] = useState("");
@@ -52,7 +52,7 @@ export default function Vehicles() {
   const closeDialog = () => { setDialogOpen(false); setEditingVehicle(null); setForm(emptyForm); };
 
   const handleSave = () => {
-    const numFields = ["annee", "km_actuel", "capacite_charge_tonnes", "consommation_moyenne"];
+    const numFields = ["annee", "km_actuel", "capacite_charge_tonnes"];
     const data = { ...form };
     numFields.forEach(f => { if (data[f] !== "" && data[f] !== undefined) data[f] = Number(data[f]); });
     if (editingVehicle) updateMutation.mutate({ id: editingVehicle.id, data });
@@ -148,7 +148,7 @@ export default function Vehicles() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingVehicle ? "Modifier le véhicule" : "Nouveau véhicule"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3 mt-2">
-            {[["code_camion","Code camion (CT)"],["immatriculation","Immatriculation"],["marque","Marque"],["modele","Modèle"],["annee","Année"],["couleur","Couleur"],["km_actuel","Km actuel"],["consommation_moyenne","Conso moy. (L/100)"],["capacite_charge_tonnes","Capacité (tonnes)"]].map(([key, label]) => (
+            {[["code_camion","Code camion (CT)"],["immatriculation","Immatriculation"],["marque","Marque"],["modele","Modèle"]].map(([key, label]) => (
               <div key={key}>
                 <Label className="text-xs">{label}</Label>
                 <Input className="mt-1" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })} />
@@ -168,6 +168,18 @@ export default function Vehicles() {
                 <SelectContent>{Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {[["annee","Année"],["couleur","Couleur"],["km_actuel","Km actuel"]].map(([key, label]) => (
+              <div key={key}>
+                <Label className="text-xs">{label}</Label>
+                <Input className="mt-1" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })} />
+              </div>
+            ))}
+            {form.type_vehicule !== "remorque" && (
+              <div>
+                <Label className="text-xs">Capacité (tonnes)</Label>
+                <Input className="mt-1" value={form.capacite_charge_tonnes || ""} onChange={e => setForm({ ...form, capacite_charge_tonnes: e.target.value })} />
+              </div>
+            )}
             <div>
               <Label className="text-xs">Date assurance</Label>
               <Input type="date" className="mt-1" value={form.date_assurance || ""} onChange={e => setForm({ ...form, date_assurance: e.target.value })} />
@@ -177,8 +189,8 @@ export default function Vehicles() {
               <Input type="date" className="mt-1" value={form.date_visite_technique || ""} onChange={e => setForm({ ...form, date_visite_technique: e.target.value })} />
             </div>
             <div>
-              <Label className="text-xs">Vignette</Label>
-              <Input type="date" className="mt-1" value={form.date_vignette || ""} onChange={e => setForm({ ...form, date_vignette: e.target.value })} />
+              <Label className="text-xs">Carte grise</Label>
+              <Input type="date" className="mt-1" value={form.date_carte_grise || ""} onChange={e => setForm({ ...form, date_carte_grise: e.target.value })} />
             </div>
           </div>
           <div className="flex gap-2 mt-4">
