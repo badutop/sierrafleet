@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Wrench, AlertTriangle } from "lucide-react";
+import { Wrench, AlertTriangle, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 
 const typeLabels = {
   vidange: "Vidange", revision: "Révision générale", pneus: "Pneus", filtres: "Filtres",
@@ -29,11 +31,39 @@ const emptyForm = {
 
 export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry, onSave, isPending }) {
   const [form, setForm] = useState(emptyForm);
+  const [selectedPart, setSelectedPart] = useState("");
+  const [selectedParts, setSelectedParts] = useState([]);
+
+  const { data: spareParts = [] } = useQuery({
+    queryKey: ["spare-parts"],
+    queryFn: () => base44.entities.SparePart.list("designation"),
+  });
+
+  const addPart = (partId) => {
+    if (!partId) return;
+    const part = spareParts.find(p => p.id === partId);
+    if (!part || selectedParts.find(p => p.id === partId)) return;
+    const newParts = [...selectedParts, part];
+    setSelectedParts(newParts);
+    setSelectedPart("");
+    // Mettre à jour le champ texte pieces_remplacees
+    const names = newParts.map(p => p.designation).join(", ");
+    if (!isReadOnly) setForm(f => ({ ...f, pieces_remplacees: names }));
+  };
+
+  const removePart = (partId) => {
+    const newParts = selectedParts.filter(p => p.id !== partId);
+    setSelectedParts(newParts);
+    const names = newParts.map(p => p.designation).join(", ");
+    if (!isReadOnly) setForm(f => ({ ...f, pieces_remplacees: names }));
+  };
   const isReadOnly = !!entry; // une fiche existante ne peut plus être modifiée
 
   useEffect(() => {
     if (entry) setForm({ ...emptyForm, ...entry });
     else setForm(emptyForm);
+    setSelectedParts([]);
+    setSelectedPart("");
   }, [entry, open]);
 
   const set = (k, v) => { if (!isReadOnly) setForm(f => ({ ...f, [k]: v })); };
@@ -177,7 +207,40 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
           {/* Pièces */}
           <div className="col-span-2">
             <Label className="text-xs">Pièces remplacées</Label>
-            <Input className="mt-1" placeholder="Ex: Filtre huile, Plaquettes avant..." value={form.pieces_remplacees} onChange={e => set("pieces_remplacees", e.target.value)} />
+            {!isReadOnly && (
+              <div className="flex gap-2 mt-1">
+                <Select value={selectedPart} onValueChange={addPart}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="— Sélectionner une pièce du stock —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {spareParts.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        <span className="font-mono text-[10px] text-muted-foreground mr-2">{p.reference}</span>
+                        {p.designation}
+                        <span className="ml-2 text-[10px] text-muted-foreground">({p.quantite_stock} en stock)</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {selectedParts.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {selectedParts.map(p => (
+                  <span key={p.id} className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-1 rounded-md">
+                    <span className="font-mono text-[10px] text-muted-foreground">{p.reference}</span>
+                    {p.designation}
+                    {!isReadOnly && (
+                      <button onClick={() => removePart(p.id)} className="ml-1 hover:text-destructive">
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
+            <Input className="mt-2" placeholder="Ou saisir manuellement: Filtre huile, Plaquettes avant..." value={form.pieces_remplacees} onChange={e => set("pieces_remplacees", e.target.value)} />
           </div>
 
           {/* Km */}
