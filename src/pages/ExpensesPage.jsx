@@ -17,7 +17,7 @@ const typeColors = { carburant: "bg-orange-500/10 text-orange-600", peage: "bg-b
 const statutLabels = { en_attente: "En attente", valide: "Validé", rejete: "Rejeté" };
 const statutColors = { en_attente: "bg-amber-500/10 text-amber-600", valide: "bg-emerald-500/10 text-emerald-600", rejete: "bg-destructive/10 text-destructive" };
 
-const emptyForm = { vehicle_id: "", driver_id: "", type_frais: "carburant", date_frais: "", montant: "", description: "", statut: "en_attente", collecteur: "", executeur: "" };
+const emptyForm = { vehicle_id: "", driver_id: "", type_frais: "carburant", date_frais: "", montant: "", description: "", statut: "en_attente" };
 
 export default function ExpensesPage() {
   const [search, setSearch] = useState("");
@@ -114,7 +114,6 @@ export default function ExpensesPage() {
               <TableHead>Description</TableHead>
               <TableHead className="text-right">Montant</TableHead>
               <TableHead>Statut</TableHead>
-              <TableHead>Collecteur</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
@@ -125,15 +124,14 @@ export default function ExpensesPage() {
               <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground"><Receipt className="w-10 h-10 mx-auto mb-2 opacity-30" /><p>Aucun frais enregistré</p></TableCell></TableRow>
             ) : filtered.map(e => (
               <TableRow key={e.id}>
-                <TableCell className="text-sm whitespace-nowrap">{e.date_frais}</TableCell>
-                <TableCell><Badge className={cn("text-[10px]", typeColors[e.type_frais])}>{typeLabels[e.type_frais]}</Badge></TableCell>
-                <TableCell className="text-sm">{vehicleMap[e.vehicle_id] || "-"}</TableCell>
-                <TableCell className="text-sm">{driverMap[e.driver_id] || "-"}</TableCell>
-                <TableCell className="text-sm max-w-[160px] truncate">{e.description || "-"}</TableCell>
-                <TableCell className="text-right font-semibold text-sm">{(e.montant || 0).toLocaleString("fr-FR")}</TableCell>
-                <TableCell><Badge className={cn("text-[10px]", statutColors[e.statut])}>{statutLabels[e.statut]}</Badge></TableCell>
-                <TableCell className="text-sm">{e.collecteur || "-"}</TableCell>
-                <TableCell>
+                   <TableCell className="text-sm whitespace-nowrap">{e.date_frais}</TableCell>
+                   <TableCell><Badge className={cn("text-[10px]", typeColors[e.type_frais])}>{typeLabels[e.type_frais]}</Badge></TableCell>
+                   <TableCell className="text-sm">{vehicleMap[e.vehicle_id] || "-"}</TableCell>
+                   <TableCell className="text-sm">{driverMap[e.driver_id] || "-"}</TableCell>
+                   <TableCell className="text-sm max-w-[160px] truncate">{e.description || "-"}</TableCell>
+                   <TableCell className="text-right font-semibold text-sm">{(e.montant || 0).toLocaleString("fr-FR")}</TableCell>
+                   <TableCell><Badge className={cn("text-[10px]", statutColors[e.statut])}>{statutLabels[e.statut]}</Badge></TableCell>
+                   <TableCell>
                   <div className="flex gap-1">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(e)}><Pencil className="w-3 h-3" /></Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => { if(confirm("Supprimer ce frais ?")) deleteMutation.mutate(e.id); }}><Trash2 className="w-3 h-3" /></Button>
@@ -186,8 +184,6 @@ export default function ExpensesPage() {
               </Select>
             </div>
             <div className="col-span-2"><Label className="text-xs">Description</Label><Input className="mt-1" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-            <div><Label className="text-xs">Collecteur de bon</Label><Input className="mt-1" value={form.collecteur} onChange={e => setForm({ ...form, collecteur: e.target.value })} /></div>
-            <div><Label className="text-xs">Exécuteur de dépense</Label><Input className="mt-1" value={form.executeur} onChange={e => setForm({ ...form, executeur: e.target.value })} /></div>
           </div>
           <div className="flex gap-2 mt-4">
             <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
