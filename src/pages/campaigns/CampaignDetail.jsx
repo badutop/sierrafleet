@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Truck, RotateCw, AlertTriangle, CheckCircle, Fuel, ClipboardList, Play, Pencil } from "lucide-react";
+import { ArrowLeft, Truck, RotateCw, AlertTriangle, CheckCircle, Fuel, ClipboardList, Play, Pencil, Lock, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import RotationSheetEntry from "./RotationSheetEntry";
@@ -14,6 +14,7 @@ import DailyDeclarations from "./DailyDeclarations";
 import CampaignRotationsTable from "./CampaignRotationsTable";
 import FillEfficiencyBar from "@/components/campaigns/FillEfficiencyBar";
 import CampaignTruckAssignment from "@/components/campaigns/CampaignTruckAssignment";
+import CampaignReport from "@/components/campaigns/CampaignReport";
 
 const statutColors = { planifiee: "bg-blue-500/10 text-blue-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-muted text-muted-foreground", suspendue: "bg-amber-500/10 text-amber-600" };
 const statutLabels = { planifiee: "Planifiée", en_cours: "En cours", terminee: "Terminée", suspendue: "Suspendue" };
@@ -22,6 +23,7 @@ export default function CampaignDetail() {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const [rotSheetOpen, setRotSheetOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const { data: campaign } = useQuery({ queryKey: ["campaign", id], queryFn: () => base44.entities.Campaign.filter({ id }).then(r => r[0]) });
   const { data: client } = useQuery({ queryKey: ["client", campaign?.client_id], queryFn: () => base44.entities.Client.filter({ id: campaign.client_id }).then(r => r[0]), enabled: !!campaign?.client_id });
@@ -33,6 +35,15 @@ export default function CampaignDetail() {
   const startCampaign = useMutation({
     mutationFn: () => base44.entities.Campaign.update(id, { statut: "en_cours" }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaign", id] }); toast.success("Campagne démarrée"); },
+  });
+
+  const closeCampaign = useMutation({
+    mutationFn: () => base44.entities.Campaign.update(id, { statut: "terminee" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaign", id] });
+      toast.success("Campagne clôturée");
+      setReportOpen(true);
+    },
   });
 
   if (!campaign) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>;
@@ -63,9 +74,21 @@ export default function CampaignDetail() {
               <Play className="w-4 h-4 mr-2" /> Démarrer
             </Button>
           )}
-          {campaign.statut === "en_cours" && (
+          {campaign.statut === "en_cours" && (<>
             <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={() => setRotSheetOpen(true)}>
               <ClipboardList className="w-4 h-4 mr-2" /> Saisir fiche du jour
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-md shadow-red-200"
+              onClick={() => { if (window.confirm("Clôturer définitivement cette campagne ?\n\nCela marquera la campagne comme terminée et générera le rapport de clôture.")) closeCampaign.mutate(); }}
+              disabled={closeCampaign.isPending}
+            >
+              <Lock className="w-4 h-4 mr-2" /> Clôturer la campagne
+            </Button>
+          </>)}
+          {campaign.statut === "terminee" && (
+            <Button variant="outline" onClick={() => setReportOpen(true)}>
+              <FileText className="w-4 h-4 mr-2" /> Voir le rapport
             </Button>
           )}
         </div>
@@ -145,6 +168,19 @@ export default function CampaignDetail() {
           <DailyDeclarations campaignId={id} declarations={declarations} vehicles={vehicles} campaign={campaign} />
         </TabsContent>
       </Tabs>
+
+      {/* Rapport de clôture */}
+      {reportOpen && (
+        <CampaignReport
+          campaign={campaign}
+          client={client}
+          rotations={rotations}
+          declarations={declarations}
+          vehicles={vehicles}
+          drivers={drivers}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
 
       {/* Saisie fiche journalière */}
       <RotationSheetEntry
