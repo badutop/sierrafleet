@@ -14,7 +14,18 @@ const zoneColors = {
   zone4: "bg-red-500/10 text-red-700 border-red-500/30",
 };
 
-const emptyDepot = () => ({ nom_depot: "", adresse: "", latitude: "", longitude: "", zone: "zone1" });
+const emptyDepot = () => ({ nom_depot: "", adresse: "", latitude: "", longitude: "", zone: "zone1", _coords: "" });
+
+// Parse "lat,lng" string into { latitude, longitude }
+const parseCoords = (str) => {
+  const parts = str.split(",").map(s => s.trim());
+  if (parts.length === 2) {
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
+    if (!isNaN(lat) && !isNaN(lng)) return { latitude: lat, longitude: lng };
+  }
+  return { latitude: "", longitude: "" };
+};
 
 export default function DepotsEditor({ depots, onChange }) {
   const add = () => onChange([...depots, emptyDepot()]);
@@ -26,12 +37,27 @@ export default function DepotsEditor({ depots, onChange }) {
     onChange(updated);
   };
 
+  const updateCoords = (i, str) => {
+    const { latitude, longitude } = parseCoords(str);
+    const updated = depots.map((d, idx) => idx === i ? { ...d, _coords: str, latitude, longitude } : d);
+    onChange(updated);
+  };
+
   const tryGeolocate = (i) => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(pos => {
-      update(i, "latitude",  parseFloat(pos.coords.latitude.toFixed(6)));
-      update(i, "longitude", parseFloat(pos.coords.longitude.toFixed(6)));
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      const str = `${lat},${lng}`;
+      updateCoords(i, str);
     });
+  };
+
+  // Get display value for coords field
+  const getCoordsDisplay = (depot) => {
+    if (depot._coords !== undefined) return depot._coords;
+    if (depot.latitude !== "" && depot.longitude !== "") return `${depot.latitude},${depot.longitude}`;
+    return "";
   };
 
   return (
@@ -104,36 +130,31 @@ export default function DepotsEditor({ depots, onChange }) {
             />
           </div>
 
-          {/* GPS */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-[10px] text-muted-foreground">Latitude</Label>
+          {/* GPS coords — format standard "lat,lng" */}
+          <div>
+            <Label className="text-[10px] text-muted-foreground">Coordonnées GPS</Label>
+            <div className="flex gap-1.5 mt-0.5">
               <Input
-                className="mt-0.5 h-8 text-xs"
-                placeholder="ex: 14.6928"
-                value={depot.latitude}
-                onChange={e => update(i, "latitude", e.target.value)}
+                className="h-8 text-xs font-mono flex-1"
+                placeholder="ex: 14.692800,-17.446700"
+                value={getCoordsDisplay(depot)}
+                onChange={e => updateCoords(i, e.target.value)}
               />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 px-2 shrink-0"
+                title="Utiliser ma position actuelle"
+                onClick={() => tryGeolocate(i)}
+              >
+                <Navigation className="w-3 h-3" />
+              </Button>
             </div>
-            <div>
-              <Label className="text-[10px] text-muted-foreground">Longitude</Label>
-              <Input
-                className="mt-0.5 h-8 text-xs"
-                placeholder="ex: -17.4467"
-                value={depot.longitude}
-                onChange={e => update(i, "longitude", e.target.value)}
-              />
-            </div>
+            {depot.latitude !== "" && depot.longitude !== "" && (
+              <p className="text-[10px] text-green-600 mt-0.5">✓ Lat: {depot.latitude} — Lng: {depot.longitude}</p>
+            )}
           </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-7 text-[10px] gap-1 w-full"
-            onClick={() => tryGeolocate(i)}
-          >
-            <Navigation className="w-3 h-3" /> Utiliser ma position actuelle
-          </Button>
         </div>
       ))}
     </div>
