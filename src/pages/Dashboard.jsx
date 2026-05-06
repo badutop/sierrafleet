@@ -1,157 +1,196 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Truck, Route, Fuel, Wrench, Users, AlertTriangle, TrendingUp, Activity } from "lucide-react";
-import KpiCard from "@/components/dashboard/KpiCard";
-import BarChartSvg from "@/components/dashboard/BarChartSvg";
-import AlertsList from "@/components/dashboard/AlertsList";
+import {
+  Truck, Route, Fuel, Wrench, Users, TrendingUp, Activity,
+  Package, AlertTriangle, CheckCircle2, BarChart3, ArrowUpRight, ArrowDownRight
+} from "lucide-react";
 import { demoVehicles, demoDrivers, generateDemoTrips, generateDemoFuel, generateDemoMaintenance } from "@/lib/demoData";
+
+// Dashboard components
+import FleetStatusDonut      from "@/components/dashboard/FleetStatusDonut";
+import FuelTrendChart        from "@/components/dashboard/FuelTrendChart";
+import CampaignProgressChart from "@/components/dashboard/CampaignProgressChart";
+import MaintenanceCostChart  from "@/components/dashboard/MaintenanceCostChart";
+import RotationsTrendChart   from "@/components/dashboard/RotationsTrendChart";
+import ExpenseBreakdownChart from "@/components/dashboard/ExpenseBreakdownChart";
+import TopDriversCard        from "@/components/dashboard/TopDriversCard";
+import DashboardAlerts       from "@/components/dashboard/DashboardAlerts";
+
+const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
+const fmt = (n) => n.toLocaleString("fr-FR");
+
+function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel }) {
+  const colorMap = {
+    green:   { bg: "bg-emerald-500/10", text: "text-emerald-600", bar: "bg-emerald-500" },
+    blue:    { bg: "bg-blue-500/10",    text: "text-blue-600",    bar: "bg-blue-500" },
+    orange:  { bg: "bg-amber-500/10",   text: "text-amber-600",   bar: "bg-amber-500" },
+    red:     { bg: "bg-red-500/10",     text: "text-red-600",     bar: "bg-red-500" },
+    indigo:  { bg: "bg-indigo-500/10",  text: "text-indigo-600",  bar: "bg-indigo-500" },
+    primary: { bg: "bg-primary/10",     text: "text-primary",     bar: "bg-primary" },
+  };
+  const c = colorMap[color] || colorMap.primary;
+
+  return (
+    <div className="bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow group">
+      <div className="flex items-start justify-between mb-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${c.bg}`}>
+          <Icon className={`w-5 h-5 ${c.text}`} />
+        </div>
+        {trend !== undefined && (
+          <div className={`flex items-center gap-0.5 text-xs font-medium ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+            {trend >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+            {Math.abs(trend)}%
+          </div>
+        )}
+      </div>
+      <p className="text-2xl font-bold text-card-foreground">{value}</p>
+      <p className="text-xs text-muted-foreground mt-0.5">{title}</p>
+      {subtitle && <p className="text-[11px] text-muted-foreground/70 mt-0.5">{subtitle}</p>}
+      {trendLabel && <p className="text-[10px] text-muted-foreground/60 mt-1">{trendLabel}</p>}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const [seeded, setSeeded] = useState(false);
 
-  const { data: vehicles = [], refetch: refetchV } = useQuery({
-    queryKey: ["vehicles"],
-    queryFn: () => base44.entities.Vehicle.list(),
-  });
-  const { data: drivers = [], refetch: refetchD } = useQuery({
-    queryKey: ["drivers"],
-    queryFn: () => base44.entities.Driver.list(),
-  });
-  const { data: trips = [] } = useQuery({
-    queryKey: ["trips"],
-    queryFn: () => base44.entities.TripLog.list("-date_depart", 100),
-    enabled: seeded || vehicles.length > 0,
-  });
-  const { data: fuelEntries = [] } = useQuery({
-    queryKey: ["fuel"],
-    queryFn: () => base44.entities.FuelEntry.list("-date", 100),
-    enabled: seeded || vehicles.length > 0,
-  });
-  const { data: maintenances = [] } = useQuery({
-    queryKey: ["maintenances"],
-    queryFn: () => base44.entities.Maintenance.list("-date_entretien", 50),
-    enabled: seeded || vehicles.length > 0,
-  });
+  const { data: vehicles = [], refetch: refetchV } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: drivers = [], refetch: refetchD }  = useQuery({ queryKey: ["drivers"],  queryFn: () => base44.entities.Driver.list() });
+  const { data: trips = [] }       = useQuery({ queryKey: ["trips"],        queryFn: () => base44.entities.TripLog.list("-date_depart", 100),      enabled: seeded || vehicles.length > 0 });
+  const { data: fuelEntries = [] } = useQuery({ queryKey: ["fuel"],         queryFn: () => base44.entities.FuelEntry.list("-date", 200),           enabled: seeded || vehicles.length > 0 });
+  const { data: maintenances = [] }= useQuery({ queryKey: ["maintenances"], queryFn: () => base44.entities.Maintenance.list("-date_entretien", 100), enabled: seeded || vehicles.length > 0 });
+  const { data: campaigns = [] }   = useQuery({ queryKey: ["campaigns"],    queryFn: () => base44.entities.Campaign.list("-created_date", 20) });
+  const { data: rotations = [] }   = useQuery({ queryKey: ["rotations"],    queryFn: () => base44.entities.Rotation.list("-date_rotation", 200),   enabled: campaigns.length > 0 });
+  const { data: expenses = [] }    = useQuery({ queryKey: ["expenses"],     queryFn: () => base44.entities.Expense.list("-date_frais", 200) });
 
-  // Seed demo data if empty
+  // Demo seed
   useEffect(() => {
     async function seed() {
       if (vehicles.length === 0 && !seeded) {
-        const createdVehicles = await base44.entities.Vehicle.bulkCreate(demoVehicles);
-        const createdDrivers = await base44.entities.Driver.bulkCreate(demoDrivers);
-        const vIds = createdVehicles.map(v => v.id);
-        const dIds = createdDrivers.map(d => d.id);
-        await base44.entities.TripLog.bulkCreate(generateDemoTrips(vIds, dIds));
-        await base44.entities.FuelEntry.bulkCreate(generateDemoFuel(vIds));
-        await base44.entities.Maintenance.bulkCreate(generateDemoMaintenance(vIds));
+        const cv = await base44.entities.Vehicle.bulkCreate(demoVehicles);
+        const cd = await base44.entities.Driver.bulkCreate(demoDrivers);
+        await base44.entities.TripLog.bulkCreate(generateDemoTrips(cv.map(v => v.id), cd.map(d => d.id)));
+        await base44.entities.FuelEntry.bulkCreate(generateDemoFuel(cv.map(v => v.id)));
+        await base44.entities.Maintenance.bulkCreate(generateDemoMaintenance(cv.map(v => v.id)));
         setSeeded(true);
-        refetchV();
-        refetchD();
+        refetchV(); refetchD();
       }
     }
     seed();
   }, [vehicles.length]);
 
-  // KPI calculations
-  const active = vehicles.filter(v => v.statut === "disponible").length;
-  const enMission = vehicles.filter(v => v.statut === "en_mission").length;
-  const enMaint = vehicles.filter(v => v.statut === "en_maintenance").length;
-  const horsService = vehicles.filter(v => v.statut === "hors_service").length;
-
-  const now = new Date();
+  // ── KPIs ──────────────────────────────────────────────────────────────
+  const now       = new Date();
   const thisMonth = now.getMonth();
-  const thisYear = now.getFullYear();
-  const monthTrips = trips.filter(t => { const d = new Date(t.date_depart); return d.getMonth() === thisMonth && d.getFullYear() === thisYear; });
-  const totalKmMonth = monthTrips.reduce((s, t) => s + (t.km_parcourus || 0), 0);
-  const monthFuel = fuelEntries.filter(f => { const d = new Date(f.date); return d.getMonth() === thisMonth && d.getFullYear() === thisYear; });
-  const totalFuelCost = monthFuel.reduce((s, f) => s + (f.montant_total || 0), 0);
-  const fleetRate = vehicles.length ? Math.round(((active + enMission) / vehicles.length) * 100) : 0;
+  const thisYear  = now.getFullYear();
+  const prevMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+  const prevYear  = thisMonth === 0 ? thisYear - 1 : thisYear;
 
-  // Fuel per vehicle chart data
-  const fuelByVehicle = {};
-  const last7 = new Date(); last7.setDate(last7.getDate() - 7);
-  fuelEntries.filter(f => new Date(f.date) >= last7).forEach(f => {
-    const v = vehicles.find(vv => vv.id === f.vehicle_id);
-    const label = v ? v.immatriculation.split("-")[1] : "?";
-    fuelByVehicle[label] = (fuelByVehicle[label] || 0) + (f.litres || 0);
-  });
-  const fuelChartData = Object.entries(fuelByVehicle).map(([label, value]) => ({ label, value }));
+  const isThisMonth = (d) => { const dt = new Date(d); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; };
+  const isPrevMonth = (d) => { const dt = new Date(d); return dt.getMonth() === prevMonth && dt.getFullYear() === prevYear; };
+
+  // Fleet
+  const disponible     = vehicles.filter(v => v.statut === "disponible").length;
+  const enMission      = vehicles.filter(v => v.statut === "en_mission").length;
+  const enMaint        = vehicles.filter(v => v.statut === "en_maintenance").length;
+  const horsService    = vehicles.filter(v => v.statut === "hors_service").length;
+  const fleetRate      = vehicles.length ? Math.round(((disponible + enMission) / vehicles.length) * 100) : 0;
+
+  // Fuel
+  const fuelMonth  = fuelEntries.filter(f => isThisMonth(f.date));
+  const fuelPrev   = fuelEntries.filter(f => isPrevMonth(f.date));
+  const totalFuelCost  = fuelMonth.reduce((s, f) => s + (f.montant_total || 0), 0);
+  const prevFuelCost   = fuelPrev.reduce((s, f)  => s + (f.montant_total || 0), 0);
+  const fuelTrend      = prevFuelCost > 0 ? Math.round(((totalFuelCost - prevFuelCost) / prevFuelCost) * 100) : undefined;
+  const totalLitres    = fuelMonth.reduce((s, f) => s + (f.litres || 0), 0);
+
+  // Campaigns
+  const activeCampaigns   = campaigns.filter(c => c.statut === "en_cours").length;
+  const termineeCampaigns = campaigns.filter(c => c.statut === "terminee").length;
+
+  // Rotations this month
+  const rotMonth = rotations.filter(r => isThisMonth(r.date_rotation));
+  const rotPrev  = rotations.filter(r => isPrevMonth(r.date_rotation));
+  const rotTrend = rotPrev.length > 0 ? Math.round(((rotMonth.length - rotPrev.length) / rotPrev.length) * 100) : undefined;
+  const tonnageMonth = rotMonth.reduce((s, r) => s + (r.poids_charge_tonnes || 0), 0);
+
+  // Maintenance
+  const maintMonth     = maintenances.filter(m => isThisMonth(m.date_entretien));
+  const maintCostMonth = maintMonth.reduce((s, m) => s + (m.cout || 0) + (m.cout_pieces || 0) + (m.cout_main_oeuvre || 0), 0);
+
+  // Expenses
+  const expMonth = expenses.filter(e => isThisMonth(e.date_frais));
+  const totalExp = expMonth.reduce((s, e) => s + (e.montant || 0), 0);
 
   // Alerts
   const alerts = [];
   vehicles.forEach(v => {
-    if (v.km_prochaine_vidange && v.km_actuel >= v.km_prochaine_vidange - 500) {
+    if (v.km_prochaine_vidange && v.km_actuel >= v.km_prochaine_vidange - 500)
       alerts.push({ type: "warning", severity: "critical", title: `Vidange ${v.immatriculation}`, message: `${v.km_prochaine_vidange - v.km_actuel} km restants` });
-    }
     if (v.date_assurance) {
       const days = Math.floor((new Date(v.date_assurance) - now) / 86400000);
-      if (days <= 30) alerts.push({ type: "expiry", severity: days <= 0 ? "critical" : "warning", title: `Assurance ${v.immatriculation}`, message: days <= 0 ? "Expirée !" : `Expire dans ${days} jours` });
+      if (days <= 30) alerts.push({ type: "expiry", severity: days <= 0 ? "critical" : "warning", title: `Assurance ${v.immatriculation}`, message: days <= 0 ? "Expirée !" : `Expire dans ${days} j` });
     }
     if (v.date_visite_technique) {
       const days = Math.floor((new Date(v.date_visite_technique) - now) / 86400000);
-      if (days <= 30) alerts.push({ type: "insurance", severity: days <= 0 ? "critical" : "warning", title: `Visite technique ${v.immatriculation}`, message: days <= 0 ? "Expirée !" : `Expire dans ${days} jours` });
+      if (days <= 30) alerts.push({ type: "insurance", severity: days <= 0 ? "critical" : "warning", title: `Visite tech. ${v.immatriculation}`, message: days <= 0 ? "Expirée !" : `Expire dans ${days} j` });
     }
   });
 
-  // Top drivers
-  const driverKm = {};
-  monthTrips.forEach(t => {
-    driverKm[t.driver_id] = (driverKm[t.driver_id] || 0) + (t.km_parcourus || 0);
-  });
-  const topDrivers = Object.entries(driverKm)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([id, km]) => {
-      const d = drivers.find(dr => dr.id === id);
-      return { name: d ? `${d.prenom} ${d.nom}` : "Inconnu", km };
-    });
-
-  const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
+  const monthLabel = now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
-        <p className="text-sm text-muted-foreground mt-1">Vue d'ensemble de votre flotte</p>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Disponibles" value={active} subtitle={`${vehicles.length} total`} icon={Truck} color="green" />
-        <KpiCard title="En mission" value={enMission} icon={Route} color="blue" />
-        <KpiCard title="Maintenance" value={enMaint} icon={Wrench} color="orange" />
-        <KpiCard title="Hors service" value={horsService} icon={AlertTriangle} color="red" />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiCard title="Coût carburant (mois)" value={formatCFA(totalFuelCost)} icon={Fuel} color="orange" />
-        <KpiCard title="Km parcourus (mois)" value={totalKmMonth.toLocaleString("fr-FR") + " km"} icon={TrendingUp} color="primary" />
-        <KpiCard title="Taux d'utilisation" value={fleetRate + "%"} subtitle={`${active + enMission}/${vehicles.length} véhicules`} icon={Activity} color="green" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <BarChartSvg data={fuelChartData} title="Carburant par véhicule (7 jours, litres)" />
-        <AlertsList alerts={alerts} />
-      </div>
-
-      {topDrivers.length > 0 && (
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-semibold text-card-foreground mb-4">Top chauffeurs du mois</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {topDrivers.map((d, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <div className="w-8 h-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center font-bold text-sm">
-                  {i + 1}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-card-foreground">{d.name}</p>
-                  <p className="text-xs text-muted-foreground">{d.km.toLocaleString("fr-FR")} km</p>
-                </div>
-              </div>
-            ))}
-          </div>
+    <div className="space-y-6 pb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Vue d'ensemble opérationnelle — {monthLabel}</p>
         </div>
-      )}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-xs font-medium text-emerald-700">Système actif</span>
+        </div>
+      </div>
+
+      {/* ── Row 1 : KPI principale flotte ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <StatCard title="Véhicules disponibles"  value={disponible}  subtitle={`${vehicles.length} total`} icon={Truck}         color="green"  />
+        <StatCard title="En mission"             value={enMission}   subtitle="actifs"                    icon={Route}          color="blue"   />
+        <StatCard title="En maintenance"         value={enMaint}     subtitle="immobilisés"               icon={Wrench}         color="orange" />
+        <StatCard title="Hors service"           value={horsService} subtitle="indisponibles"             icon={AlertTriangle}  color="red"    />
+      </div>
+
+      {/* ── Row 2 : KPI opérationnels ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <StatCard title="Taux d'utilisation" value={`${fleetRate}%`}          subtitle="flotte active"        icon={Activity}   color="primary" />
+        <StatCard title="Carburant (mois)"   value={formatCFA(totalFuelCost)} subtitle={`${fmt(Math.round(totalLitres))} L`} icon={Fuel} color="orange" trend={fuelTrend} />
+        <StatCard title="Rotations (mois)"   value={fmt(rotMonth.length)}     subtitle={`${fmt(Math.round(tonnageMonth))} t`} icon={TrendingUp} color="blue" trend={rotTrend} />
+        <StatCard title="Campagnes actives"  value={activeCampaigns}          subtitle={`${termineeCampaigns} terminée(s)`} icon={Package}   color="indigo" />
+        <StatCard title="Maintenance (mois)" value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="red" />
+        <StatCard title="Chauffeurs actifs"  value={drivers.filter(d => d.statut === "actif").length} subtitle={`${drivers.length} total`} icon={Users} color="green" />
+      </div>
+
+      {/* ── Row 3 : Flotte donut + Rotations trend + Fuel trend ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <FleetStatusDonut   vehicles={vehicles} />
+        <RotationsTrendChart rotations={rotations} />
+        <FuelTrendChart      fuelEntries={fuelEntries} />
+      </div>
+
+      {/* ── Row 4 : Campagnes + Maintenance costs ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <CampaignProgressChart campaigns={campaigns} />
+        <MaintenanceCostChart  maintenances={maintenances} />
+      </div>
+
+      {/* ── Row 5 : Dépenses breakdown + Top drivers + Alertes ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <ExpenseBreakdownChart expenses={expenses} />
+        <TopDriversCard        drivers={drivers} rotations={rotations} campaigns={campaigns} />
+        <DashboardAlerts       alerts={alerts} />
+      </div>
     </div>
   );
 }
