@@ -202,7 +202,12 @@ export default function CampaignsList() {
             <div>
               <Label className="text-xs">Point d'origine *</Label>
               <Select value={form.point_origine || "none"} onValueChange={v => setForm({ ...form, point_origine: v === "none" ? "" : v })}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Sélectionner" />
+                  {form.point_origine && depots.find(d => d.id === form.point_origine) && (
+                   <span>{depots.find(d => d.id === form.point_origine)?.nom_depot}</span>
+                 )}
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">-- Sélectionner --</SelectItem>
                   {depots.filter(d => d.client_id === form.client_id).map(d => <SelectItem key={d.id} value={d.id}>{d.nom_depot}</SelectItem>)}
@@ -212,7 +217,12 @@ export default function CampaignsList() {
             <div>
               <Label className="text-xs">Dépôt destination *</Label>
               <Select value={form.depot_destination_id || "none"} onValueChange={v => setForm({ ...form, depot_destination_id: v === "none" ? "" : v })}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Sélectionner" />
+                  {form.depot_destination_id && depots.find(d => d.id === form.depot_destination_id) && (
+                   <span>{depots.find(d => d.id === form.depot_destination_id)?.nom_depot}</span>
+                 )}
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">-- Sélectionner --</SelectItem>
                   {depots.filter(d => d.client_id === form.client_id).map(d => <SelectItem key={d.id} value={d.id}>{d.nom_depot}</SelectItem>)}
