@@ -13,7 +13,7 @@ import RotationSheetEntry from "./RotationSheetEntry";
 import DailyDeclarations from "./DailyDeclarations";
 import CampaignRotationsTable from "./CampaignRotationsTable";
 import FillEfficiencyBar from "@/components/campaigns/FillEfficiencyBar";
-import CampaignTruckAssignment from "@/components/campaigns/CampaignTruckAssignment";
+import CampaignTruckAssignmentTable from "@/components/campaigns/CampaignTruckAssignmentTable";
 import CampaignReport from "@/components/campaigns/CampaignReport";
 
 const statutColors = { planifiee: "bg-blue-500/10 text-blue-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-muted text-muted-foreground", suspendue: "bg-amber-500/10 text-amber-600" };
@@ -159,7 +159,7 @@ export default function CampaignDetail() {
           <TabsTrigger value="declarations">Fiches journalières ({declarations.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="camions" className="mt-4">
-          <CampaignTruckAssignment campaignId={id} />
+          <CampaignTruckAssignmentTable campaignId={id} />
         </TabsContent>
         <TabsContent value="rotations" className="mt-4">
           <CampaignRotationsTable rotations={rotations} vehicles={vehicles} drivers={drivers} campaignId={id} />
