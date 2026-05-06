@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import ExpenseDashboard from "@/components/journal/ExpenseDashboard";
 import ExpenseByVehicleTable from "@/components/journal/ExpenseByVehicleTable";
+import VehicleExpenseDetail from "@/components/journal/VehicleExpenseDetail";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 4 }, (_, i) => CURRENT_YEAR - i);
@@ -23,6 +24,7 @@ export default function Journal() {
   const [filterYear, setFilterYear] = useState(String(CURRENT_YEAR));
   const [filterMonth, setFilterMonth] = useState("all");
   const [search, setSearch] = useState("");
+  const [selectedVehicleId, setSelectedVehicleId] = useState("all");
 
   const { data: expenses = [], isLoading: loadingExp } = useQuery({
     queryKey: ["expenses"],
@@ -35,7 +37,7 @@ export default function Journal() {
 
   const vMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
 
-  // Filter expenses by year + month
+  // Filter by year + month + vehicle search text
   const filtered = useMemo(() => {
     return expenses.filter(e => {
       if (!e.date_frais) return false;
@@ -51,6 +53,18 @@ export default function Journal() {
     });
   }, [expenses, filterYear, filterMonth, search, vMap]);
 
+  // Expenses for the selected vehicle (all year, no month filter) for the detail view
+  const vehicleYearExpenses = useMemo(() => {
+    if (selectedVehicleId === "all") return [];
+    return expenses.filter(e => {
+      if (!e.date_frais) return false;
+      const [year] = e.date_frais.split("-");
+      return e.vehicle_id === selectedVehicleId && year === filterYear;
+    });
+  }, [expenses, selectedVehicleId, filterYear]);
+
+  const selectedVehicle = selectedVehicleId !== "all" ? vMap[selectedVehicleId] : null;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -59,7 +73,7 @@ export default function Journal() {
           <h1 className="text-2xl font-bold text-foreground">Journal des Dépenses</h1>
           <p className="text-sm text-muted-foreground">Tableau détaillé par camion — carburant, péage, rations, contraventions…</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           <Select value={filterYear} onValueChange={setFilterYear}>
             <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
             <SelectContent>{YEARS.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
@@ -75,11 +89,40 @@ export default function Journal() {
         </div>
       </div>
 
-      {/* Mini Dashboard */}
-      <ExpenseDashboard expenses={filtered} filterYear={filterYear} filterMonth={filterMonth} />
+      {/* Vehicle picker for detail view */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-muted-foreground whitespace-nowrap">Détail par véhicule :</span>
+        <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+          <SelectTrigger className="w-72">
+            <SelectValue placeholder="— Sélectionner un véhicule —" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">— Vue globale (tous véhicules) —</SelectItem>
+            {vehicles.map(v => (
+              <SelectItem key={v.id} value={v.id}>
+                {v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation}{v.marque ? ` — ${v.marque}` : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* Table by vehicle */}
-      <ExpenseByVehicleTable expenses={filtered} vehicles={vehicles} vMap={vMap} isLoading={loadingExp} />
+      {/* If a vehicle is selected: show detail view */}
+      {selectedVehicle ? (
+        <VehicleExpenseDetail
+          vehicle={selectedVehicle}
+          expenses={vehicleYearExpenses}
+          filterYear={filterYear}
+          onClose={() => setSelectedVehicleId("all")}
+        />
+      ) : (
+        <>
+          {/* Mini Dashboard */}
+          <ExpenseDashboard expenses={filtered} filterYear={filterYear} filterMonth={filterMonth} />
+          {/* Table by vehicle */}
+          <ExpenseByVehicleTable expenses={filtered} vehicles={vehicles} vMap={vMap} isLoading={loadingExp} />
+        </>
+      )}
     </div>
   );
 }
