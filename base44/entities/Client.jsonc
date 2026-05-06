@@ -16,10 +16,8 @@
         "zone3",
         "zone4"
       ],
-      "default": "zone1"
-    },
-    "adresse_depot": {
-      "type": "string"
+      "default": "zone1",
+      "description": "Zone principale du client"
     },
     "contact_nom": {
       "type": "string"

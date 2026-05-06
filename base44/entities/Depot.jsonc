@@ -1,0 +1,46 @@
+{
+  "name": "Depot",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID du client propri\u00e9taire"
+    },
+    "nom_depot": {
+      "type": "string",
+      "description": "Nom ou libell\u00e9 du d\u00e9p\u00f4t"
+    },
+    "adresse": {
+      "type": "string",
+      "description": "Adresse compl\u00e8te du d\u00e9p\u00f4t"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Latitude GPS"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Longitude GPS"
+    },
+    "zone": {
+      "type": "string",
+      "enum": [
+        "zone1",
+        "zone2",
+        "zone3",
+        "zone4"
+      ],
+      "default": "zone1",
+      "description": "Zone tarifaire selon distance/consommation"
+    },
+    "actif": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "client_id",
+    "nom_depot",
+    "zone"
+  ]
+}
