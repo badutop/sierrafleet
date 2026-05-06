@@ -31,7 +31,21 @@
       "type": "number"
     },
     "litres_carburant_alloues": {
-      "type": "number"
+      "type": "number",
+      "description": "Carburant allou\u00e9 en d\u00e9but de rotation"
+    },
+    "litres_carburant_reel": {
+      "type": "number",
+      "default": 0,
+      "description": "Carburant r\u00e9ellement consomm\u00e9"
+    },
+    "km_depart": {
+      "type": "number",
+      "description": "Km au d\u00e9part"
+    },
+    "km_arrivee": {
+      "type": "number",
+      "description": "Km \u00e0 l'arriv\u00e9e"
     },
     "refuel_declenche": {
       "type": "boolean",
