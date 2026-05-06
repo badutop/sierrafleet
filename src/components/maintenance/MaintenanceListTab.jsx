@@ -3,7 +3,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MaintenanceValidationPanel from "./MaintenanceValidationPanel";
@@ -40,8 +39,6 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
-  const [selected, setSelected] = useState([]);
-
   const filtered = maintenances.filter(m => {
     if (filterCat !== "all" && m.categorie !== filterCat) return false;
     if (filterStatut !== "all" && m.statut !== filterStatut) return false;
@@ -52,15 +49,6 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
   });
 
   const activeOnes = maintenances.filter(m => m.statut === "planifie" || m.statut === "en_cours");
-
-  const toggleSelect = (id) => {
-    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
-
-  const toggleAll = () => {
-    if (selected.length === filtered.length) setSelected([]);
-    else setSelected(filtered.map(m => m.id));
-  };
 
   return (
     <div className="space-y-4">
@@ -110,24 +98,11 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
         </div>
       </div>
 
-      {selected.length > 0 && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
-          <span className="font-medium text-foreground">{selected.length} sélectionné(s)</span>
-          <Button size="sm" variant="outline" className="text-xs h-6 ml-auto" onClick={() => setSelected([])}>Tout désélectionner</Button>
-        </div>
-      )}
-
       {/* Table */}
       <div className="bg-card rounded-xl border border-border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="w-8">
-                <Checkbox
-                  checked={filtered.length > 0 && selected.length === filtered.length}
-                  onCheckedChange={toggleAll}
-                />
-              </TableHead>
               <TableHead className="text-xs">Date</TableHead>
               <TableHead className="text-xs">Véhicule</TableHead>
               <TableHead className="text-xs">Catégorie</TableHead>
@@ -141,17 +116,13 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={10} className="text-center py-8"><div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-8"><div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" /></TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground text-sm">Aucune intervention trouvée</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground text-sm">Aucune intervention trouvée</TableCell></TableRow>
             ) : filtered.slice(0, 100).map(m => {
               const vehicle = vMap[m.vehicle_id];
-              const isChecked = selected.includes(m.id);
               return (
-                <TableRow key={m.id} className={cn("hover:bg-muted/30", isChecked && "bg-primary/5", m.categorie === "corrective" && m.gravite === "critique" && !isChecked && "bg-destructive/5")}>
-                  <TableCell>
-                    <Checkbox checked={isChecked} onCheckedChange={() => toggleSelect(m.id)} />
-                  </TableCell>
+                <TableRow key={m.id} className={cn("hover:bg-muted/30", m.categorie === "corrective" && m.gravite === "critique" && "bg-destructive/5")}>
                   <TableCell className="text-xs">{m.date_entretien}</TableCell>
                   <TableCell className="text-xs font-semibold font-mono">
                     {vehicle?.code_camion && <span className="text-[10px] bg-primary/10 text-primary font-bold px-1 rounded mr-1">{vehicle.code_camion}</span>}
