@@ -51,10 +51,21 @@ export default function MaintenancePage() {
     },
   });
 
+  const statusMutation = useMutation({
+    mutationFn: ({ id, statut, observations }) =>
+      base44.entities.Maintenance.update(id, { statut, ...(observations ? { observations } : {}) }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["maintenances"] });
+      const labels = { en_cours: "démarrée ▶", realise: "validée ✔" };
+      toast.success(`Intervention ${labels[vars.statut] || "mise à jour"}`);
+    },
+  });
+
   const vMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
 
   const handleEdit = (entry) => { setEditEntry(entry); setDialogOpen(true); };
   const handleNew = () => { setEditEntry(null); setDialogOpen(true); };
+  const handleStatusChange = (id, statut, observations) => statusMutation.mutate({ id, statut, observations });
 
   const planifieeCount = maintenances.filter(m => m.statut === "planifie").length;
   const enCoursCount = maintenances.filter(m => m.statut === "en_cours").length;
@@ -107,6 +118,8 @@ export default function MaintenancePage() {
             vMap={vMap}
             onEdit={handleEdit}
             onDelete={(id) => deleteMutation.mutate(id)}
+            onStatusChange={handleStatusChange}
+            isPending={statusMutation.isPending}
           />
         </TabsContent>
 
@@ -115,6 +128,8 @@ export default function MaintenancePage() {
             maintenances={maintenances}
             vehicles={vehicles}
             rotations={rotations}
+            onStatusChange={handleStatusChange}
+            isPending={statusMutation.isPending}
           />
         </TabsContent>
 

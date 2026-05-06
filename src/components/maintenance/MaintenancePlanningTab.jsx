@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Clock, CheckCircle2, Wrench, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MaintenanceValidationPanel from "./MaintenanceValidationPanel";
 
 const today = new Date();
 
@@ -18,7 +19,7 @@ function UrgencyBadge({ days }) {
   return <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-400/30 text-[10px]">OK ({days}j)</Badge>;
 }
 
-export default function MaintenancePlanningTab({ maintenances, vehicles, rotations }) {
+export default function MaintenancePlanningTab({ maintenances, vehicles, rotations, onStatusChange, isPending }) {
   const rotationsByVehicle = useMemo(() => {
     const map = {};
     rotations.forEach(r => { map[r.vehicle_id] = (map[r.vehicle_id] || 0) + 1; });
@@ -133,25 +134,34 @@ export default function MaintenancePlanningTab({ maintenances, vehicles, rotatio
         {futurePlanifiees.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Aucune intervention planifiée.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {futurePlanifiees.map(m => {
               const vehicle = vMap[m.vehicle_id];
               const days = daysUntil(m.date_entretien);
               return (
-                <div key={m.id} className="border border-border rounded-xl p-3 flex items-center gap-3 bg-card hover:bg-muted/30">
-                  <Clock className="w-4 h-4 text-blue-500 shrink-0" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold">
-                        {vehicle?.code_camion ? `[${vehicle.code_camion}] ` : ""}{vehicle?.immatriculation || "—"}
-                      </span>
-                      <span className="text-xs text-muted-foreground">{m.designation || m.type_entretien}</span>
+                <div key={m.id} className="border border-border rounded-xl bg-card overflow-hidden">
+                  {/* En-tête carte */}
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
+                    <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                    <span className="text-sm font-bold">
+                      {vehicle?.code_camion ? `[${vehicle.code_camion}] ` : ""}{vehicle?.immatriculation || "—"}
+                    </span>
+                    <div className="ml-auto">
+                      {days !== null && <UrgencyBadge days={days} />}
                     </div>
-                    <p className="text-[11px] text-muted-foreground">{m.prestataire ? `Garage : ${m.prestataire}` : "Prestataire non défini"}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs font-semibold">{m.date_entretien ? new Date(m.date_entretien).toLocaleDateString("fr-FR") : "—"}</p>
-                    {days !== null && <UrgencyBadge days={days} />}
+                  {/* Date + prestataire */}
+                  <div className="px-4 py-2 text-xs text-muted-foreground flex justify-between">
+                    <span>{m.date_entretien ? new Date(m.date_entretien).toLocaleDateString("fr-FR") : "—"}</span>
+                    <span>{m.prestataire || "Prestataire non défini"}</span>
+                  </div>
+                  {/* Panneau de validation */}
+                  <div className="px-3 pb-3">
+                    <MaintenanceValidationPanel
+                      maintenance={m}
+                      onStatusChange={onStatusChange}
+                      isPending={isPending}
+                    />
                   </div>
                 </div>
               );

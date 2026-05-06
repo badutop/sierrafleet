@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MaintenanceStatusStepper from "./MaintenanceStatusStepper";
+import MaintenanceValidationPanel from "./MaintenanceValidationPanel";
 
 const typeLabels = {
   vidange: "Vidange", revision: "Révision", pneus: "Pneus", filtres: "Filtres",
@@ -27,7 +29,7 @@ const graviteColors = {
   critique: "bg-destructive/15 text-destructive",
 };
 
-export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEdit, onDelete }) {
+export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEdit, onDelete, onStatusChange, isPending }) {
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
@@ -41,8 +43,30 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
     return (immat + desig + prest).toLowerCase().includes(search.toLowerCase());
   });
 
+  const activeOnes = maintenances.filter(m => m.statut === "planifie" || m.statut === "en_cours");
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Section validation Chef de garage */}
+      {activeOnes.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+            Interventions en attente de validation ({activeOnes.length})
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mb-4">
+            {activeOnes.map(m => (
+              <MaintenanceValidationPanel
+                key={m.id}
+                maintenance={m}
+                onStatusChange={onStatusChange}
+                isPending={isPending}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -103,7 +127,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
                   <TableCell className="text-xs max-w-[120px] truncate" title={m.pieces_remplacees}>{m.pieces_remplacees || "—"}</TableCell>
                   <TableCell className="text-xs text-right font-bold">{(m.cout || 0).toLocaleString("fr-FR")}</TableCell>
                   <TableCell className="text-center">
-                    <Badge className={cn("text-[10px]", statutColors[m.statut] || "")}>{m.statut?.replace("_", " ")}</Badge>
+                    <MaintenanceStatusStepper statut={m.statut} size="sm" />
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
