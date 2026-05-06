@@ -3,9 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, PlayCircle, XCircle, ChevronRight, ShieldCheck } from "lucide-react";
-import { cn } from "@/lib/utils";
-import MaintenanceStatusStepper from "./MaintenanceStatusStepper";
 
+const STATUT_COLORS = {
+  planifie: "bg-blue-500/15 text-blue-700",
+  en_cours: "bg-amber-500/15 text-amber-700",
+  realise: "bg-emerald-500/15 text-emerald-700",
+  annule: "bg-muted text-muted-foreground",
+};
+import { cn } from "@/lib/utils";
 const TRANSITIONS = {
   planifie:  { next: "en_cours",  nextLabel: "▶ Démarrer l'intervention", nextIcon: PlayCircle,    nextClass: "bg-amber-500 hover:bg-amber-600 text-white" },
   en_cours:  { next: "realise",   nextLabel: "✔ Valider terminé",          nextIcon: CheckCircle2,  nextClass: "bg-emerald-600 hover:bg-emerald-700 text-white" },
@@ -20,7 +25,7 @@ const STATUT_LABELS = {
   annule: "Annulé",
 };
 
-export default function MaintenanceValidationPanel({ maintenance, onStatusChange, isPending }) {
+export default function MaintenanceValidationPanel({ maintenance, vMap, onStatusChange, isPending }) {
   const [obs, setObs] = useState("");
   const [showObs, setShowObs] = useState(false);
 
@@ -41,15 +46,21 @@ export default function MaintenanceValidationPanel({ maintenance, onStatusChange
         Validation Chef de garage
       </div>
 
-      {/* Stepper visuel */}
-      <div className="flex justify-center py-1">
-        <MaintenanceStatusStepper statut={maintenance.statut} size="md" />
-      </div>
-
       {/* Infos clé */}
-      <div className="text-xs text-muted-foreground text-center">
-        {maintenance.designation || maintenance.type_entretien}
-        {maintenance.prestataire && <span className="ml-2 text-foreground/60">· {maintenance.prestataire}</span>}
+      <div className="text-xs space-y-0.5">
+        {vMap && vMap[maintenance.vehicle_id] && (
+          <div className="font-semibold text-foreground">
+            <span className="text-[10px] bg-primary/10 text-primary font-bold px-1 rounded mr-1">{vMap[maintenance.vehicle_id].code_camion}</span>
+            {vMap[maintenance.vehicle_id].immatriculation}
+          </div>
+        )}
+        <div className="text-muted-foreground">
+          {maintenance.designation || maintenance.type_entretien}
+          {maintenance.prestataire && <span className="ml-2">· {maintenance.prestataire}</span>}
+        </div>
+        <Badge className={cn("text-[10px]", STATUT_COLORS[maintenance.statut])}>
+          {STATUT_LABELS[maintenance.statut]}
+        </Badge>
       </div>
 
       {/* Bouton de transition */}

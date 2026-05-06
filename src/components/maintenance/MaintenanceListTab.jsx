@@ -3,9 +3,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Trash2, Search } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Eye, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import MaintenanceStatusStepper from "./MaintenanceStatusStepper";
 import MaintenanceValidationPanel from "./MaintenanceValidationPanel";
 
 const typeLabels = {
@@ -22,6 +22,13 @@ const statutColors = {
   annule: "bg-muted text-muted-foreground",
 };
 
+const statutLabels = {
+  planifie: "Planifié",
+  en_cours: "En cours",
+  realise: "Réalisé",
+  annule: "Annulé",
+};
+
 const graviteColors = {
   faible: "bg-emerald-500/15 text-emerald-700",
   moyenne: "bg-amber-500/15 text-amber-700",
@@ -33,6 +40,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
+  const [selected, setSelected] = useState(new Set());
 
   const filtered = maintenances.filter(m => {
     if (filterCat !== "all" && m.categorie !== filterCat) return false;
@@ -45,9 +53,22 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
 
   const activeOnes = maintenances.filter(m => m.statut === "planifie" || m.statut === "en_cours");
 
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selected.size === filtered.length) setSelected(new Set());
+    else setSelected(new Set(filtered.map(m => m.id)));
+  };
+
   return (
     <div className="space-y-4">
-      {/* Section validation Chef de garage — toujours visible */}
+      {/* Panneau Chef de garage */}
       <div className="rounded-xl border border-border bg-muted/20 p-4">
         <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
@@ -66,6 +87,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
               <MaintenanceValidationPanel
                 key={m.id}
                 maintenance={m}
+                vMap={vMap}
                 onStatusChange={onStatusChange}
                 isPending={isPending}
               />
@@ -74,6 +96,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
         )}
       </div>
 
+      {/* Filtres */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -85,16 +108,30 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
           ))}
         </div>
         <div className="flex gap-1 flex-wrap">
-          {[["all","Tous statuts"],["planifie","Prévu"],["en_cours","En cours"],["realise","Réalisé"]].map(([v,l]) => (
+          {[["all","Tous statuts"],["planifie","Planifié"],["en_cours","En cours"],["realise","Réalisé"]].map(([v,l]) => (
             <Button key={v} size="sm" variant={filterStatut === v ? "default" : "outline"} onClick={() => setFilterStatut(v)} className={filterStatut === v ? "bg-primary text-xs" : "text-xs"}>{l}</Button>
           ))}
         </div>
       </div>
 
+      {selected.size > 0 && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+          <span className="font-medium text-foreground">{selected.size} sélectionné(s)</span>
+          <Button size="sm" variant="outline" className="text-xs h-6 ml-auto" onClick={() => setSelected(new Set())}>Tout désélectionner</Button>
+        </div>
+      )}
+
+      {/* Table */}
       <div className="bg-card rounded-xl border border-border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
+              <TableHead className="w-8">
+                <Checkbox
+                  checked={filtered.length > 0 && selected.size === filtered.length}
+                  onCheckedChange={toggleAll}
+                />
+              </TableHead>
               <TableHead className="text-xs">Date</TableHead>
               <TableHead className="text-xs">Véhicule</TableHead>
               <TableHead className="text-xs">Catégorie</TableHead>
@@ -103,18 +140,22 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
               <TableHead className="text-xs">Pièces</TableHead>
               <TableHead className="text-xs text-right">Coût (FCFA)</TableHead>
               <TableHead className="text-xs text-center">Statut</TableHead>
-              <TableHead className="w-16" />
+              <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-8"><div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center py-8"><div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" /></TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground text-sm">Aucune intervention trouvée</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground text-sm">Aucune intervention trouvée</TableCell></TableRow>
             ) : filtered.slice(0, 100).map(m => {
               const vehicle = vMap[m.vehicle_id];
+              const isChecked = selected.has(m.id);
               return (
-                <TableRow key={m.id} className={cn("hover:bg-muted/30", m.categorie === "corrective" && m.gravite === "critique" && "bg-destructive/5")}>
+                <TableRow key={m.id} className={cn("hover:bg-muted/30", isChecked && "bg-primary/5", m.categorie === "corrective" && m.gravite === "critique" && !isChecked && "bg-destructive/5")}>
+                  <TableCell>
+                    <Checkbox checked={isChecked} onCheckedChange={() => toggleSelect(m.id)} />
+                  </TableCell>
                   <TableCell className="text-xs">{m.date_entretien}</TableCell>
                   <TableCell className="text-xs font-semibold font-mono">
                     {vehicle?.code_camion && <span className="text-[10px] bg-primary/10 text-primary font-bold px-1 rounded mr-1">{vehicle.code_camion}</span>}
@@ -134,13 +175,14 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
                   <TableCell className="text-xs max-w-[120px] truncate" title={m.pieces_remplacees}>{m.pieces_remplacees || "—"}</TableCell>
                   <TableCell className="text-xs text-right font-bold">{(m.cout || 0).toLocaleString("fr-FR")}</TableCell>
                   <TableCell className="text-center">
-                    <MaintenanceStatusStepper statut={m.statut} size="sm" />
+                    <Badge className={cn("text-[10px]", statutColors[m.statut])}>
+                      {statutLabels[m.statut] || m.statut}
+                    </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1 justify-end">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(m)} title="Voir détails"><Pencil className="w-3 h-3" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(m.id)}><Trash2 className="w-3 h-3" /></Button>
-                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => onEdit(m)} title="Voir détails">
+                      <Eye className="w-3.5 h-3.5" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               );
