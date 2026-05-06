@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 const statutLabels = { planifiee: "Planifiée", en_cours: "En cours", terminee: "Terminée", suspendue: "Suspendue" };
 const statutColors = { planifiee: "bg-blue-500/10 text-blue-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-muted text-muted-foreground", suspendue: "bg-amber-500/10 text-amber-600" };
+const cerealTypes = ["Blé", "Maïs", "Riz", "Orge", "Seigle", "Avoine", "Soja", "Tournesol", "Colza"];
 
 const emptyForm = { reference: "", nom_campagne: "", client_id: "", type_marchandise: "", port_origine: "", depot_destination: "", date_debut: "", date_fin_prevue: "", tonnage_total_prevu: "", nombre_rotations_prevues: "", bl_navire: "", statut: "planifiee", observations: "" };
 
@@ -198,7 +199,16 @@ export default function CampaignsList() {
                 </SelectContent>
               </Select>
             </div>
-            <div><Label className="text-xs">Type de marchandise *</Label><Input className="mt-1" value={form.type_marchandise} onChange={e => setForm({ ...form, type_marchandise: e.target.value })} /></div>
+            <div>
+              <Label className="text-xs">Type de marchandise *</Label>
+              <Select value={form.type_marchandise || "none"} onValueChange={v => setForm({ ...form, type_marchandise: v === "none" ? "" : v })}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- Sélectionner --</SelectItem>
+                  {cerealTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label className="text-xs">Port d'origine</Label><Input className="mt-1" value={form.port_origine} onChange={e => setForm({ ...form, port_origine: e.target.value })} /></div>
             <div><Label className="text-xs">Dépôt destination</Label><Input className="mt-1" value={form.depot_destination} onChange={e => setForm({ ...form, depot_destination: e.target.value })} /></div>
             <div className="col-span-2">
