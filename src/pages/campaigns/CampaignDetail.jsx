@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import RotationSheetEntry from "./RotationSheetEntry";
 import DailyDeclarations from "./DailyDeclarations";
 import CampaignRotationsTable from "./CampaignRotationsTable";
+import FillEfficiencyBar from "@/components/campaigns/FillEfficiencyBar";
 
 const statutColors = { planifiee: "bg-blue-500/10 text-blue-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-muted text-muted-foreground", suspendue: "bg-amber-500/10 text-amber-600" };
 const statutLabels = { planifiee: "Planifiée", en_cours: "En cours", terminee: "Terminée", suspendue: "Suspendue" };
@@ -105,6 +106,26 @@ export default function CampaignDetail() {
           <p className="text-sm font-medium">Écart détecté : {ecart} bon(s) manquant(s) — {bonsSysteme} bons système vs {bonsPhysiques} bons physiques collectés.</p>
         </div>
       )}
+
+      {/* Efficacité de remplissage par camion */}
+      {rotations.length > 0 && (() => {
+        // Calculer le poids réel total vs capacité théorique cumulée (nb rotations × capacité moyenne des camions)
+        const vehicleIds = [...new Set(rotations.map(r => r.vehicle_id))];
+        const poidsReel = rotations.reduce((s, r) => s + (Number(r.poids_charge_tonnes) || 0), 0);
+        const capaciteMoyenne = vehicleIds.reduce((s, vid) => {
+          const v = vehicles.find(x => x.id === vid);
+          return s + (v?.capacite_charge_tonnes ? v.capacite_charge_tonnes * 1000 : 0);
+        }, 0);
+        const capaciteTheorique = capaciteMoyenne > 0 ? (capaciteMoyenne / vehicleIds.length) * rotations.length : 0;
+        if (capaciteTheorique === 0) return null;
+        return (
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <FillEfficiencyBar poidsReel={poidsReel} capaciteTheorique={capaciteTheorique} label="Efficacité remplissage (poids réel vs capacité théorique)" />
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Tabs */}
       <Tabs defaultValue="rotations">

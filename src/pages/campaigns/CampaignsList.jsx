@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Ship, Pencil, Trash2, ArrowRight, Package } from "lucide-react";
+import { Plus, Search, Ship, Pencil, Trash2, ArrowRight, Package, CalendarDays, Rows3 } from "lucide-react";
+import { Link as RouterLink } from "react-router-dom";
+import TruckAssignmentBoard from "@/components/campaigns/TruckAssignmentBoard";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -62,6 +64,8 @@ export default function CampaignsList() {
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
+  const [view, setView] = useState("list"); // "list" | "board"
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -69,12 +73,24 @@ export default function CampaignsList() {
           <h1 className="text-2xl font-bold text-foreground">Campagnes</h1>
           <p className="text-sm text-muted-foreground">{campaigns.filter(c => c.statut === "en_cours").length} en cours · {campaigns.length} total</p>
         </div>
-        <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>
-          <Plus className="w-4 h-4 mr-2" /> Nouvelle campagne
-        </Button>
+        <div className="flex gap-2">
+          <RouterLink to="/campaigns/calendar">
+            <Button variant="outline" size="sm"><CalendarDays className="w-4 h-4 mr-2" /> Calendrier</Button>
+          </RouterLink>
+          <Button variant={view === "board" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "board" ? "list" : "board")}>
+            <Rows3 className="w-4 h-4 mr-2" /> {view === "board" ? "Vue liste" : "Affecter camions"}
+          </Button>
+          <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-2" /> Nouvelle campagne
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      {view === "board" && (
+        <TruckAssignmentBoard campaigns={filtered} />
+      )}
+
+      <div className={cn("flex flex-col sm:flex-row gap-3", view === "board" && "hidden")}>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Rechercher..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
@@ -88,9 +104,9 @@ export default function CampaignsList() {
         </Select>
       </div>
 
-      {isLoading ? (
+      {view !== "board" && isLoading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>
-      ) : (
+      ) : view !== "board" ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filtered.map(c => {
             const client = clientMap[c.client_id];
@@ -147,7 +163,7 @@ export default function CampaignsList() {
             </div>
           )}
         </div>
-      )}
+      ) : null}
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">

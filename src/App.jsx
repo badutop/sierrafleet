@@ -21,6 +21,7 @@ import UsersPage from '@/pages/UsersPage';
 import CampaignsList from '@/pages/campaigns/CampaignsList';
 import CampaignDetail from '@/pages/campaigns/CampaignDetail';
 import ClientsPage from '@/pages/campaigns/ClientsPage';
+import RotationsCalendar from '@/pages/campaigns/RotationsCalendar';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -62,6 +63,7 @@ const AuthenticatedApp = () => {
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/campaigns" element={<CampaignsList />} />
+        <Route path="/campaigns/calendar" element={<RotationsCalendar />} />
         <Route path="/campaigns/:id" element={<CampaignDetail />} />
         <Route path="/clients" element={<ClientsPage />} />
       </Route>
