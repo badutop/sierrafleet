@@ -169,23 +169,40 @@ export default function CampaignsList() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingCampaign ? "Modifier la campagne" : "Nouvelle campagne"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3 mt-2">
-            <div className="col-span-2">
-              <Label className="text-xs">Nom de la campagne *</Label>
-              <Input className="mt-1" value={form.nom_campagne} onChange={e => setForm({ ...form, nom_campagne: e.target.value })} />
-            </div>
-            <div><Label className="text-xs">Référence</Label><Input className="mt-1" value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></div>
             <div>
-              <Label className="text-xs">Client</Label>
-              <Select value={form.client_id || "none"} onValueChange={v => setForm({ ...form, client_id: v === "none" ? "" : v })}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- Sélectionner --</SelectItem>
-                  {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label className="text-xs">Type de marchandise *</Label><Input className="mt-1" value={form.type_marchandise} onChange={e => setForm({ ...form, type_marchandise: e.target.value })} /></div>
-            <div><Label className="text-xs">BL Navire</Label><Input className="mt-1" value={form.bl_navire} onChange={e => setForm({ ...form, bl_navire: e.target.value })} /></div>
+                <Label className="text-xs">BL Navire</Label>
+                <Input className="mt-1" value={form.bl_navire} onChange={e => {
+                  const newForm = { ...form, bl_navire: e.target.value };
+                  const client = clients.find(c => c.id === newForm.client_id);
+                  if (newForm.bl_navire && client) {
+                    newForm.nom_campagne = `${newForm.bl_navire} - ${client.nom}`;
+                  }
+                  setForm(newForm);
+                }} />
+              </div>
+              <div>
+                <Label className="text-xs">Client</Label>
+                <Select value={form.client_id || "none"} onValueChange={v => {
+                  const newForm = { ...form, client_id: v === "none" ? "" : v };
+                  const client = clients.find(c => c.id === newForm.client_id);
+                  if (newForm.bl_navire && client) {
+                    newForm.nom_campagne = `${newForm.bl_navire} - ${client.nom}`;
+                  }
+                  setForm(newForm);
+                }}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">-- Sélectionner --</SelectItem>
+                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Nom de la campagne (auto-généré)</Label>
+                <Input className="mt-1" value={form.nom_campagne} disabled className="bg-muted" />
+              </div>
+              <div><Label className="text-xs">Référence</Label><Input className="mt-1" value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></div>
+              <div><Label className="text-xs">Type de marchandise *</Label><Input className="mt-1" value={form.type_marchandise} onChange={e => setForm({ ...form, type_marchandise: e.target.value })} /></div>
             <div><Label className="text-xs">Port d'origine</Label><Input className="mt-1" value={form.port_origine} onChange={e => setForm({ ...form, port_origine: e.target.value })} /></div>
             <div><Label className="text-xs">Dépôt destination</Label><Input className="mt-1" value={form.depot_destination} onChange={e => setForm({ ...form, depot_destination: e.target.value })} /></div>
             <div><Label className="text-xs">Tonnage prévu (T)</Label><Input type="number" className="mt-1" value={form.tonnage_total_prevu} onChange={e => setForm({ ...form, tonnage_total_prevu: e.target.value })} /></div>
@@ -203,7 +220,7 @@ export default function CampaignsList() {
           </div>
           <div className="flex gap-2 mt-4">
             <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.nom_campagne || !form.type_marchandise}>
+            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.bl_navire || !form.client_id || !form.type_marchandise}>
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>
