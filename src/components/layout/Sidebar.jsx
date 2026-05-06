@@ -13,7 +13,7 @@ const navItems = [
   { path: "/drivers", label: "Chauffeurs", icon: Users },
   { path: "/journal", label: "Journal de Bord", icon: BookOpen },
   { path: "/fuel", label: "Carburant", icon: Fuel },
-  { path: "/maintenance", label: "Maintenance", icon: Wrench },
+  { path: "/maintenance", label: "Maintenance & Réparations", icon: Wrench },
   { path: "/spare-parts", label: "Pièces Détachées", icon: Package },
   { path: "/expenses", label: "Frais", icon: Receipt },
   { path: "/campaigns", label: "Campagnes", icon: Ship },

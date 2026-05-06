@@ -39,7 +39,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
 
   const coutTotal = (Number(form.cout_pieces) || 0) + (Number(form.cout_main_oeuvre) || 0) || Number(form.cout) || 0;
   const isCorrective = form.categorie === "corrective";
-  const isValid = form.vehicle_id && form.date_entretien && form.type_entretien;
+  const isValid = form.vehicle_id && form.vehicle_id !== "" && form.date_entretien && form.type_entretien;
 
   const handleSave = () => {
     const payload = { ...form, cout: coutTotal || Number(form.cout) || 0 };
@@ -63,12 +63,17 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
           {/* Véhicule */}
           <div className="col-span-2">
             <Label className="text-xs">Véhicule *</Label>
-            <Select value={form.vehicle_id} onValueChange={v => set("vehicle_id", v)}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner un véhicule" /></SelectTrigger>
+            <Select value={form.vehicle_id || ""} onValueChange={v => set("vehicle_id", v)}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="— Sélectionner un véhicule —" /></SelectTrigger>
               <SelectContent>
-                {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation} — {v.marque} {v.modele}</SelectItem>)}
+                {vehicles.map(v => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation}{v.marque ? ` — ${v.marque} ${v.modele}` : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {!form.vehicle_id && <p className="text-[11px] text-destructive mt-1">Véhicule requis pour enregistrer</p>}
           </div>
 
           {/* Catégorie */}
