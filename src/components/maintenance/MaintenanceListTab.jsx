@@ -47,14 +47,21 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
 
   return (
     <div className="space-y-4">
-      {/* Section validation Chef de garage */}
-      {activeOnes.length > 0 && (
-        <div>
-          <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-            Interventions en attente de validation ({activeOnes.length})
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mb-4">
+      {/* Section validation Chef de garage — toujours visible */}
+      <div className="rounded-xl border border-border bg-muted/20 p-4">
+        <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+          Panneau Chef de garage — Interventions à valider
+          <span className="ml-auto text-muted-foreground font-normal normal-case tracking-normal">
+            {activeOnes.length} en attente
+          </span>
+        </h3>
+        {activeOnes.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            ✅ Aucune intervention en attente de validation.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {activeOnes.map(m => (
               <MaintenanceValidationPanel
                 key={m.id}
@@ -64,8 +71,8 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
               />
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
