@@ -71,6 +71,10 @@ export default function CampaignTruckAssignment({ campaignId }) {
 
   const handleAssign = () => {
     if (!selectedVehicleId) return;
+    if (assignedVehicleIds.has(selectedVehicleId)) {
+      toast.error("Ce camion est déjà affecté à cette campagne");
+      return;
+    }
     assignMutation.mutate(selectedVehicleId);
   };
 
