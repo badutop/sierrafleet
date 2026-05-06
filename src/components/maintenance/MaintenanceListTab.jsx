@@ -40,7 +40,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
-  const [selected, setSelected] = useState(new Set());
+  const [selected, setSelected] = useState([]);
 
   const filtered = maintenances.filter(m => {
     if (filterCat !== "all" && m.categorie !== filterCat) return false;
@@ -54,16 +54,12 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
   const activeOnes = maintenances.filter(m => m.statut === "planifie" || m.statut === "en_cours");
 
   const toggleSelect = (id) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   const toggleAll = () => {
-    if (selected.size === filtered.length) setSelected(new Set());
-    else setSelected(new Set(filtered.map(m => m.id)));
+    if (selected.length === filtered.length) setSelected([]);
+    else setSelected(filtered.map(m => m.id));
   };
 
   return (
@@ -114,10 +110,10 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
         </div>
       </div>
 
-      {selected.size > 0 && (
+      {selected.length > 0 && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
-          <span className="font-medium text-foreground">{selected.size} sélectionné(s)</span>
-          <Button size="sm" variant="outline" className="text-xs h-6 ml-auto" onClick={() => setSelected(new Set())}>Tout désélectionner</Button>
+          <span className="font-medium text-foreground">{selected.length} sélectionné(s)</span>
+          <Button size="sm" variant="outline" className="text-xs h-6 ml-auto" onClick={() => setSelected([])}>Tout désélectionner</Button>
         </div>
       )}
 
@@ -128,7 +124,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
             <TableRow className="bg-muted/50">
               <TableHead className="w-8">
                 <Checkbox
-                  checked={filtered.length > 0 && selected.size === filtered.length}
+                  checked={filtered.length > 0 && selected.length === filtered.length}
                   onCheckedChange={toggleAll}
                 />
               </TableHead>
@@ -150,7 +146,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
               <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground text-sm">Aucune intervention trouvée</TableCell></TableRow>
             ) : filtered.slice(0, 100).map(m => {
               const vehicle = vMap[m.vehicle_id];
-              const isChecked = selected.has(m.id);
+              const isChecked = selected.includes(m.id);
               return (
                 <TableRow key={m.id} className={cn("hover:bg-muted/30", isChecked && "bg-primary/5", m.categorie === "corrective" && m.gravite === "critique" && !isChecked && "bg-destructive/5")}>
                   <TableCell>

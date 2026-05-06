@@ -43,9 +43,12 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
   const isValid = form.vehicle_id && form.vehicle_id !== "" && form.date_entretien && form.type_entretien;
 
   const handleSave = () => {
+    const numericFields = ["cout","cout_pieces","cout_main_oeuvre","km_entretien","prochain_km","prochain_nb_rotations","duree_immobilisation_jours"];
     const payload = { ...form, cout: coutTotal || Number(form.cout) || 0 };
-    ["cout_pieces","cout_main_oeuvre","km_entretien","prochain_km","prochain_nb_rotations","duree_immobilisation_jours"].forEach(k => {
-      if (payload[k] !== "") payload[k] = Number(payload[k]) || 0;
+    numericFields.forEach(k => {
+      const v = payload[k];
+      if (v === "" || v === null || v === undefined) delete payload[k];
+      else payload[k] = Number(v) || 0;
     });
     onSave(payload);
   };
