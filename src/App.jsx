@@ -16,6 +16,7 @@ import Drivers from '@/pages/Drivers';
 import Reports from '@/pages/Reports';
 import SettingsPage from '@/pages/SettingsPage';
 import SpareParts from '@/pages/SpareParts';
+import Suppliers from '@/pages/Suppliers';
 import ExpensesPage from '@/pages/ExpensesPage';
 import UsersPage from '@/pages/UsersPage';
 import LandingPage from '@/pages/LandingPage';
@@ -61,6 +62,7 @@ const AuthenticatedApp = () => {
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/spare-parts" element={<SpareParts />} />
+        <Route path="/suppliers" element={<Suppliers />} />
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/campaigns" element={<CampaignsList />} />
