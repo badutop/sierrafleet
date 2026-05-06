@@ -15,11 +15,11 @@ import TruckAssignmentBoard from "@/components/campaigns/TruckAssignmentBoard";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const statutLabels = { planifiee: "Planifiée", en_cours: "En cours", terminee: "Terminée", suspendue: "Suspendue" };
-const statutColors = { planifiee: "bg-blue-500/10 text-blue-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-muted text-muted-foreground", suspendue: "bg-amber-500/10 text-amber-600" };
+const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturee: "Clôturée" };
+const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturee: "bg-muted text-muted-foreground" };
 const cerealTypes = ["Blé", "Maïs", "Riz", "Orge", "Seigle", "Avoine", "Soja", "Tournesol", "Colza"];
 
-const emptyForm = { reference: "", nom_campagne: "", client_id: "", type_marchandise: "", port_origine: "", depot_destination: "", date_debut: "", date_fin_prevue: "", tonnage_total_prevu: "", nombre_rotations_prevues: "", bl_navire: "", statut: "planifiee", observations: "" };
+const emptyForm = { nom_campagne: "", client_id: "", type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", tonnage_total_prevu: "", nombre_rotations_prevues: "", statut: "creee", observations: "" };
 
 export default function CampaignsList() {
   const [search, setSearch] = useState("");
@@ -31,6 +31,7 @@ export default function CampaignsList() {
 
   const { data: campaigns = [], isLoading } = useQuery({ queryKey: ["campaigns"], queryFn: () => base44.entities.Campaign.list("-date_debut") });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
+  const { data: depots = [] } = useQuery({ queryKey: ["depots"], queryFn: () => base44.entities.Depot.list() });
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Campaign.create(data),
@@ -170,34 +171,23 @@ export default function CampaignsList() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingCampaign ? "Modifier la campagne" : "Nouvelle campagne"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3 mt-2">
-            <div><Label className="text-xs">Référence</Label><Input className="mt-1" value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></div>
-            <div>
-              <Label className="text-xs">BL Navire</Label>
-              <Input className="mt-1" value={form.bl_navire} onChange={e => {
-                const newForm = { ...form, bl_navire: e.target.value };
-                const client = clients.find(c => c.id === newForm.client_id);
-                if (newForm.bl_navire && client) {
-                  newForm.nom_campagne = `${newForm.bl_navire} - ${client.nom}`;
-                }
-                setForm(newForm);
-              }} />
+            <div className="col-span-2">
+              <Label className="text-xs">Nom de la campagne *</Label>
+              <Input className="mt-1" value={form.nom_campagne} onChange={e => setForm({ ...form, nom_campagne: e.target.value })} />
             </div>
             <div>
-              <Label className="text-xs">Client</Label>
-              <Select value={form.client_id || "none"} onValueChange={v => {
-                const newForm = { ...form, client_id: v === "none" ? "" : v };
-                const client = clients.find(c => c.id === newForm.client_id);
-                if (newForm.bl_navire && client) {
-                  newForm.nom_campagne = `${newForm.bl_navire} - ${client.nom}`;
-                }
-                setForm(newForm);
-              }}>
+              <Label className="text-xs">Client *</Label>
+              <Select value={form.client_id || "none"} onValueChange={v => setForm({ ...form, client_id: v === "none" ? "" : v })}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">-- Sélectionner --</SelectItem>
                   {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Navire *</Label>
+              <Input className="mt-1" value={form.navire || ""} onChange={e => setForm({ ...form, navire: e.target.value })} placeholder="Nom du navire" />
             </div>
             <div>
               <Label className="text-xs">Type de marchandise *</Label>
@@ -209,19 +199,27 @@ export default function CampaignsList() {
                 </SelectContent>
               </Select>
             </div>
-            <div><Label className="text-xs">Port d'origine</Label><Input className="mt-1" value={form.port_origine} onChange={e => setForm({ ...form, port_origine: e.target.value })} /></div>
-            <div><Label className="text-xs">Dépôt destination</Label><Input className="mt-1" value={form.depot_destination} onChange={e => setForm({ ...form, depot_destination: e.target.value })} /></div>
-            <div className="col-span-2">
-              <Label className="text-xs">Nom de la campagne (auto-généré)</Label>
-              <Input className="mt-1" value={form.nom_campagne} disabled className="bg-muted" />
+            <div>
+              <Label className="text-xs">Point d'origine *</Label>
+              <Input className="mt-1" value={form.point_origine} onChange={e => setForm({ ...form, point_origine: e.target.value })} placeholder="Port, Môle ou dépôt" />
+            </div>
+            <div>
+              <Label className="text-xs">Dépôt destination *</Label>
+              <Select value={form.depot_destination_id || "none"} onValueChange={v => setForm({ ...form, depot_destination_id: v === "none" ? "" : v })}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- Sélectionner --</SelectItem>
+                  {depots.filter(d => d.client_id === form.client_id).map(d => <SelectItem key={d.id} value={d.id}>{d.nom_depot}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div><Label className="text-xs">Tonnage prévu (T)</Label><Input type="number" className="mt-1" value={form.tonnage_total_prevu} onChange={e => setForm({ ...form, tonnage_total_prevu: e.target.value })} /></div>
             <div><Label className="text-xs">Rotations prévues</Label><Input type="number" className="mt-1" value={form.nombre_rotations_prevues} onChange={e => setForm({ ...form, nombre_rotations_prevues: e.target.value })} /></div>
             <div><Label className="text-xs">Date début</Label><Input type="date" className="mt-1" value={form.date_debut} onChange={e => setForm({ ...form, date_debut: e.target.value })} /></div>
             <div><Label className="text-xs">Date fin prévue</Label><Input type="date" className="mt-1" value={form.date_fin_prevue} onChange={e => setForm({ ...form, date_fin_prevue: e.target.value })} /></div>
-            <div>
+            <div className="col-span-2">
               <Label className="text-xs">Statut</Label>
-              <Select value={form.statut} onValueChange={v => setForm({ ...form, statut: v })}>
+              <Select value={form.statut} onValueChange={v => setForm({ ...form, statut: v })} disabled={!editingCampaign}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(statutLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
@@ -230,7 +228,7 @@ export default function CampaignsList() {
           </div>
           <div className="flex gap-2 mt-4">
             <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.bl_navire || !form.client_id || !form.type_marchandise}>
+            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.nom_campagne || !form.client_id || !form.type_marchandise || !form.point_origine || !form.depot_destination_id}>
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>

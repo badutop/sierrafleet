@@ -2,24 +2,23 @@
   "name": "Campaign",
   "type": "object",
   "properties": {
-    "reference": {
+    "nom_campagne": {
       "type": "string"
     },
     "client_id": {
       "type": "string",
-      "description": "Optionnel \u2014 r\u00e9f\u00e9rence au client"
-    },
-    "nom_campagne": {
-      "type": "string"
+      "description": "R\u00e9f\u00e9rence au client"
     },
     "type_marchandise": {
       "type": "string"
     },
-    "port_origine": {
-      "type": "string"
+    "point_origine": {
+      "type": "string",
+      "description": "Port, M\u00f4le ou d\u00e9p\u00f4t d'origine"
     },
-    "depot_destination": {
-      "type": "string"
+    "depot_destination_id": {
+      "type": "string",
+      "description": "ID du d\u00e9p\u00f4t de destination du client"
     },
     "date_debut": {
       "type": "string",
@@ -46,16 +45,14 @@
     "statut": {
       "type": "string",
       "enum": [
-        "planifiee",
+        "creee",
+        "validee_responsable",
+        "validee_operationnel",
         "en_cours",
         "terminee",
-        "suspendue"
+        "cl\u00f4turee"
       ],
-      "default": "planifiee"
-    },
-    "bl_navire": {
-      "type": "string",
-      "description": "Bon de livraison navire"
+      "default": "creee"
     },
     "observations": {
       "type": "string"
@@ -63,6 +60,7 @@
   },
   "required": [
     "nom_campagne",
+    "client_id",
     "type_marchandise"
   ]
 }
