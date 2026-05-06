@@ -201,7 +201,13 @@ export default function CampaignsList() {
             </div>
             <div>
               <Label className="text-xs">Point d'origine *</Label>
-              <Input className="mt-1" value={form.point_origine} onChange={e => setForm({ ...form, point_origine: e.target.value })} placeholder="Port, Môle ou dépôt" />
+              <Select value={form.point_origine || "none"} onValueChange={v => setForm({ ...form, point_origine: v === "none" ? "" : v })}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- Sélectionner --</SelectItem>
+                  {depots.filter(d => d.client_id === form.client_id).map(d => <SelectItem key={d.id} value={d.id}>{d.nom_depot}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-xs">Dépôt destination *</Label>
