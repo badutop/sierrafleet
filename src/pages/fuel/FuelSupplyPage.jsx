@@ -2,13 +2,16 @@ import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Fuel, TrendingUp, AlertTriangle, CheckCircle2, Plus, RefreshCw } from "lucide-react";
+import { Fuel, TrendingUp, AlertTriangle, Truck, BarChart2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import FuelKpiStrip from "@/components/fuel/FuelKpiStrip";
 import FuelSupplyTable from "@/components/fuel/FuelSupplyTable";
 import FuelVarianceTable from "@/components/fuel/FuelVarianceTable";
 import FuelSupplyDialog from "@/components/fuel/FuelSupplyDialog";
+import FuelCampaignTab from "@/components/fuel/FuelCampaignTab";
+import FuelVehiclePerformance from "@/components/fuel/FuelVehiclePerformance";
+import FuelAlertsTab from "@/components/fuel/FuelAlertsTab";
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 
@@ -33,6 +36,10 @@ export default function FuelSupplyPage() {
   const { data: campaigns = [] } = useQuery({
     queryKey: ["campaigns"],
     queryFn: () => base44.entities.Campaign.list(),
+  });
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: () => base44.entities.Client.list(),
   });
 
   const createMutation = useMutation({
@@ -60,7 +67,6 @@ export default function FuelSupplyPage() {
   const vMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
   const campaignMap = useMemo(() => Object.fromEntries(campaigns.map(c => [c.id, c])), [campaigns]);
 
-  // KPIs globaux
   const now = new Date();
   const thisMonth = now.getMonth();
   const thisYear = now.getFullYear();
@@ -72,11 +78,9 @@ export default function FuelSupplyPage() {
   const totalLitresMois = monthEntries.reduce((s, e) => s + (e.litres || 0), 0);
   const avgPrix = totalLitresMois > 0 ? totalMontantMois / totalLitresMois : 0;
 
-  // Refuels automatiques (liés aux campagnes) vs manuels
   const autoRefuels = entries.filter(e => e.station?.startsWith("Refuel auto"));
   const manuelRefuels = entries.filter(e => !e.station?.startsWith("Refuel auto"));
 
-  // Analyse des écarts par véhicule
   const varianceData = useMemo(() => {
     return vehicles.map(vehicle => {
       const vehicleRotations = rotations.filter(r => r.vehicle_id === vehicle.id);
@@ -103,10 +107,10 @@ export default function FuelSupplyPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Fuel className="w-6 h-6 text-secondary" />
-            Approvisionnements Carburant
+            Gestion du Carburant
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {entries.length} entrées · {autoRefuels.length} refuels automatiques · {manuelRefuels.length} saisies manuelles
+            {entries.length} entrées · {autoRefuels.length} refuels auto · {manuelRefuels.length} saisies manuelles
           </p>
         </div>
         <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleNew}>
@@ -124,12 +128,26 @@ export default function FuelSupplyPage() {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-muted/60">
-          <TabsTrigger value="approvisionnements" className="flex items-center gap-2">
+        <TabsList className="bg-muted/60 flex-wrap h-auto gap-1">
+          <TabsTrigger value="approvisionnements" className="flex items-center gap-1.5 text-xs">
             <Fuel className="w-3.5 h-3.5" /> Approvisionnements
           </TabsTrigger>
-          <TabsTrigger value="ecarts" className="flex items-center gap-2">
-            <TrendingUp className="w-3.5 h-3.5" /> Analyse des écarts
+          <TabsTrigger value="camions" className="flex items-center gap-1.5 text-xs">
+            <Truck className="w-3.5 h-3.5" /> Performance camions
+          </TabsTrigger>
+          <TabsTrigger value="campagnes" className="flex items-center gap-1.5 text-xs">
+            <BarChart2 className="w-3.5 h-3.5" /> Par campagne
+          </TabsTrigger>
+          <TabsTrigger value="ecarts" className="flex items-center gap-1.5 text-xs">
+            <TrendingUp className="w-3.5 h-3.5" /> Analyse écarts
+            {alertCount > 0 && (
+              <span className="ml-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {alertCount}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="alertes" className="flex items-center gap-1.5 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5" /> Alertes
             {alertCount > 0 && (
               <span className="ml-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                 {alertCount}
@@ -149,8 +167,39 @@ export default function FuelSupplyPage() {
           />
         </TabsContent>
 
+        <TabsContent value="camions" className="mt-4">
+          <FuelVehiclePerformance
+            vehicles={vehicles}
+            rotations={rotations}
+            entries={entries}
+            formatCFA={formatCFA}
+          />
+        </TabsContent>
+
+        <TabsContent value="campagnes" className="mt-4">
+          <FuelCampaignTab
+            campaigns={campaigns}
+            rotations={rotations}
+            entries={entries}
+            clients={clients}
+            vehicles={vehicles}
+            formatCFA={formatCFA}
+          />
+        </TabsContent>
+
         <TabsContent value="ecarts" className="mt-4">
           <FuelVarianceTable data={varianceData} formatCFA={formatCFA} />
+        </TabsContent>
+
+        <TabsContent value="alertes" className="mt-4">
+          <FuelAlertsTab
+            vehicles={vehicles}
+            rotations={rotations}
+            entries={entries}
+            campaigns={campaigns}
+            clients={clients}
+            formatCFA={formatCFA}
+          />
         </TabsContent>
       </Tabs>
 
