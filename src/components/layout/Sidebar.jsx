@@ -11,7 +11,7 @@ const navItems = [
   { path: "/", label: "Tableau de bord", icon: LayoutDashboard },
   { path: "/vehicles", label: "Parc Véhicules", icon: Truck },
   { path: "/drivers", label: "Chauffeurs", icon: Users },
-  { path: "/journal", label: "Journal de Bord", icon: BookOpen },
+  { path: "/journal", label: "Journal des Dépenses", icon: BookOpen },
   { path: "/fuel", label: "Carburant", icon: Fuel },
   { path: "/maintenance", label: "Maintenance & Réparations", icon: Wrench },
   { path: "/spare-parts", label: "Pièces Détachées", icon: Package },
