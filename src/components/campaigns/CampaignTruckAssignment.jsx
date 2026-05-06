@@ -97,11 +97,11 @@ export default function CampaignTruckAssignment({ campaignId }) {
           </SelectContent>
         </Select>
         <Button
-          className="bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md shadow-emerald-200"
           onClick={handleAssign}
           disabled={!selectedVehicleId || assignMutation.isPending}
         >
-          <Plus className="w-4 h-4 mr-1" /> Affecter
+          <Plus className="w-4 h-4 mr-1" /> Affecter le camion
         </Button>
       </div>
 
@@ -134,7 +134,11 @@ export default function CampaignTruckAssignment({ campaignId }) {
                   <Badge className={cn("text-[10px] mt-1", st.color)}>{st.label}</Badge>
                 </div>
                 <button
-                  onClick={() => { if (confirm(`Retirer ${v.immatriculation} de cette campagne ?`)) removeMutation.mutate(rotation.id); }}
+                  onClick={() => {
+                    if (window.confirm(`Confirmer le retrait du camion ${v.immatriculation}${v.code_camion ? ` (${v.code_camion})` : ""} de cette campagne ?\n\nCette action supprimera l'affectation.`)) {
+                      removeMutation.mutate(rotation.id);
+                    }
+                  }}
                   className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
                   disabled={removeMutation.isPending}
                 >
