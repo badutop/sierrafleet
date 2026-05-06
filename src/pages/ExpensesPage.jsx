@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Search, Receipt, Pencil, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import ExpenseValidationPanel from "@/components/expenses/ExpenseValidationPanel";
 
 const typeLabels = { carburant: "Carburant", peage: "Péage", rations: "Rations", contravention: "Contravention", transport: "Transport", autre: "Autre" };
 const typeColors = { carburant: "bg-orange-500/10 text-orange-600", peage: "bg-blue-500/10 text-blue-600", rations: "bg-green-500/10 text-green-600", contravention: "bg-red-500/10 text-red-600", transport: "bg-purple-500/10 text-purple-600", autre: "bg-muted text-muted-foreground" };
@@ -52,9 +53,19 @@ export default function ExpensesPage() {
   const closeDialog = () => { setDialogOpen(false); setEditingExpense(null); setForm(emptyForm); };
 
   const handleSave = () => {
-    const data = { ...form, montant: Number(form.montant || 0) };
+    const data = { ...form, montant: Number(form.montant || 0), statut: editingExpense ? form.statut : "en_attente" };
     if (editingExpense) updateMutation.mutate({ id: editingExpense.id, data });
     else createMutation.mutate(data);
+  };
+
+  const handleValidate = (id) => {
+    updateMutation.mutate({ id, data: { statut: "valide" } });
+    toast.success("Frais validé");
+  };
+
+  const handleReject = (id) => {
+    updateMutation.mutate({ id, data: { statut: "rejete" } });
+    toast.error("Frais rejeté");
   };
 
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v.immatriculation]));
@@ -103,44 +114,56 @@ export default function ExpensesPage() {
         </Select>
       </div>
 
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Véhicule</TableHead>
-              <TableHead>Chauffeur</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="text-right">Montant</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-12"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin mx-auto" /></TableCell></TableRow>
-            ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground"><Receipt className="w-10 h-10 mx-auto mb-2 opacity-30" /><p>Aucun frais enregistré</p></TableCell></TableRow>
-            ) : filtered.map(e => (
-              <TableRow key={e.id}>
-                   <TableCell className="text-sm whitespace-nowrap">{e.date_frais}</TableCell>
-                   <TableCell><Badge className={cn("text-[10px]", typeColors[e.type_frais])}>{typeLabels[e.type_frais]}</Badge></TableCell>
-                   <TableCell className="text-sm">{vehicleMap[e.vehicle_id] || "-"}</TableCell>
-                   <TableCell className="text-sm">{driverMap[e.driver_id] || "-"}</TableCell>
-                   <TableCell className="text-sm max-w-[160px] truncate">{e.description || "-"}</TableCell>
-                   <TableCell className="text-right font-semibold text-sm">{(e.montant || 0).toLocaleString("fr-FR")}</TableCell>
-                   <TableCell><Badge className={cn("text-[10px]", statutColors[e.statut])}>{statutLabels[e.statut]}</Badge></TableCell>
-                   <TableCell>
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(e)}><Pencil className="w-3 h-3" /></Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => { if(confirm("Supprimer ce frais ?")) deleteMutation.mutate(e.id); }}><Trash2 className="w-3 h-3" /></Button>
+      <div className="grid gap-4">
+        {filtered.length === 0 ? (
+          <div className="bg-card rounded-xl border border-border p-12 text-center text-muted-foreground">
+            <Receipt className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p>Aucun frais enregistré</p>
+          </div>
+        ) : (
+          filtered.map(e => (
+            <div key={e.id} className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-md transition-shadow">
+              <div className="p-4 border-b border-border">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Date</p>
+                      <p className="font-medium">{e.date_frais}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Type</p>
+                      <Badge className={cn("text-[10px]", typeColors[e.type_frais])}>{typeLabels[e.type_frais]}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Véhicule</p>
+                      <p className="font-medium">{vehicleMap[e.vehicle_id] || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Chauffeur</p>
+                      <p className="font-medium">{driverMap[e.driver_id] || "-"}</p>
+                    </div>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground mb-0.5">Montant</p>
+                    <p className="text-lg font-bold text-secondary">{(e.montant || 0).toLocaleString("fr-FR")} FCFA</p>
+                  </div>
+                </div>
+                {e.description && <p className="text-xs text-muted-foreground mt-2">Description: {e.description}</p>}
+              </div>
+              <div className="p-4 space-y-3">
+                <ExpenseValidationPanel expense={e} onValidate={handleValidate} onReject={handleReject} isPending={updateMutation.isPending} />
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openEdit(e)}>
+                    <Pencil className="w-3 h-3 mr-1" /> Modifier
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 text-xs text-destructive hover:bg-destructive/10" onClick={() => { if(confirm("Supprimer ce frais ?")) deleteMutation.mutate(e.id); }}>
+                    <Trash2 className="w-3 h-3 mr-1" /> Supprimer
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
@@ -156,6 +179,7 @@ export default function ExpensesPage() {
             </div>
             <div><Label className="text-xs">Date *</Label><Input type="date" className="mt-1" value={form.date_frais} onChange={e => setForm({ ...form, date_frais: e.target.value })} /></div>
             <div><Label className="text-xs">Montant (FCFA) *</Label><Input type="number" className="mt-1" value={form.montant} onChange={e => setForm({ ...form, montant: e.target.value })} /></div>
+            {editingExpense && (
             <div>
               <Label className="text-xs">Statut</Label>
               <Select value={form.statut} onValueChange={v => setForm({ ...form, statut: v })}>
@@ -163,6 +187,7 @@ export default function ExpensesPage() {
                 <SelectContent>{Object.entries(statutLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            )}
             <div>
               <Label className="text-xs">Véhicule</Label>
               <Select value={form.vehicle_id || "none"} onValueChange={v => setForm({ ...form, vehicle_id: v === "none" ? "" : v })}>
