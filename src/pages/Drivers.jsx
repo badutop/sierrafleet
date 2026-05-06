@@ -15,7 +15,7 @@ import { toast } from "sonner";
 const statusLabels = { actif: "Actif", inactif: "Inactif", en_mission: "En mission" };
 const statusColors = { actif: "bg-emerald-500/10 text-emerald-600", inactif: "bg-muted text-muted-foreground", en_mission: "bg-blue-500/10 text-blue-600" };
 
-const emptyForm = { prenom: "", nom: "", telephone: "", numero_permis: "", categorie_permis: "", date_expiration_permis: "", statut: "actif" };
+const emptyForm = { prenom: "", nom: "", telephone: "", numero_permis: "", categorie_permis: "", date_expiration_permis: "", date_embauche: "", contact_urgence_nom: "", contact_urgence_telephone: "", statut: "actif" };
 
 export default function Drivers() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -127,6 +127,21 @@ export default function Drivers() {
             <div>
               <Label className="text-xs">Expiration permis</Label>
               <Input type="date" className="mt-1" value={form.date_expiration_permis || ""} onChange={e => setForm({ ...form, date_expiration_permis: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">Date d'embauche</Label>
+              <Input type="date" className="mt-1" value={form.date_embauche || ""} onChange={e => setForm({ ...form, date_embauche: e.target.value })} />
+            </div>
+            <div className="col-span-2 border-t border-border pt-3">
+              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Contact d'urgence</p>
+            </div>
+            <div>
+              <Label className="text-xs">Nom du contact</Label>
+              <Input className="mt-1" placeholder="Nom & prénom" value={form.contact_urgence_nom || ""} onChange={e => setForm({ ...form, contact_urgence_nom: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">Téléphone urgence</Label>
+              <Input className="mt-1" placeholder="+221..." value={form.contact_urgence_telephone || ""} onChange={e => setForm({ ...form, contact_urgence_telephone: e.target.value })} />
             </div>
             <div className="col-span-2">
               <Label className="text-xs">Statut</Label>

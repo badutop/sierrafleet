@@ -21,6 +21,19 @@
       "type": "string",
       "format": "date"
     },
+    "date_embauche": {
+      "type": "string",
+      "format": "date",
+      "description": "Date d'embauche du chauffeur"
+    },
+    "contact_urgence_nom": {
+      "type": "string",
+      "description": "Nom du contact en cas d'urgence"
+    },
+    "contact_urgence_telephone": {
+      "type": "string",
+      "description": "T\u00e9l\u00e9phone du contact en cas d'urgence"
+    },
     "photo_url": {
       "type": "string"
     },
