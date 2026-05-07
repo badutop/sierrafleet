@@ -63,6 +63,27 @@ export default function CampaignsList() {
   const openEdit = (c) => { setEditingCampaign(c); setForm({ ...emptyForm, ...c }); setDialogOpen(true); };
   const closeDialog = () => { setDialogOpen(false); setEditingCampaign(null); setForm(emptyForm); };
 
+  // Calcul des rotations: (tonnage / 35T) puis ajustement selon durée et 3 rotations/camion/jour
+  const calculateRotations = (tonnageStr, dateDebut, dateFin) => {
+    const tonnage = tonnageStr ? parseFloat(tonnageStr) || 0 : 0;
+    if (!tonnage || !dateDebut || !dateFin) return;
+    
+    const debut = new Date(dateDebut);
+    const fin = new Date(dateFin);
+    const dureeJours = Math.max(1, Math.ceil((fin - debut) / (1000 * 60 * 60 * 24)));
+    
+    // Rotations de base (35T par rotation)
+    const rotationsBase = Math.ceil(tonnage / 35);
+    
+    // Nombre de camions nécessaires pour faire rotationsBase en dureeJours avec 3 rotations/jour
+    const camionsNecessaires = Math.ceil(rotationsBase / (dureeJours * 3));
+    
+    // Rotations prévues = camions * 3 rotations/jour * durée
+    const rotationsPrevues = camionsNecessaires * 3 * dureeJours;
+    
+    setForm(prev => ({ ...prev, nombre_rotations_prevues: rotationsPrevues }));
+  };
+
   const handleSave = () => {
     const data = { ...form, tonnage_total_prevu: Number(form.tonnage_total_prevu || 0), nombre_rotations_prevues: Number(form.nombre_rotations_prevues || 0) };
     if (editingCampaign) updateMutation.mutate({ id: editingCampaign.id, data });
@@ -270,13 +291,37 @@ export default function CampaignsList() {
                 value={form.tonnage_total_prevu}
                 onChange={e => {
                   const tonnage = e.target.value ? parseFloat(e.target.value) || 0 : 0;
-                  const rotations = tonnage > 0 ? Math.ceil(tonnage / 35) : 0;
-                  setForm({ ...form, tonnage_total_prevu: e.target.value, nombre_rotations_prevues: rotations });
+                  setForm({ ...form, tonnage_total_prevu: e.target.value });
+                  calculateRotations(e.target.value, form.date_debut, form.date_fin_prevue);
                 }}
               />
             </div>
             <div>
-              <Label className="text-xs">Rotations prévues (35T/rotation)</Label>
+              <Label className="text-xs">Date début</Label>
+              <Input
+                type="date"
+                className="mt-1"
+                value={form.date_debut}
+                onChange={e => {
+                  setForm({ ...form, date_debut: e.target.value });
+                  calculateRotations(form.tonnage_total_prevu, e.target.value, form.date_fin_prevue);
+                }}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Date fin prévue</Label>
+              <Input
+                type="date"
+                className="mt-1"
+                value={form.date_fin_prevue}
+                onChange={e => {
+                  setForm({ ...form, date_fin_prevue: e.target.value });
+                  calculateRotations(form.tonnage_total_prevu, form.date_debut, e.target.value);
+                }}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Rotations prévues (3 rotations/camion/jour)</Label>
               <Input
                 type="number"
                 className="mt-1"
@@ -284,8 +329,7 @@ export default function CampaignsList() {
                 onChange={e => setForm({ ...form, nombre_rotations_prevues: e.target.value })}
               />
             </div>
-            <div><Label className="text-xs">Date début</Label><Input type="date" className="mt-1" value={form.date_debut} onChange={e => setForm({ ...form, date_debut: e.target.value })} /></div>
-            <div><Label className="text-xs">Date fin prévue</Label><Input type="date" className="mt-1" value={form.date_fin_prevue} onChange={e => setForm({ ...form, date_fin_prevue: e.target.value })} /></div>
+
             <div className="col-span-2">
               <Label className="text-xs">Statut</Label>
               <Select value={form.statut} onValueChange={v => setForm({ ...form, statut: v })} disabled={!editingCampaign}>
