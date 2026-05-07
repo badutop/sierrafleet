@@ -24,6 +24,10 @@
     "km_compteur": {
       "type": "number"
     },
+    "recu_url": {
+      "type": "string",
+      "description": "URL de la photo du re\u00e7u de carburant"
+    },
     "statut": {
       "type": "string",
       "enum": [
