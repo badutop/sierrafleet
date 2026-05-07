@@ -262,8 +262,28 @@ export default function CampaignsList() {
                 </SelectContent>
               </Select>
             </div>
-            <div><Label className="text-xs">Tonnage prévu (T)</Label><Input type="number" className="mt-1" value={form.tonnage_total_prevu} onChange={e => setForm({ ...form, tonnage_total_prevu: e.target.value })} /></div>
-            <div><Label className="text-xs">Rotations prévues</Label><Input type="number" className="mt-1" value={form.nombre_rotations_prevues} onChange={e => setForm({ ...form, nombre_rotations_prevues: e.target.value })} /></div>
+            <div>
+              <Label className="text-xs">Tonnage prévu (T) *</Label>
+              <Input
+                type="number"
+                className="mt-1"
+                value={form.tonnage_total_prevu}
+                onChange={e => {
+                  const tonnage = e.target.value ? parseFloat(e.target.value) || 0 : 0;
+                  const rotations = tonnage > 0 ? Math.ceil(tonnage / 35) : 0;
+                  setForm({ ...form, tonnage_total_prevu: e.target.value, nombre_rotations_prevues: rotations });
+                }}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Rotations prévues (35T/rotation)</Label>
+              <Input
+                type="number"
+                className="mt-1"
+                value={form.nombre_rotations_prevues}
+                onChange={e => setForm({ ...form, nombre_rotations_prevues: e.target.value })}
+              />
+            </div>
             <div><Label className="text-xs">Date début</Label><Input type="date" className="mt-1" value={form.date_debut} onChange={e => setForm({ ...form, date_debut: e.target.value })} /></div>
             <div><Label className="text-xs">Date fin prévue</Label><Input type="date" className="mt-1" value={form.date_fin_prevue} onChange={e => setForm({ ...form, date_fin_prevue: e.target.value })} /></div>
             <div className="col-span-2">
