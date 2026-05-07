@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Fuel } from "lucide-react";
+import { getFuelPricePerLitre } from "@/pages/SettingsPage";
 
 const stations = [
   { label: "Star Oil - Pompier", value: "Star Oil - Pompier" },
@@ -20,12 +21,12 @@ const emptyForm = {
   date: new Date().toISOString().split("T")[0],
   station: "",
   litres: "",
-  prix_litre: "",
   km_compteur: "",
 };
 
 export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, onSave, isPending }) {
   const [form, setForm] = useState(emptyForm);
+  const prixLitre = getFuelPricePerLitre();
 
   useEffect(() => {
     if (entry) {
@@ -35,7 +36,6 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
         date: entry.date || "",
         station: entry.station || "",
         litres: entry.litres || "",
-        prix_litre: entry.prix_litre || "",
         km_compteur: entry.km_compteur || "",
       });
     } else {
@@ -45,9 +45,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const montantCalc = (form.litres && form.prix_litre)
-    ? Number(form.litres) * Number(form.prix_litre)
-    : 0;
+  const montantCalc = form.litres ? Number(form.litres) * prixLitre : 0;
 
   const isValid = form.vehicle_id && form.date && form.litres;
 
@@ -102,23 +100,17 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
               <Input type="number" min="0" className="mt-1" placeholder="Ex: 150" value={form.litres} onChange={e => set("litres", e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Prix / litre (FCFA)</Label>
-              <Input type="number" min="0" className="mt-1" placeholder="Ex: 650" value={form.prix_litre} onChange={e => set("prix_litre", e.target.value)} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
               <Label className="text-xs">Km compteur</Label>
               <Input type="number" min="0" className="mt-1" placeholder="Optionnel" value={form.km_compteur} onChange={e => set("km_compteur", e.target.value)} />
             </div>
-            <div className="flex items-end">
-              <div className="w-full bg-muted/60 rounded-lg px-3 py-2 text-xs">
-                <span className="text-muted-foreground">Montant :</span>
-                <span className="font-bold ml-2 text-secondary">
-                  {montantCalc > 0 ? montantCalc.toLocaleString("fr-FR") + " FCFA" : "—"}
-                </span>
-              </div>
+          </div>
+
+          <div className="bg-muted/60 rounded-lg px-4 py-3 flex items-center justify-between text-sm">
+            <div className="text-muted-foreground">
+              Prix unitaire : <span className="font-medium text-foreground">{prixLitre.toLocaleString("fr-FR")} FCFA/L</span>
+            </div>
+            <div>
+              Montant : <span className="font-bold text-secondary text-base">{montantCalc > 0 ? montantCalc.toLocaleString("fr-FR") + " FCFA" : "—"}</span>
             </div>
           </div>
         </div>
@@ -127,7 +119,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
           <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button
             className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground"
-            onClick={() => onSave({ ...form, _montant: montantCalc })}
+            onClick={() => onSave({ ...form, prix_litre: prixLitre, _montant: montantCalc })}
             disabled={!isValid || isPending}
           >
             {isPending ? "Enregistrement..." : "Enregistrer"}
