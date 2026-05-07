@@ -200,32 +200,36 @@ export default function CampaignsList() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Point d'origine *</Label>
+              <Label className="text-xs">Point de départ (dépôt) *</Label>
               <Select value={form.point_origine || "none"} onValueChange={v => setForm({ ...form, point_origine: v === "none" ? "" : v })}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Sélectionner" />
-                  {form.point_origine && depots.find(d => d.id === form.point_origine) && (
-                   <span>{depots.find(d => d.id === form.point_origine)?.nom_depot}</span>
-                 )}
+                <SelectTrigger className="mt-1 h-9">
+                  <SelectValue placeholder="Sélectionner un dépôt" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">-- Sélectionner --</SelectItem>
-                  {depots.filter(d => d.client_id === form.client_id).map(d => <SelectItem key={d.id} value={d.id}>{d.nom_depot}</SelectItem>)}
+                  {depots.filter(d => d.client_id === form.client_id).map(d => (
+                    <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
+                  ))}
+                  {(!form.client_id || depots.filter(d => d.client_id === form.client_id).length === 0) && (
+                    <SelectItem disabled value="no-depots">Sélectionnez d'abord un client</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label className="text-xs">Dépôt destination *</Label>
               <Select value={form.depot_destination_id || "none"} onValueChange={v => setForm({ ...form, depot_destination_id: v === "none" ? "" : v })}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Sélectionner" />
-                  {form.depot_destination_id && depots.find(d => d.id === form.depot_destination_id) && (
-                   <span>{depots.find(d => d.id === form.depot_destination_id)?.nom_depot}</span>
-                 )}
+                <SelectTrigger className="mt-1 h-9">
+                  <SelectValue placeholder="Sélectionner un dépôt" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">-- Sélectionner --</SelectItem>
-                  {depots.filter(d => d.client_id === form.client_id).map(d => <SelectItem key={d.id} value={d.id}>{d.nom_depot}</SelectItem>)}
+                  {depots.filter(d => d.client_id === form.client_id).map(d => (
+                    <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
+                  ))}
+                  {(!form.client_id || depots.filter(d => d.client_id === form.client_id).length === 0) && (
+                    <SelectItem disabled value="no-depots">Sélectionnez d'abord un client</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
