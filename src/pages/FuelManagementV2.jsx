@@ -11,7 +11,6 @@ import FuelSupplyDialog from "@/components/fuel/FuelSupplyDialog";
 import FuelSupplyTable from "@/components/fuel/FuelSupplyTable";
 import FuelConsumptionAnalysis from "@/components/fuel/FuelConsumptionAnalysis";
 import FuelCostBreakdown from "@/components/fuel/FuelCostBreakdown";
-import FuelAlertPanel from "@/components/fuel/FuelAlertPanel";
 import FuelValidationTab from "@/components/fuel/FuelValidationTab";
 import FuelMonthlyChart from "@/components/fuel/FuelMonthlyChart";
 import { startOfMonth, startOfYear, subMonths } from "date-fns";
@@ -256,49 +255,39 @@ export default function FuelManagementV2() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Théorique · {PERIODS.find(p => p.key === period)?.label} (L)</p>
-            <p className="text-2xl font-bold mt-1">{Math.round(kpiData.totalTheorique)}</p>
+            <p className="text-xs text-muted-foreground">Litres approvisionnés</p>
+            <p className="text-2xl font-bold mt-1">{Math.round(filteredEntries.reduce((s, e) => s + (e.litres || 0), 0))} L</p>
+            <p className="text-xs text-muted-foreground mt-1">{filteredEntries.length} entrées</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Réel · {PERIODS.find(p => p.key === period)?.label} (L)</p>
-            <p className="text-2xl font-bold mt-1">{Math.round(kpiData.totalReel)}</p>
-            <p className={`text-xs mt-1 ${kpiData.ecartGlobalPct > 5 ? "text-destructive" : "text-emerald-600"}`}>
-              {kpiData.ecartGlobalPct > 0 ? "+" : ""}{kpiData.ecartGlobalPct.toFixed(1)}%
-            </p>
+            <p className="text-xs text-muted-foreground">Coût total</p>
+            <p className="text-xl font-bold mt-1">{formatCFA(filteredEntries.reduce((s, e) => s + (e.montant_total || 0), 0))}</p>
+            <p className="text-xs text-muted-foreground mt-1">{PERIODS.find(p => p.key === period)?.label}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Coût · {PERIODS.find(p => p.key === period)?.label}</p>
-            <p className="text-lg font-bold mt-1">{formatCFA(kpiData.totalCost)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Consommation L/100</p>
+            <p className="text-xs text-muted-foreground">Consommation moy. L/100</p>
             <p className="text-2xl font-bold mt-1">{kpiData.consommationMoyenne.toFixed(1)}</p>
+            <p className="text-xs text-muted-foreground mt-1">flotte globale</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Coût/km</p>
-            <p className="text-lg font-bold mt-1">{formatCFA(kpiData.coutParKmGlobal)}</p>
+            <p className="text-xs text-muted-foreground">En attente de validation</p>
+            <p className="text-2xl font-bold mt-1 text-amber-500">{entries.filter(e => !e.statut || e.statut === "en_attente").length}</p>
+            <p className="text-xs text-muted-foreground mt-1">approvisionnements</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Graphique mensuel (toujours sur toutes les données pour avoir la tendance) */}
       <FuelMonthlyChart entries={entries} />
-
-      {/* Alertes */}
-      {kpiData.alertCount > 0 && (
-        <FuelAlertPanel consumptionData={consumptionData} />
-      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -327,7 +316,7 @@ export default function FuelManagementV2() {
 
         <TabsContent value="approvisionnements" className="mt-4">
           <FuelSupplyTable
-            entries={entries}
+            entries={[...entries].sort((a, b) => new Date(b.date || b.created_date) - new Date(a.date || a.created_date))}
             isLoading={loadingEntries}
             vMap={vMap}
             campaignMap={campaignMap}
