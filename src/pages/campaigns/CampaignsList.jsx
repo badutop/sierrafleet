@@ -32,7 +32,7 @@ const portMoles = [
   { id: "port_dakar", nom: "Port de Dakar (Général)" },
 ];
 
-const emptyForm = { nom_campagne: "", client_id: "", type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", tonnage_total_prevu: "", nombre_rotations_prevues: "", camions_prevus: "", statut: "creee", observations: "" };
+const emptyForm = { nom_campagne: "", client_id: "", type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", tonnage_total_prevu: "", nombre_rotations_prevues: "", statut: "creee", observations: "" };
 
 export default function CampaignsList() {
   const [search, setSearch] = useState("");
@@ -81,7 +81,7 @@ export default function CampaignsList() {
     // Rotations prévues = camions * 2 rotations/jour * durée
     const rotationsPrevues = camionsNecessaires * 2 * dureeJours;
     
-    setForm(prev => ({ ...prev, nombre_rotations_prevues: rotationsPrevues, camions_prevus: camionsNecessaires }));
+    setForm(prev => ({ ...prev, nombre_rotations_prevues: rotationsPrevues }));
   };
 
   const handleSave = () => {
@@ -320,17 +320,7 @@ export default function CampaignsList() {
                 }}
               />
             </div>
-            <div>
-              <Label className="text-xs">Camions prévus</Label>
-              <Input
-                type="number"
-                className="mt-1"
-                value={form.camions_prevus || ""}
-                onChange={e => setForm({ ...form, camions_prevus: e.target.value })}
-                placeholder="Ex: 5"
-              />
-            </div>
-            <div>
+            <div className="col-span-2">
               <Label className="text-xs">Rotations prévues (2 rotations/camion/jour)</Label>
               <Input
                 type="number"
@@ -338,6 +328,18 @@ export default function CampaignsList() {
                 value={form.nombre_rotations_prevues}
                 onChange={e => setForm({ ...form, nombre_rotations_prevues: e.target.value })}
               />
+              {form.nombre_rotations_prevues && form.date_debut && form.date_fin_prevue && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {(() => {
+                    const debut = new Date(form.date_debut);
+                    const fin = new Date(form.date_fin_prevue);
+                    const dureeJours = Math.max(1, Math.ceil((fin - debut) / (1000 * 60 * 60 * 24)));
+                    const rotations = parseInt(form.nombre_rotations_prevues) || 0;
+                    const camions = Math.ceil(rotations / (dureeJours * 2));
+                    return `${rotations} rotations pour ${camions} camion${camions > 1 ? 's' : ''} sur ${dureeJours} jour${dureeJours > 1 ? 's' : ''}`;
+                  })()}
+                </p>
+              )}
             </div>
 
             <div className="col-span-2">
