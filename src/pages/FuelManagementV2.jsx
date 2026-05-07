@@ -42,19 +42,64 @@ export default function FuelManagementV2() {
     queryKey: ["clients"],
     queryFn: () => base44.entities.Client.list(),
   });
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: () => base44.entities.Driver.list(),
+  });
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (data) => {
-      const payload = { ...data, montant_total: (data.litres || 0) * (data.prix_litre || 0) };
-      if (data.id) return base44.entities.FuelEntry.update(data.id, payload);
-      return base44.entities.FuelEntry.create(payload);
+    mutationFn: async (data) => {
+      const montant = data._montant || (data.litres || 0) * (data.prix_litre || 0);
+      const { _montant, expense_id, ...fuelData } = data;
+
+      // Champs spécifiques FuelEntry
+      const fuelPayload = {
+        vehicle_id: fuelData.vehicle_id,
+        date: fuelData.date,
+        station: fuelData.station,
+        litres: fuelData.litres,
+        prix_litre: fuelData.prix_litre,
+        km_compteur: fuelData.km_compteur,
+        montant_total: montant,
+      };
+
+      // Champs pour Expense
+      const expensePayload = {
+        vehicle_id: fuelData.vehicle_id,
+        driver_id: fuelData.driver_id || "",
+        type_frais: "carburant",
+        date_frais: fuelData.date,
+        montant,
+        description: fuelData.description || (fuelData.station ? `Carburant — ${fuelData.station}` : "Carburant"),
+        collecteur: fuelData.collecteur || "",
+        executeur: fuelData.executeur || "",
+        statut: "en_attente",
+      };
+
+      let savedFuel;
+      if (fuelData.id) {
+        savedFuel = await base44.entities.FuelEntry.update(fuelData.id, fuelPayload);
+        if (expense_id) {
+          await base44.entities.Expense.update(expense_id, { ...expensePayload, statut: "en_attente" });
+        } else {
+          const newExpense = await base44.entities.Expense.create(expensePayload);
+          await base44.entities.FuelEntry.update(fuelData.id, { expense_id: newExpense.id });
+        }
+      } else {
+        savedFuel = await base44.entities.FuelEntry.create(fuelPayload);
+        const newExpense = await base44.entities.Expense.create(expensePayload);
+        await base44.entities.FuelEntry.update(savedFuel.id, { expense_id: newExpense.id });
+      }
+
+      return savedFuel;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fuel"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
       setDialogOpen(false);
       setEditEntry(null);
-      toast.success("Enregistrement sauvegardé");
+      toast.success("Approvisionnement enregistré et frais créé");
     },
   });
 
@@ -169,7 +214,7 @@ export default function FuelManagementV2() {
     };
   }, [consumptionData]);
 
-  const handleEdit = (entry) => { setEditEntry(entry); setDialogOpen(true); };
+  const handleEdit = (entry) => { setEditEntry({ ...entry }); setDialogOpen(true); };
   const handleNew = () => { setEditEntry(null); setDialogOpen(true); };
 
   return (
@@ -315,6 +360,7 @@ export default function FuelManagementV2() {
         open={dialogOpen}
         onOpenChange={(v) => { setDialogOpen(v); if (!v) setEditEntry(null); }}
         vehicles={vehicles}
+        drivers={drivers}
         entry={editEntry}
         onSave={(data) => createMutation.mutate(data)}
         isPending={createMutation.isPending}

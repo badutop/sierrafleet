@@ -23,6 +23,10 @@
     },
     "km_compteur": {
       "type": "number"
+    },
+    "expense_id": {
+      "type": "string",
+      "description": "ID de l'Expense carburant li\u00e9e dans le module Frais"
     }
   },
   "required": [
