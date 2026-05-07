@@ -19,6 +19,19 @@ const statutLabels = { creee: "Créée", validee_responsable: "Validée (Respons
 const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturee: "bg-muted text-muted-foreground" };
 const cerealTypes = ["Blé", "Maïs", "Riz", "Orge", "Seigle", "Avoine", "Soja", "Tournesol", "Colza"];
 
+// Môles du Port de Dakar
+const portMoles = [
+  { id: "mole_1", nom: "Môle 1 - Port de Dakar" },
+  { id: "mole_2", nom: "Môle 2 - Port de Dakar" },
+  { id: "mole_3", nom: "Môle 3 - Port de Dakar" },
+  { id: "mole_4", nom: "Môle 4 - Port de Dakar" },
+  { id: "mole_5", nom: "Môle 5 - Port de Dakar" },
+  { id: "mole_6", nom: "Môle 6 - Port de Dakar" },
+  { id: "mole_7", nom: "Môle 7 - Port de Dakar" },
+  { id: "mole_8", nom: "Môle 8 - Port de Dakar" },
+  { id: "port_dakar", nom: "Port de Dakar (Général)" },
+];
+
 const emptyForm = { nom_campagne: "", client_id: "", type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", tonnage_total_prevu: "", nombre_rotations_prevues: "", statut: "creee", observations: "" };
 
 export default function CampaignsList() {
@@ -200,36 +213,52 @@ export default function CampaignsList() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Point de départ (dépôt) *</Label>
+              <Label className="text-xs">Point de départ *</Label>
               <Select value={form.point_origine || "none"} onValueChange={v => setForm({ ...form, point_origine: v === "none" ? "" : v })}>
                 <SelectTrigger className="mt-1 h-9">
-                  <SelectValue placeholder="Sélectionner un dépôt" />
+                  <SelectValue placeholder="Sélectionner" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">-- Sélectionner --</SelectItem>
-                  {depots.filter(d => d.client_id === form.client_id).map(d => (
-                    <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
-                  ))}
-                  {(!form.client_id || depots.filter(d => d.client_id === form.client_id).length === 0) && (
-                    <SelectItem disabled value="no-depots">Sélectionnez d'abord un client</SelectItem>
+                  {/* Dépôts du client */}
+                  {depots.filter(d => d.client_id === form.client_id).length > 0 && (
+                    <>
+                      <SelectItem disabled value="depots-label">Dépôts du client</SelectItem>
+                      {depots.filter(d => d.client_id === form.client_id).map(d => (
+                        <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
+                      ))}
+                    </>
                   )}
+                  {/* Môles du Port de Dakar */}
+                  <SelectItem disabled value="moles-label">Môles du Port de Dakar</SelectItem>
+                  {portMoles.map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.nom}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Dépôt destination *</Label>
+              <Label className="text-xs">Destination *</Label>
               <Select value={form.depot_destination_id || "none"} onValueChange={v => setForm({ ...form, depot_destination_id: v === "none" ? "" : v })}>
                 <SelectTrigger className="mt-1 h-9">
-                  <SelectValue placeholder="Sélectionner un dépôt" />
+                  <SelectValue placeholder="Sélectionner" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">-- Sélectionner --</SelectItem>
-                  {depots.filter(d => d.client_id === form.client_id).map(d => (
-                    <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
-                  ))}
-                  {(!form.client_id || depots.filter(d => d.client_id === form.client_id).length === 0) && (
-                    <SelectItem disabled value="no-depots">Sélectionnez d'abord un client</SelectItem>
+                  {/* Dépôts du client */}
+                  {depots.filter(d => d.client_id === form.client_id).length > 0 && (
+                    <>
+                      <SelectItem disabled value="depots-label">Dépôts du client</SelectItem>
+                      {depots.filter(d => d.client_id === form.client_id).map(d => (
+                        <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
+                      ))}
+                    </>
                   )}
+                  {/* Môles du Port de Dakar */}
+                  <SelectItem disabled value="moles-label">Môles du Port de Dakar</SelectItem>
+                  {portMoles.map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.nom}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
