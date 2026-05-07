@@ -46,9 +46,11 @@ export default function ExpensesPage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); toast.success("Frais supprimé"); },
   });
 
-  const openCreate = () => { setEditingExpense(null); setForm(emptyForm); setDialogOpen(true); };
-  const openEdit = (e) => { setEditingExpense(e); setForm({ ...emptyForm, ...e }); setDialogOpen(true); };
-  const closeDialog = () => { setDialogOpen(false); setEditingExpense(null); setForm(emptyForm); };
+  const [viewOnly, setViewOnly] = useState(false);
+  const openCreate = () => { setViewOnly(false); setEditingExpense(null); setForm(emptyForm); setDialogOpen(true); };
+  const openEdit = (e) => { setViewOnly(false); setEditingExpense(e); setForm({ ...emptyForm, ...e }); setDialogOpen(true); };
+  const openView = (e) => { setViewOnly(true); setEditingExpense(e); setForm({ ...emptyForm, ...e }); setDialogOpen(true); };
+  const closeDialog = () => { setDialogOpen(false); setEditingExpense(null); setForm(emptyForm); setViewOnly(false); };
 
   const handleSave = () => {
     const data = { ...form, montant: Number(form.montant || 0), statut: editingExpense ? form.statut : "en_attente" };
@@ -195,14 +197,11 @@ export default function ExpensesPage() {
                     <td className="px-4 py-2.5 text-muted-foreground text-xs">{e.description || "-"}</td>
                     <td className="px-4 py-2.5 text-right font-semibold text-secondary">{(e.montant || 0).toLocaleString("fr-FR")} FCFA</td>
                     <td className="px-4 py-2.5 text-center">
-                      <div className="flex gap-1 justify-center">
-                        <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => openEdit(e)}>
-                          <Pencil className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-destructive hover:bg-destructive/10" onClick={() => { if(confirm("Supprimer ce frais ?")) deleteMutation.mutate(e.id); }}>
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
+                     <div className="flex gap-1 justify-center">
+                       <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => openView(e)}>
+                         <Receipt className="w-3 h-3 mr-1" /> Consulter
+                       </Button>
+                     </div>
                     </td>
                   </tr>
                 ))}
@@ -214,29 +213,34 @@ export default function ExpensesPage() {
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingExpense ? "Modifier le frais" : "Nouveau frais"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{viewOnly ? "Consulter le frais" : editingExpense ? "Modifier le frais" : "Nouveau frais"}</DialogTitle>
+          </DialogHeader>
           <div className="grid grid-cols-2 gap-3 mt-2">
             <div>
-              <Label className="text-xs">Type de frais *</Label>
-              <Select value={form.type_frais} onValueChange={v => setForm({ ...form, type_frais: v })}>
+              <Label className="text-xs">Type de frais {!viewOnly && "*"}</Label>
+              <Select value={form.type_frais} onValueChange={v => !viewOnly && setForm({ ...form, type_frais: v })} disabled={viewOnly}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label className="text-xs">Date *</Label><Input type="date" className="mt-1" value={form.date_frais} onChange={e => setForm({ ...form, date_frais: e.target.value })} /></div>
-            <div><Label className="text-xs">Montant (FCFA) *</Label><Input type="number" className="mt-1" value={form.montant} onChange={e => setForm({ ...form, montant: e.target.value })} /></div>
-            {editingExpense && (
+            <div>
+              <Label className="text-xs">Date {!viewOnly && "*"}</Label>
+              <Input type="date" className="mt-1" value={form.date_frais} onChange={e => setForm({ ...form, date_frais: e.target.value })} disabled={viewOnly} />
+            </div>
+            <div>
+              <Label className="text-xs">Montant (FCFA) {!viewOnly && "*"}</Label>
+              <Input type="number" className="mt-1" value={form.montant} onChange={e => setForm({ ...form, montant: e.target.value })} disabled={viewOnly} />
+            </div>
             <div>
               <Label className="text-xs">Statut</Label>
-              <Select value={form.statut} onValueChange={v => setForm({ ...form, statut: v })}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(statutLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-              </Select>
+              <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-muted/50 text-sm">
+                <span className={cn(statutColors[form.statut], "px-2 py-0.5 rounded text-xs font-medium")}>{statutLabels[form.statut] || "-"}</span>
+              </div>
             </div>
-            )}
             <div>
               <Label className="text-xs">Véhicule</Label>
-              <Select value={form.vehicle_id || "none"} onValueChange={v => setForm({ ...form, vehicle_id: v === "none" ? "" : v })}>
+              <Select value={form.vehicle_id || "none"} onValueChange={v => !viewOnly && setForm({ ...form, vehicle_id: v === "none" ? "" : v })} disabled={viewOnly}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">-- Aucun --</SelectItem>
@@ -246,7 +250,7 @@ export default function ExpensesPage() {
             </div>
             <div>
               <Label className="text-xs">Chauffeur</Label>
-              <Select value={form.driver_id || "none"} onValueChange={v => setForm({ ...form, driver_id: v === "none" ? "" : v })}>
+              <Select value={form.driver_id || "none"} onValueChange={v => !viewOnly && setForm({ ...form, driver_id: v === "none" ? "" : v })} disabled={viewOnly}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">-- Aucun --</SelectItem>
@@ -254,23 +258,19 @@ export default function ExpensesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2"><Label className="text-xs">Description</Label><Input className="mt-1" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-            {editingExpense && (
-              <div className="col-span-2">
-                <Label className="text-xs">Statut</Label>
-                <Select value={form.statut} onValueChange={v => setForm({ ...form, statut: v })}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(statutLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Description</Label>
+              <Input className="mt-1" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} disabled={viewOnly} />
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button variant="outline" className="flex-1" onClick={closeDialog}>{viewOnly ? "Fermer" : "Annuler"}</Button>
+            {!viewOnly && (
+              <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.montant || !form.date_frais}>
+                {isPending ? "Enregistrement..." : "Enregistrer"}
+              </Button>
             )}
-            </div>
-            <div className="flex gap-2 mt-4">
-            <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.montant || !form.date_frais}>
-              {isPending ? "Enregistrement..." : "Enregistrer"}
-            </Button>
-            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

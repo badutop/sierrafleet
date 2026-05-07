@@ -24,8 +24,8 @@ const ValidationPanel = ({ expense, onValidate, onReject, isPending }) => {
 
   const steps = [
     { label: "Création", done: true },
-    { label: "Validation", done: isValidated || isRejected, active: isWaiting },
-    { label: "Finalisé", done: isValidated },
+    { label: "Modification", done: isValidated || isRejected, active: isWaiting },
+    { label: "Validation", done: isValidated, active: isWaiting, rejected: isRejected },
   ];
 
   return (
@@ -49,7 +49,7 @@ const ValidationPanel = ({ expense, onValidate, onReject, isPending }) => {
         <div className="flex items-center justify-between text-xs">
           {steps.map((step, i) => (
             <div key={i} className="flex flex-col items-center flex-1">
-              <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold mb-1", step.done ? "bg-emerald-500/20 text-emerald-600" : step.active ? "bg-amber-500/20 text-amber-600 ring-2 ring-amber-300" : "bg-muted text-muted-foreground")}>
+              <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold mb-1", step.done ? "bg-emerald-500/20 text-emerald-600" : step.rejected ? "bg-destructive/20 text-destructive" : step.active ? "bg-amber-500/20 text-amber-600 ring-2 ring-amber-300" : "bg-muted text-muted-foreground")}>
                 {step.done ? "✓" : i + 1}
               </div>
               <span className={cn("text-[11px]", step.done || step.active ? "font-medium text-foreground" : "text-muted-foreground")}>{step.label}</span>
