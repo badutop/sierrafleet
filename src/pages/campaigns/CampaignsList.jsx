@@ -32,7 +32,7 @@ const portMoles = [
   { id: "port_dakar", nom: "Port de Dakar (Général)" },
 ];
 
-const emptyForm = { nom_campagne: "", client_id: "", type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", tonnage_total_prevu: "", nombre_rotations_prevues: "", statut: "creee", observations: "" };
+const emptyForm = { nom_campagne: "", client_id: "", type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", tonnage_total_prevu: "", nombre_rotations_prevues: "", camions_prevus: "", statut: "creee", observations: "" };
 
 export default function CampaignsList() {
   const [search, setSearch] = useState("");
@@ -63,7 +63,7 @@ export default function CampaignsList() {
   const openEdit = (c) => { setEditingCampaign(c); setForm({ ...emptyForm, ...c }); setDialogOpen(true); };
   const closeDialog = () => { setDialogOpen(false); setEditingCampaign(null); setForm(emptyForm); };
 
-  // Calcul des rotations: (tonnage / 35T) puis ajustement selon durée et 3 rotations/camion/jour
+  // Calcul des rotations: 2 rotations par camion par jour
   const calculateRotations = (tonnageStr, dateDebut, dateFin) => {
     const tonnage = tonnageStr ? parseFloat(tonnageStr) || 0 : 0;
     if (!tonnage || !dateDebut || !dateFin) return;
@@ -75,13 +75,13 @@ export default function CampaignsList() {
     // Rotations de base (35T par rotation)
     const rotationsBase = Math.ceil(tonnage / 35);
     
-    // Nombre de camions nécessaires pour faire rotationsBase en dureeJours avec 3 rotations/jour
-    const camionsNecessaires = Math.ceil(rotationsBase / (dureeJours * 3));
+    // Nombre de camions nécessaires pour faire rotationsBase en dureeJours avec 2 rotations/jour
+    const camionsNecessaires = Math.ceil(rotationsBase / (dureeJours * 2));
     
-    // Rotations prévues = camions * 3 rotations/jour * durée
-    const rotationsPrevues = camionsNecessaires * 3 * dureeJours;
+    // Rotations prévues = camions * 2 rotations/jour * durée
+    const rotationsPrevues = camionsNecessaires * 2 * dureeJours;
     
-    setForm(prev => ({ ...prev, nombre_rotations_prevues: rotationsPrevues }));
+    setForm(prev => ({ ...prev, nombre_rotations_prevues: rotationsPrevues, camions_prevus: camionsNecessaires }));
   };
 
   const handleSave = () => {
@@ -321,7 +321,17 @@ export default function CampaignsList() {
               />
             </div>
             <div>
-              <Label className="text-xs">Rotations prévues (3 rotations/camion/jour)</Label>
+              <Label className="text-xs">Camions prévus</Label>
+              <Input
+                type="number"
+                className="mt-1"
+                value={form.camions_prevus || ""}
+                onChange={e => setForm({ ...form, camions_prevus: e.target.value })}
+                placeholder="Ex: 5"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Rotations prévues (2 rotations/camion/jour)</Label>
               <Input
                 type="number"
                 className="mt-1"
