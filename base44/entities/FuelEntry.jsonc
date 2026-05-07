@@ -24,9 +24,15 @@
     "km_compteur": {
       "type": "number"
     },
-    "expense_id": {
+    "statut": {
       "type": "string",
-      "description": "ID de l'Expense carburant li\u00e9e dans le module Frais"
+      "enum": [
+        "en_attente",
+        "valide",
+        "rejete"
+      ],
+      "default": "en_attente",
+      "description": "Statut de validation de l'approvisionnement"
     }
   },
   "required": [

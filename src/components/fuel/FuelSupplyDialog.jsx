@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Fuel, Receipt } from "lucide-react";
+import { Fuel } from "lucide-react";
 
 const stations = [
   { label: "Star Oil - Pompier", value: "Star Oil - Pompier" },
@@ -17,35 +17,26 @@ const stations = [
 
 const emptyForm = {
   vehicle_id: "",
-  driver_id: "",
   date: new Date().toISOString().split("T")[0],
   station: "",
   litres: "",
   prix_litre: "",
   km_compteur: "",
-  description: "",
-  collecteur: "",
-  executeur: "",
 };
 
-export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers = [], entry, onSave, isPending }) {
+export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, onSave, isPending }) {
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
     if (entry) {
       setForm({
         id: entry.id,
-        expense_id: entry.expense_id || "",
         vehicle_id: entry.vehicle_id || "",
-        driver_id: entry.driver_id || "",
         date: entry.date || "",
         station: entry.station || "",
         litres: entry.litres || "",
         prix_litre: entry.prix_litre || "",
         km_compteur: entry.km_compteur || "",
-        description: entry.description || "",
-        collecteur: entry.collecteur || "",
-        executeur: entry.executeur || "",
       });
     } else {
       setForm(emptyForm);
@@ -58,12 +49,11 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers
     ? Number(form.litres) * Number(form.prix_litre)
     : 0;
 
-  const montantDisplay = montantCalc > 0 ? montantCalc.toLocaleString("fr-FR") : "—";
   const isValid = form.vehicle_id && form.date && form.litres;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Fuel className="w-4 h-4 text-secondary" />
@@ -71,37 +61,31 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers
           </DialogTitle>
         </DialogHeader>
 
-        {/* Section Carburant */}
         <div className="space-y-3 mt-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Fuel className="w-3.5 h-3.5" /> Données Carburant
-          </p>
+          <div>
+            <Label className="text-xs">Véhicule *</Label>
+            <Select value={form.vehicle_id} onValueChange={v => set("vehicle_id", v)}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Sélectionner un véhicule" />
+              </SelectTrigger>
+              <SelectContent>
+                {vehicles.map(v => (
+                  <SelectItem key={v.id} value={v.id}>{v.immatriculation} — {v.marque} {v.modele}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <Label className="text-xs">Véhicule *</Label>
-              <Select value={form.vehicle_id} onValueChange={v => set("vehicle_id", v)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Sélectionner un véhicule" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vehicles.map(v => (
-                    <SelectItem key={v.id} value={v.id}>{v.immatriculation} — {v.marque} {v.modele}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             <div>
               <Label className="text-xs">Date *</Label>
               <Input type="date" className="mt-1" value={form.date} onChange={e => set("date", e.target.value)} />
             </div>
-
             <div>
               <Label className="text-xs">Station</Label>
               <Select value={form.station} onValueChange={v => set("station", v)}>
                 <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Sélectionner une station" />
+                  <SelectValue placeholder="Sélectionner" />
                 </SelectTrigger>
                 <SelectContent>
                   {stations.map(s => (
@@ -110,69 +94,31 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Litres *</Label>
               <Input type="number" min="0" className="mt-1" placeholder="Ex: 150" value={form.litres} onChange={e => set("litres", e.target.value)} />
             </div>
-
             <div>
               <Label className="text-xs">Prix / litre (FCFA)</Label>
               <Input type="number" min="0" className="mt-1" placeholder="Ex: 650" value={form.prix_litre} onChange={e => set("prix_litre", e.target.value)} />
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Km compteur</Label>
               <Input type="number" min="0" className="mt-1" placeholder="Optionnel" value={form.km_compteur} onChange={e => set("km_compteur", e.target.value)} />
             </div>
-
             <div className="flex items-end">
               <div className="w-full bg-muted/60 rounded-lg px-3 py-2 text-xs">
-                <span className="text-muted-foreground">Montant calculé :</span>
-                <span className="font-bold ml-2 text-secondary">{montantDisplay} FCFA</span>
+                <span className="text-muted-foreground">Montant :</span>
+                <span className="font-bold ml-2 text-secondary">
+                  {montantCalc > 0 ? montantCalc.toLocaleString("fr-FR") + " FCFA" : "—"}
+                </span>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Séparateur */}
-        <div className="border-t border-border my-1" />
-
-        {/* Section Frais */}
-        <div className="space-y-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Receipt className="w-3.5 h-3.5" /> Données Module Frais
-          </p>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <Label className="text-xs">Chauffeur</Label>
-              <Select value={form.driver_id || "none"} onValueChange={v => set("driver_id", v === "none" ? "" : v)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Sélectionner un chauffeur" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- Aucun --</SelectItem>
-                  {drivers.map(d => (
-                    <SelectItem key={d.id} value={d.id}>{d.prenom} {d.nom}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="col-span-2">
-              <Label className="text-xs">Description / Observation</Label>
-              <Input className="mt-1" placeholder="Ex: Plein avant mission Thiès..." value={form.description} onChange={e => set("description", e.target.value)} />
-            </div>
-
-            <div>
-              <Label className="text-xs">Collecteur de bon</Label>
-              <Input className="mt-1" placeholder="Nom du collecteur" value={form.collecteur} onChange={e => set("collecteur", e.target.value)} />
-            </div>
-
-            <div>
-              <Label className="text-xs">Exécuteur de dépense</Label>
-              <Input className="mt-1" placeholder="Nom de l'exécuteur" value={form.executeur} onChange={e => set("executeur", e.target.value)} />
             </div>
           </div>
         </div>

@@ -5,13 +5,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Fuel, TrendingUp, AlertTriangle, Truck, BarChart2, Plus } from "lucide-react";
+import { Fuel, TrendingUp, AlertTriangle, Truck, BarChart2, Plus, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import FuelSupplyDialog from "@/components/fuel/FuelSupplyDialog";
 import FuelSupplyTable from "@/components/fuel/FuelSupplyTable";
 import FuelConsumptionAnalysis from "@/components/fuel/FuelConsumptionAnalysis";
 import FuelCostBreakdown from "@/components/fuel/FuelCostBreakdown";
 import FuelAlertPanel from "@/components/fuel/FuelAlertPanel";
+import FuelValidationTab from "@/components/fuel/FuelValidationTab";
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 
@@ -51,55 +52,25 @@ export default function FuelManagementV2() {
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const montant = data._montant || (data.litres || 0) * (data.prix_litre || 0);
-      const { _montant, expense_id, ...fuelData } = data;
-
-      // Champs spécifiques FuelEntry
-      const fuelPayload = {
+      const { _montant, ...fuelData } = data;
+      const payload = {
         vehicle_id: fuelData.vehicle_id,
         date: fuelData.date,
         station: fuelData.station,
-        litres: fuelData.litres,
-        prix_litre: fuelData.prix_litre,
-        km_compteur: fuelData.km_compteur,
+        litres: Number(fuelData.litres),
+        prix_litre: fuelData.prix_litre ? Number(fuelData.prix_litre) : undefined,
+        km_compteur: fuelData.km_compteur ? Number(fuelData.km_compteur) : undefined,
         montant_total: montant,
-      };
-
-      // Champs pour Expense
-      const expensePayload = {
-        vehicle_id: fuelData.vehicle_id,
-        driver_id: fuelData.driver_id || "",
-        type_frais: "carburant",
-        date_frais: fuelData.date,
-        montant,
-        description: fuelData.description || (fuelData.station ? `Carburant — ${fuelData.station}` : "Carburant"),
-        collecteur: fuelData.collecteur || "",
-        executeur: fuelData.executeur || "",
         statut: "en_attente",
       };
-
-      let savedFuel;
-      if (fuelData.id) {
-        savedFuel = await base44.entities.FuelEntry.update(fuelData.id, fuelPayload);
-        if (expense_id) {
-          await base44.entities.Expense.update(expense_id, { ...expensePayload, statut: "en_attente" });
-        } else {
-          const newExpense = await base44.entities.Expense.create(expensePayload);
-          await base44.entities.FuelEntry.update(fuelData.id, { expense_id: newExpense.id });
-        }
-      } else {
-        savedFuel = await base44.entities.FuelEntry.create(fuelPayload);
-        const newExpense = await base44.entities.Expense.create(expensePayload);
-        await base44.entities.FuelEntry.update(savedFuel.id, { expense_id: newExpense.id });
-      }
-
-      return savedFuel;
+      if (fuelData.id) return base44.entities.FuelEntry.update(fuelData.id, payload);
+      return base44.entities.FuelEntry.create(payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fuel"] });
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
       setDialogOpen(false);
       setEditEntry(null);
-      toast.success("Approvisionnement enregistré et frais créé");
+      toast.success("Approvisionnement enregistré");
     },
   });
 
@@ -292,6 +263,14 @@ export default function FuelManagementV2() {
           <TabsTrigger value="rotations" className="flex items-center gap-1.5 text-xs">
             <Truck className="w-3.5 h-3.5" /> Par rotation
           </TabsTrigger>
+          <TabsTrigger value="validation" className="flex items-center gap-1.5 text-xs">
+            <ShieldCheck className="w-3.5 h-3.5" /> Validation
+            {entries.filter(e => !e.statut || e.statut === "en_attente").length > 0 && (
+              <span className="ml-1 bg-amber-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">
+                {entries.filter(e => !e.statut || e.statut === "en_attente").length}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="approvisionnements" className="mt-4">
@@ -353,6 +332,14 @@ export default function FuelManagementV2() {
             )}
           </div>
         </TabsContent>
+
+        <TabsContent value="validation" className="mt-4">
+          <FuelValidationTab
+            entries={entries}
+            vMap={vMap}
+            onEdit={handleEdit}
+          />
+        </TabsContent>
       </Tabs>
 
       {/* Dialog */}
@@ -360,7 +347,6 @@ export default function FuelManagementV2() {
         open={dialogOpen}
         onOpenChange={(v) => { setDialogOpen(v); if (!v) setEditEntry(null); }}
         vehicles={vehicles}
-        drivers={drivers}
         entry={editEntry}
         onSave={(data) => createMutation.mutate(data)}
         isPending={createMutation.isPending}
