@@ -12,21 +12,78 @@ const ENTITIES = [
 ];
 
 const SQL_SCRIPT = `-- À exécuter dans Supabase SQL Editor AVANT la migration
--- Convertit les colonnes id en TEXT pour accepter les IDs Base44
+-- 1. Supprime contraintes FK temporairement
+-- 2. Convertit tous les id en TEXT
+-- 3. Recrée les contraintes FK
 
-DO $$
-DECLARE
-  tables TEXT[] := ARRAY[
-    'vehicles','drivers','clients','depots','suppliers',
-    'fuel_entries','maintenance','expenses','spare_parts',
-    'campaigns','rotations','daily_declarations','trip_logs'
-  ];
-  t TEXT;
-BEGIN
-  FOREACH t IN ARRAY tables LOOP
-    EXECUTE format('ALTER TABLE %I ALTER COLUMN id TYPE TEXT', t);
-  END LOOP;
-END $$;`;
+-- Étape 1: Supprimer contraintes FK
+ALTER TABLE fuel_entries DROP CONSTRAINT IF EXISTS fuel_entries_vehicle_id_fkey;
+ALTER TABLE maintenance DROP CONSTRAINT IF EXISTS maintenance_vehicle_id_fkey;
+ALTER TABLE expenses DROP CONSTRAINT IF EXISTS expenses_vehicle_id_fkey;
+ALTER TABLE expenses DROP CONSTRAINT IF EXISTS expenses_driver_id_fkey;
+ALTER TABLE spare_parts DROP CONSTRAINT IF EXISTS spare_parts_supplier_id_fkey;
+ALTER TABLE campaigns DROP CONSTRAINT IF EXISTS campaigns_client_id_fkey;
+ALTER TABLE campaigns DROP CONSTRAINT IF EXISTS campaigns_depot_destination_id_fkey;
+ALTER TABLE rotations DROP CONSTRAINT IF EXISTS rotations_campaign_id_fkey;
+ALTER TABLE rotations DROP CONSTRAINT IF EXISTS rotations_vehicle_id_fkey;
+ALTER TABLE rotations DROP CONSTRAINT IF EXISTS rotations_driver_id_fkey;
+ALTER TABLE daily_declarations DROP CONSTRAINT IF EXISTS daily_declarations_campaign_id_fkey;
+ALTER TABLE daily_declarations DROP CONSTRAINT IF EXISTS daily_declarations_vehicle_id_fkey;
+ALTER TABLE daily_declarations DROP CONSTRAINT IF EXISTS daily_declarations_driver_id_fkey;
+ALTER TABLE depots DROP CONSTRAINT IF EXISTS depots_client_id_fkey;
+ALTER TABLE trip_logs DROP CONSTRAINT IF EXISTS trip_logs_vehicle_id_fkey;
+ALTER TABLE trip_logs DROP CONSTRAINT IF EXISTS trip_logs_driver_id_fkey;
+
+-- Étape 2: Convertir id en TEXT
+ALTER TABLE vehicles ALTER COLUMN id TYPE TEXT;
+ALTER TABLE drivers ALTER COLUMN id TYPE TEXT;
+ALTER TABLE clients ALTER COLUMN id TYPE TEXT;
+ALTER TABLE depots ALTER COLUMN id TYPE TEXT;
+ALTER TABLE suppliers ALTER COLUMN id TYPE TEXT;
+ALTER TABLE fuel_entries ALTER COLUMN id TYPE TEXT;
+ALTER TABLE maintenance ALTER COLUMN id TYPE TEXT;
+ALTER TABLE expenses ALTER COLUMN id TYPE TEXT;
+ALTER TABLE spare_parts ALTER COLUMN id TYPE TEXT;
+ALTER TABLE campaigns ALTER COLUMN id TYPE TEXT;
+ALTER TABLE rotations ALTER COLUMN id TYPE TEXT;
+ALTER TABLE daily_declarations ALTER COLUMN id TYPE TEXT;
+ALTER TABLE trip_logs ALTER COLUMN id TYPE TEXT;
+
+-- Étape 3: Convertir les colonnes *_id en TEXT
+ALTER TABLE fuel_entries ALTER COLUMN vehicle_id TYPE TEXT;
+ALTER TABLE maintenance ALTER COLUMN vehicle_id TYPE TEXT;
+ALTER TABLE expenses ALTER COLUMN vehicle_id TYPE TEXT;
+ALTER TABLE expenses ALTER COLUMN driver_id TYPE TEXT;
+ALTER TABLE spare_parts ALTER COLUMN supplier_id TYPE TEXT;
+ALTER TABLE campaigns ALTER COLUMN client_id TYPE TEXT;
+ALTER TABLE campaigns ALTER COLUMN depot_destination_id TYPE TEXT;
+ALTER TABLE rotations ALTER COLUMN campaign_id TYPE TEXT;
+ALTER TABLE rotations ALTER COLUMN vehicle_id TYPE TEXT;
+ALTER TABLE rotations ALTER COLUMN driver_id TYPE TEXT;
+ALTER TABLE daily_declarations ALTER COLUMN campaign_id TYPE TEXT;
+ALTER TABLE daily_declarations ALTER COLUMN vehicle_id TYPE TEXT;
+ALTER TABLE daily_declarations ALTER COLUMN driver_id TYPE TEXT;
+ALTER TABLE depots ALTER COLUMN client_id TYPE TEXT;
+ALTER TABLE trip_logs ALTER COLUMN vehicle_id TYPE TEXT;
+ALTER TABLE trip_logs ALTER COLUMN driver_id TYPE TEXT;
+
+-- Étape 4: Recréer contraintes FK (optionnel - commenter si pas nécessaire)
+-- ALTER TABLE fuel_entries ADD CONSTRAINT fuel_entries_vehicle_id_fkey FOREIGN KEY (vehicle_id) REFERENCES vehicles(id);
+-- ALTER TABLE maintenance ADD CONSTRAINT maintenance_vehicle_id_fkey FOREIGN KEY (vehicle_id) REFERENCES vehicles(id);
+-- ALTER TABLE expenses ADD CONSTRAINT expenses_vehicle_id_fkey FOREIGN KEY (vehicle_id) REFERENCES vehicles(id);
+-- ALTER TABLE expenses ADD CONSTRAINT expenses_driver_id_fkey FOREIGN KEY (driver_id) REFERENCES drivers(id);
+-- ALTER TABLE spare_parts ADD CONSTRAINT spare_parts_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES suppliers(id);
+-- ALTER TABLE campaigns ADD CONSTRAINT campaigns_client_id_fkey FOREIGN KEY (client_id) REFERENCES clients(id);
+-- ALTER TABLE campaigns ADD CONSTRAINT campaigns_depot_destination_id_fkey FOREIGN KEY (depot_destination_id) REFERENCES depots(id);
+-- ALTER TABLE rotations ADD CONSTRAINT rotations_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES campaigns(id);
+-- ALTER TABLE rotations ADD CONSTRAINT rotations_vehicle_id_fkey FOREIGN KEY (vehicle_id) REFERENCES vehicles(id);
+-- ALTER TABLE rotations ADD CONSTRAINT rotations_driver_id_fkey FOREIGN KEY (driver_id) REFERENCES drivers(id);
+-- ALTER TABLE daily_declarations ADD CONSTRAINT daily_declarations_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES campaigns(id);
+-- ALTER TABLE daily_declarations ADD CONSTRAINT daily_declarations_vehicle_id_fkey FOREIGN KEY (vehicle_id) REFERENCES vehicles(id);
+-- ALTER TABLE daily_declarations ADD CONSTRAINT daily_declarations_driver_id_fkey FOREIGN KEY (driver_id) REFERENCES drivers(id);
+-- ALTER TABLE depots ADD CONSTRAINT depots_client_id_fkey FOREIGN KEY (client_id) REFERENCES clients(id);
+-- ALTER TABLE trip_logs ADD CONSTRAINT trip_logs_vehicle_id_fkey FOREIGN KEY (vehicle_id) REFERENCES vehicles(id);
+-- ALTER TABLE trip_logs ADD CONSTRAINT trip_logs_driver_id_fkey FOREIGN KEY (driver_id) REFERENCES drivers(id);`;
 
 export default function MigrationPage() {
   const [running, setRunning] = useState(false);
