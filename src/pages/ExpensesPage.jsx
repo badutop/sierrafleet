@@ -153,16 +153,8 @@ export default function ExpensesPage() {
                   </div>
                   {e.description && <p className="text-xs text-muted-foreground mt-2">Description: {e.description}</p>}
                 </div>
-                <div className="p-4 space-y-3">
-                  <ExpenseValidationPanel expense={e} onValidate={handleValidate} onReject={handleReject} isPending={updateMutation.isPending} />
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openEdit(e)}>
-                      <Pencil className="w-3 h-3 mr-1" /> Modifier
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-8 text-xs text-destructive hover:bg-destructive/10" onClick={() => { if(confirm("Supprimer ce frais ?")) deleteMutation.mutate(e.id); }}>
-                      <Trash2 className="w-3 h-3 mr-1" /> Supprimer
-                    </Button>
-                  </div>
+                <div className="p-4">
+                  <ExpenseValidationPanel expense={e} onValidate={handleValidate} onReject={handleReject} onEdit={openEdit} isPending={updateMutation.isPending} />
                 </div>
               </div>
             ))

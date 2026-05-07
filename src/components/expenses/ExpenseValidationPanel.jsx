@@ -2,10 +2,10 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, AlertCircle, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const ValidationPanel = ({ expense, onValidate, onReject, isPending }) => {
+const ValidationPanel = ({ expense, onValidate, onReject, onEdit, isPending }) => {
   const isWaiting = expense.statut === "en_attente";
   const isValidated = expense.statut === "valide";
   const isRejected = expense.statut === "rejete";
@@ -58,15 +58,24 @@ const ValidationPanel = ({ expense, onValidate, onReject, isPending }) => {
           ))}
         </div>
 
-        {/* Validation buttons - only shown for pending expenses */}
-        {isWaiting && (
+        {/* Action buttons - only shown for pending/rejected expenses */}
+        {(isWaiting || isRejected) && (
           <div className="flex gap-2 pt-3 border-t border-border">
-            <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-8" onClick={() => onValidate(expense.id)} disabled={isPending}>
-              <CheckCircle className="w-3 h-3 mr-1" /> Valider
-            </Button>
-            <Button size="sm" variant="outline" className="flex-1 h-8 text-destructive hover:bg-destructive/10" onClick={() => onReject(expense.id)} disabled={isPending}>
-              <XCircle className="w-3 h-3 mr-1" /> Rejeter
-            </Button>
+            {onEdit && (
+              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => onEdit(expense)} disabled={isPending}>
+                <Pencil className="w-3 h-3 mr-1" /> Modifier
+              </Button>
+            )}
+            {isWaiting && (
+              <>
+                <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-8" onClick={() => onValidate(expense.id)} disabled={isPending}>
+                  <CheckCircle className="w-3 h-3 mr-1" /> Valider
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1 h-8 text-destructive hover:bg-destructive/10" onClick={() => onReject(expense.id)} disabled={isPending}>
+                  <XCircle className="w-3 h-3 mr-1" /> Rejeter
+                </Button>
+              </>
+            )}
           </div>
         )}
 
