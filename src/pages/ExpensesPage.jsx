@@ -22,7 +22,6 @@ const emptyForm = { vehicle_id: "", driver_id: "", type_frais: "carburant", date
 export default function ExpensesPage() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
-  const [filterStatut, setFilterStatut] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -70,14 +69,20 @@ export default function ExpensesPage() {
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v.immatriculation]));
   const driverMap = Object.fromEntries(drivers.map(d => [d.id, `${d.prenom} ${d.nom}`]));
 
-  const filtered = expenses.filter(e => {
-    const matchSearch = e.description?.toLowerCase().includes(search.toLowerCase()) || vehicleMap[e.vehicle_id]?.toLowerCase().includes(search.toLowerCase());
-    const matchType = filterType === "all" || e.type_frais === filterType;
-    const matchStatut = filterStatut === "all" || e.statut === filterStatut;
-    return matchSearch && matchType && matchStatut;
-  });
+  const matchesSearch = (e) =>
+    e.description?.toLowerCase().includes(search.toLowerCase()) ||
+    vehicleMap[e.vehicle_id]?.toLowerCase().includes(search.toLowerCase());
+  const matchesType = (e) => filterType === "all" || e.type_frais === filterType;
 
-  const totalFiltred = filtered.reduce((s, e) => s + (e.montant || 0), 0);
+  const pendingExpenses = expenses.filter(e =>
+    e.statut !== "valide" && matchesSearch(e) && matchesType(e)
+  );
+  const validatedExpenses = expenses.filter(e =>
+    e.statut === "valide" && matchesSearch(e) && matchesType(e)
+  );
+
+  const totalPending = pendingExpenses.reduce((s, e) => s + (e.montant || 0), 0);
+  const totalValidated = validatedExpenses.reduce((s, e) => s + (e.montant || 0), 0);
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
@@ -85,7 +90,7 @@ export default function ExpensesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Frais</h1>
-          <p className="text-sm text-muted-foreground">{filtered.length} entrées · Total: {totalFiltred.toLocaleString("fr-FR")} FCFA</p>
+          <p className="text-sm text-muted-foreground">{pendingExpenses.length} à valider · {validatedExpenses.length} validés</p>
         </div>
         <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>
           <Plus className="w-4 h-4 mr-2" /> Ajouter
@@ -104,66 +109,108 @@ export default function ExpensesPage() {
             {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={filterStatut} onValueChange={setFilterStatut}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Statut" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous statuts</SelectItem>
-            {Object.entries(statutLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-          </SelectContent>
-        </Select>
+
       </div>
 
-      <div className="grid gap-4">
-        {filtered.length === 0 ? (
-          <div className="bg-card rounded-xl border border-border p-12 text-center text-muted-foreground">
-            <Receipt className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p>Aucun frais enregistré</p>
-          </div>
-        ) : (
-          filtered.map(e => (
-            <div key={e.id} className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-md transition-shadow">
-              <div className="p-4 border-b border-border">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1 text-sm">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Date</p>
-                      <p className="font-medium">{e.date_frais}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Type</p>
-                      <Badge className={cn("text-[10px]", typeColors[e.type_frais])}>{typeLabels[e.type_frais]}</Badge>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Véhicule</p>
-                      <p className="font-medium">{vehicleMap[e.vehicle_id] || "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Chauffeur</p>
-                      <p className="font-medium">{driverMap[e.driver_id] || "-"}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground mb-0.5">Montant</p>
-                    <p className="text-lg font-bold text-secondary">{(e.montant || 0).toLocaleString("fr-FR")} FCFA</p>
-                  </div>
-                </div>
-                {e.description && <p className="text-xs text-muted-foreground mt-2">Description: {e.description}</p>}
-              </div>
-              <div className="p-4 space-y-3">
-                <ExpenseValidationPanel expense={e} onValidate={handleValidate} onReject={handleReject} isPending={updateMutation.isPending} />
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openEdit(e)}>
-                    <Pencil className="w-3 h-3 mr-1" /> Modifier
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-8 text-xs text-destructive hover:bg-destructive/10" onClick={() => { if(confirm("Supprimer ce frais ?")) deleteMutation.mutate(e.id); }}>
-                    <Trash2 className="w-3 h-3 mr-1" /> Supprimer
-                  </Button>
-                </div>
-              </div>
+      {/* Frais à valider */}
+      <div>
+        <h2 className="text-base font-semibold mb-3">Frais à valider <span className="text-muted-foreground font-normal text-sm">({pendingExpenses.length} · {totalPending.toLocaleString("fr-FR")} FCFA)</span></h2>
+        <div className="grid gap-4">
+          {pendingExpenses.length === 0 ? (
+            <div className="bg-card rounded-xl border border-border p-10 text-center text-muted-foreground">
+              <Receipt className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Aucun frais en attente de validation</p>
             </div>
-          ))
-        )}
+          ) : (
+            pendingExpenses.map(e => (
+              <div key={e.id} className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-md transition-shadow">
+                <div className="p-4 border-b border-border">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">Date</p>
+                        <p className="font-medium">{e.date_frais}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">Type</p>
+                        <Badge className={cn("text-[10px]", typeColors[e.type_frais])}>{typeLabels[e.type_frais]}</Badge>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">Véhicule</p>
+                        <p className="font-medium">{vehicleMap[e.vehicle_id] || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">Chauffeur</p>
+                        <p className="font-medium">{driverMap[e.driver_id] || "-"}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground mb-0.5">Montant</p>
+                      <p className="text-lg font-bold text-secondary">{(e.montant || 0).toLocaleString("fr-FR")} FCFA</p>
+                    </div>
+                  </div>
+                  {e.description && <p className="text-xs text-muted-foreground mt-2">Description: {e.description}</p>}
+                </div>
+                <div className="p-4 space-y-3">
+                  <ExpenseValidationPanel expense={e} onValidate={handleValidate} onReject={handleReject} isPending={updateMutation.isPending} />
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openEdit(e)}>
+                      <Pencil className="w-3 h-3 mr-1" /> Modifier
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 text-xs text-destructive hover:bg-destructive/10" onClick={() => { if(confirm("Supprimer ce frais ?")) deleteMutation.mutate(e.id); }}>
+                      <Trash2 className="w-3 h-3 mr-1" /> Supprimer
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
+
+      {/* Frais validés */}
+      {validatedExpenses.length > 0 && (
+        <div>
+          <h2 className="text-base font-semibold mb-3">Frais validés <span className="text-muted-foreground font-normal text-sm">({validatedExpenses.length} · {totalValidated.toLocaleString("fr-FR")} FCFA)</span></h2>
+          <div className="overflow-x-auto border rounded-lg">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 border-b">
+                <tr>
+                  <th className="px-4 py-2.5 text-left font-semibold">Date</th>
+                  <th className="px-4 py-2.5 text-left font-semibold">Type</th>
+                  <th className="px-4 py-2.5 text-left font-semibold">Véhicule</th>
+                  <th className="px-4 py-2.5 text-left font-semibold">Chauffeur</th>
+                  <th className="px-4 py-2.5 text-left font-semibold">Description</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Montant</th>
+                  <th className="px-4 py-2.5 text-center font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {validatedExpenses.map(e => (
+                  <tr key={e.id} className="border-b hover:bg-muted/30">
+                    <td className="px-4 py-2.5">{e.date_frais}</td>
+                    <td className="px-4 py-2.5"><Badge className={cn("text-[10px]", typeColors[e.type_frais])}>{typeLabels[e.type_frais]}</Badge></td>
+                    <td className="px-4 py-2.5">{vehicleMap[e.vehicle_id] || "-"}</td>
+                    <td className="px-4 py-2.5">{driverMap[e.driver_id] || "-"}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">{e.description || "-"}</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-secondary">{(e.montant || 0).toLocaleString("fr-FR")} FCFA</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <div className="flex gap-1 justify-center">
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => openEdit(e)}>
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-destructive hover:bg-destructive/10" onClick={() => { if(confirm("Supprimer ce frais ?")) deleteMutation.mutate(e.id); }}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
