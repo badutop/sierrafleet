@@ -13,13 +13,35 @@ import FuelConsumptionAnalysis from "@/components/fuel/FuelConsumptionAnalysis";
 import FuelCostBreakdown from "@/components/fuel/FuelCostBreakdown";
 import FuelAlertPanel from "@/components/fuel/FuelAlertPanel";
 import FuelValidationTab from "@/components/fuel/FuelValidationTab";
+import FuelMonthlyChart from "@/components/fuel/FuelMonthlyChart";
+import { startOfMonth, startOfYear, subMonths } from "date-fns";
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
+
+const PERIODS = [
+  { key: "mois_courant", label: "Mois en cours" },
+  { key: "mois_dernier", label: "Mois dernier" },
+  { key: "annee", label: "Cette année" },
+  { key: "tout", label: "Tout" },
+];
+
+function getPeriodRange(key) {
+  const now = new Date();
+  if (key === "mois_courant") return { from: startOfMonth(now), to: now };
+  if (key === "mois_dernier") {
+    const start = startOfMonth(subMonths(now, 1));
+    const end = startOfMonth(now);
+    return { from: start, to: end };
+  }
+  if (key === "annee") return { from: startOfYear(now), to: now };
+  return null;
+}
 
 export default function FuelManagementV2() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
   const [activeTab, setActiveTab] = useState("approvisionnements");
+  const [period, setPeriod] = useState("mois_courant");
   const queryClient = useQueryClient();
 
   // Données
@@ -82,16 +104,27 @@ export default function FuelManagementV2() {
     },
   });
 
+  // Filtre de période
+  const filteredEntries = useMemo(() => {
+    const range = getPeriodRange(period);
+    if (!range) return entries;
+    return entries.filter(e => {
+      if (!e.date) return false;
+      const d = new Date(e.date);
+      return d >= range.from && d <= range.to;
+    });
+  }, [entries, period]);
+
   // Calculs
   const vMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
   const campaignMap = useMemo(() => Object.fromEntries(campaigns.map(c => [c.id, c])), [campaigns]);
   const clientMap = useMemo(() => Object.fromEntries(clients.map(c => [c.id, c])), [clients]);
 
-  // Analyse de consommation
+  // Analyse de consommation (sur la période filtrée)
   const consumptionData = useMemo(() => {
     return vehicles.map(vehicle => {
       const vehicleRotations = rotations.filter(r => r.vehicle_id === vehicle.id);
-      const fuelEntries = entries.filter(e => e.vehicle_id === vehicle.id);
+      const fuelEntries = filteredEntries.filter(e => e.vehicle_id === vehicle.id);
       
       // Théorique
       const theoriqueLitres = vehicleRotations.reduce((s, r) => s + (r.litres_carburant_alloues || 0), 0);
@@ -133,7 +166,7 @@ export default function FuelManagementV2() {
         coutParKm,
       };
     }).filter(d => d.rotationCount > 0 || d.reelLitres > 0);
-  }, [vehicles, rotations, entries]);
+  }, [vehicles, rotations, filteredEntries]);
 
   // Analyse par rotation
   const rotationFuelData = useMemo(() => {
@@ -206,17 +239,33 @@ export default function FuelManagementV2() {
         </Button>
       </div>
 
+      {/* Filtre période */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-muted-foreground font-medium">Période :</span>
+        {PERIODS.map(p => (
+          <Button
+            key={p.key}
+            size="sm"
+            variant={period === p.key ? "default" : "outline"}
+            className="h-7 text-xs px-3"
+            onClick={() => setPeriod(p.key)}
+          >
+            {p.label}
+          </Button>
+        ))}
+      </div>
+
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card>
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Carburant théorique (L)</p>
+            <p className="text-xs text-muted-foreground">Théorique · {PERIODS.find(p => p.key === period)?.label} (L)</p>
             <p className="text-2xl font-bold mt-1">{Math.round(kpiData.totalTheorique)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Carburant réel (L)</p>
+            <p className="text-xs text-muted-foreground">Réel · {PERIODS.find(p => p.key === period)?.label} (L)</p>
             <p className="text-2xl font-bold mt-1">{Math.round(kpiData.totalReel)}</p>
             <p className={`text-xs mt-1 ${kpiData.ecartGlobalPct > 5 ? "text-destructive" : "text-emerald-600"}`}>
               {kpiData.ecartGlobalPct > 0 ? "+" : ""}{kpiData.ecartGlobalPct.toFixed(1)}%
@@ -225,7 +274,7 @@ export default function FuelManagementV2() {
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Coût total</p>
+            <p className="text-xs text-muted-foreground">Coût · {PERIODS.find(p => p.key === period)?.label}</p>
             <p className="text-lg font-bold mt-1">{formatCFA(kpiData.totalCost)}</p>
           </CardContent>
         </Card>
@@ -242,6 +291,9 @@ export default function FuelManagementV2() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Graphique mensuel (toujours sur toutes les données pour avoir la tendance) */}
+      <FuelMonthlyChart entries={entries} />
 
       {/* Alertes */}
       {kpiData.alertCount > 0 && (
