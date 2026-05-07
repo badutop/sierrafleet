@@ -20,27 +20,42 @@ const ENTITY_TABLE_MAP = {
 const SUPABASE_URL = (Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
 const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-async function supabaseRequest(method, table, body = null, params = '') {
-  const url = `${SUPABASE_URL}/rest/v1/${table}${params}`;
-  console.log(`[supabase] ${method} ${url}`);
-  const headers = {
+function baseHeaders() {
+  return {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
     'Content-Type': 'application/json',
   };
-  if (method === 'POST') {
-    headers['Prefer'] = 'resolution=merge-duplicates,return=minimal';
-  }
+}
+
+async function upsertRecord(table, record) {
+  const url = `${SUPABASE_URL}/rest/v1/${table}`;
+  console.log(`[upsert] POST ${url}`);
   const res = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : null,
+    method: 'POST',
+    headers: {
+      ...baseHeaders(),
+      'Prefer': 'resolution=merge-duplicates,return=minimal',
+    },
+    body: JSON.stringify([record]),
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Supabase ${method} ${table}: ${err}`);
+    throw new Error(`Supabase upsert ${table}: ${err}`);
   }
-  return res;
+}
+
+async function deleteRecord(table, id) {
+  const url = `${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`;
+  console.log(`[delete] DELETE ${url}`);
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: baseHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Supabase delete ${table}: ${err}`);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -48,8 +63,9 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const payload = await req.json();
 
-    console.log('[DEBUG] SUPABASE_URL:', SUPABASE_URL ? SUPABASE_URL.substring(0, 30) + '...' : 'VIDE');
+    console.log('[DEBUG] SUPABASE_URL:', SUPABASE_URL ? SUPABASE_URL.substring(0, 40) : 'VIDE');
     console.log('[DEBUG] KEY exists:', !!SUPABASE_KEY);
+
     const { event, data } = payload;
     const entityName = event?.entity_name;
     const eventType = event?.type;
@@ -60,28 +76,30 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: `Entity ${entityName} not mapped` });
     }
 
+    console.log(`[DEBUG] entityName=${entityName} eventType=${eventType} entityId=${entityId} table=${table}`);
+
     if (eventType === 'delete') {
-      await supabaseRequest('DELETE', table, null, `?id=eq.${entityId}`);
+      await deleteRecord(table, entityId);
       return Response.json({ success: true, action: 'delete', table, id: entityId });
     }
 
     // Pour create et update, on upsert
-    if (data && (eventType === 'create' || eventType === 'update')) {
-      const record = { ...data, id: entityId || data.id };
-      await supabaseRequest('POST', table, record, '');
-      return Response.json({ success: true, action: 'upsert', table, id: record.id });
-    }
+    if (eventType === 'create' || eventType === 'update') {
+      let record = data ? { ...data, id: entityId || data.id } : null;
 
-    // Si payload_too_large, on fetch depuis Base44
-    if (payload.payload_too_large) {
-      const fetched = await base44.asServiceRole.entities[entityName].get(entityId);
-      const record = { ...fetched, id: entityId };
-      await supabaseRequest('POST', table, record, '');
-      return Response.json({ success: true, action: 'upsert_fetched', table, id: entityId });
+      // Si payload trop grand, on fetche depuis Base44
+      if (!record || payload.payload_too_large) {
+        const fetched = await base44.asServiceRole.entities[entityName].get(entityId);
+        record = { ...fetched, id: entityId };
+      }
+
+      await upsertRecord(table, record);
+      return Response.json({ success: true, action: 'upsert', table, id: record.id });
     }
 
     return Response.json({ skipped: true, reason: 'No action taken' });
   } catch (error) {
+    console.error('[ERROR]', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
