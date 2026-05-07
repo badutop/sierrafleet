@@ -29,7 +29,7 @@ function baseHeaders() {
 }
 
 // Champs système Base44 à exclure (non présents dans Supabase)
-const BASE44_SYSTEM_FIELDS = ['created_by_id', 'updated_by_id', '__v', '_id'];
+const BASE44_SYSTEM_FIELDS = ['created_by_id', 'updated_by_id', '__v', '_id', 'is_sample'];
 
 function sanitizeRecord(record) {
   const clean = { ...record };
