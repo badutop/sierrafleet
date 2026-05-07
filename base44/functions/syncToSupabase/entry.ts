@@ -17,19 +17,23 @@ const ENTITY_TABLE_MAP = {
   TripLog: 'trip_logs',
 };
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const SUPABASE_URL = (Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
 const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 async function supabaseRequest(method, table, body = null, params = '') {
   const url = `${SUPABASE_URL}/rest/v1/${table}${params}`;
+  console.log(`[supabase] ${method} ${url}`);
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+  };
+  if (method === 'POST') {
+    headers['Prefer'] = 'resolution=merge-duplicates,return=minimal';
+  }
   const res = await fetch(url, {
     method,
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'resolution=merge-duplicates' : '',
-    },
+    headers,
     body: body ? JSON.stringify(body) : null,
   });
   if (!res.ok) {
@@ -44,6 +48,8 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const payload = await req.json();
 
+    console.log('[DEBUG] SUPABASE_URL:', SUPABASE_URL ? SUPABASE_URL.substring(0, 30) + '...' : 'VIDE');
+    console.log('[DEBUG] KEY exists:', !!SUPABASE_KEY);
     const { event, data } = payload;
     const entityName = event?.entity_name;
     const eventType = event?.type;
