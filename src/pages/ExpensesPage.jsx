@@ -53,7 +53,9 @@ export default function ExpensesPage() {
   const closeDialog = () => { setDialogOpen(false); setEditingExpense(null); setForm(emptyForm); setViewOnly(false); };
 
   const handleSave = () => {
-    const data = { ...form, montant: Number(form.montant || 0), statut: editingExpense ? form.statut : "en_attente" };
+    // After modification of a rejected expense, resubmit it for validation
+    const statut = editingExpense ? "en_attente" : "en_attente";
+    const data = { ...form, montant: Number(form.montant || 0), statut };
     if (editingExpense) updateMutation.mutate({ id: editingExpense.id, data });
     else createMutation.mutate(data);
   };
@@ -116,7 +118,7 @@ export default function ExpensesPage() {
 
       {/* Frais à valider */}
       <div>
-        <h2 className="text-base font-semibold mb-3">Frais à valider <span className="text-muted-foreground font-normal text-sm">({pendingExpenses.length} · {totalPending.toLocaleString("fr-FR")} FCFA)</span></h2>
+        <h2 className="text-base font-semibold mb-3">En attente / Rejetés <span className="text-muted-foreground font-normal text-sm">({pendingExpenses.length} · {totalPending.toLocaleString("fr-FR")} FCFA)</span></h2>
         <div className="grid gap-4">
           {pendingExpenses.length === 0 ? (
             <div className="bg-card rounded-xl border border-border p-10 text-center text-muted-foreground">
@@ -153,8 +155,15 @@ export default function ExpensesPage() {
                   </div>
                   {e.description && <p className="text-xs text-muted-foreground mt-2">Description: {e.description}</p>}
                 </div>
-                <div className="p-4">
-                  <ExpenseValidationPanel expense={e} onValidate={handleValidate} onReject={handleReject} onEdit={openEdit} isPending={updateMutation.isPending} />
+                <div className="p-4 border-t border-border">
+                  <ExpenseValidationPanel
+                    expense={e}
+                    onValidate={handleValidate}
+                    onReject={handleReject}
+                    onEdit={openEdit}
+                    onDelete={(id) => { if (confirm("Supprimer ce frais ?")) deleteMutation.mutate(id); }}
+                    isPending={updateMutation.isPending || deleteMutation.isPending}
+                  />
                 </div>
               </div>
             ))
