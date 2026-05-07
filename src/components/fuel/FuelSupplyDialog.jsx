@@ -105,10 +105,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
             </div>
           </div>
 
-          <div className="bg-muted/60 rounded-lg px-4 py-3 flex items-center justify-between text-sm">
-            <div className="text-muted-foreground">
-              Prix unitaire : <span className="font-medium text-foreground">{prixLitre.toLocaleString("fr-FR")} FCFA/L</span>
-            </div>
+          <div className="bg-muted/60 rounded-lg px-4 py-3 flex items-center justify-end text-sm">
             <div>
               Montant : <span className="font-bold text-secondary text-base">{montantCalc > 0 ? montantCalc.toLocaleString("fr-FR") + " FCFA" : "—"}</span>
             </div>
