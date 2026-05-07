@@ -16,16 +16,47 @@ const ENTITY_TABLE_MAP = {
   TripLog: 'trip_logs',
 };
 
+// Colonnes attendues par table Supabase (basé sur le schéma SQL)
+const SUPABASE_COLUMNS = {
+  vehicles: ['id', 'code_camion', 'immatriculation', 'marque', 'modele', 'type_vehicule', 'annee', 'couleur', 'photo_url', 'statut', 'km_actuel', 'capacite_charge_tonnes', 'date_assurance', 'date_visite_technique', 'date_carte_grise', 'km_derniere_vidange', 'date_derniere_vidange', 'km_prochaine_vidange', 'created_date', 'updated_date', 'created_by'],
+  drivers: ['id', 'nom', 'prenom', 'telephone', 'numero_permis', 'categorie_permis', 'date_expiration_permis', 'date_embauche', 'contact_urgence_nom', 'contact_urgence_telephone', 'photo_url', 'statut', 'created_date', 'updated_date', 'created_by'],
+  clients: ['id', 'nom', 'code_client', 'zone', 'contact_nom', 'contact_telephone', 'consommation_estimee_litres', 'actif', 'created_date', 'updated_date', 'created_by'],
+  depots: ['id', 'client_id', 'nom_depot', 'adresse', 'latitude', 'longitude', 'zone', 'actif', 'created_date', 'updated_date', 'created_by'],
+  suppliers: ['id', 'nom', 'telephone', 'email', 'adresse', 'actif', 'created_date', 'updated_date', 'created_by'],
+  fuel_entries: ['id', 'vehicle_id', 'date', 'station', 'litres', 'prix_litre', 'montant_total', 'km_compteur', 'recu_url', 'statut', 'created_date', 'updated_date', 'created_by'],
+  maintenance: ['id', 'vehicle_id', 'categorie', 'type_entretien', 'designation', 'description_panne', 'date_entretien', 'date_fin_intervention', 'duree_immobilisation_jours', 'prestataire', 'cout', 'cout_pieces', 'cout_main_oeuvre', 'pieces_remplacees', 'km_entretien', 'prochaine_date', 'prochain_km', 'prochain_nb_rotations', 'statut', 'gravite', 'observations', 'created_date', 'updated_date', 'created_by'],
+  expenses: ['id', 'vehicle_id', 'driver_id', 'trip_id', 'type_frais', 'date_frais', 'montant', 'description', 'justificatif_url', 'statut', 'collecteur', 'executeur', 'created_date', 'updated_date', 'created_by'],
+  spare_parts: ['id', 'reference', 'designation', 'categorie', 'etat', 'quantite_stock', 'quantite_min', 'prix_unitaire', 'supplier_id', 'notes', 'created_date', 'updated_date', 'created_by'],
+  campaigns: ['id', 'nom_campagne', 'client_id', 'type_marchandise', 'point_origine', 'depot_destination_id', 'date_debut', 'date_fin_prevue', 'tonnage_total_prevu', 'tonnage_realise', 'nombre_rotations_prevues', 'nombre_rotations_realisees', 'statut', 'observations', 'created_date', 'updated_date', 'created_by'],
+  rotations: ['id', 'campaign_id', 'vehicle_id', 'driver_id', 'numero_rotation', 'numero_bon_client', 'date_rotation', 'heure_depart_port', 'heure_arrivee_depot', 'poids_charge_tonnes', 'litres_carburant_alloues', 'litres_carburant_reel', 'km_depart', 'km_arrivee', 'refuel_declenche', 'bon_physique_recu', 'statut', 'observations', 'created_date', 'updated_date', 'created_by'],
+  daily_declarations: ['id', 'campaign_id', 'vehicle_id', 'driver_id', 'date_declaration', 'bl_navire', 'type_marchandise', 'nombre_rotations_jour', 'tonnage_total_jour', 'bons_systeme', 'bons_physiques', 'ecart_bons', 'litres_carburant_consommes', 'statut_validation', 'valide_par', 'observations', 'created_date', 'updated_date', 'created_by'],
+  trip_logs: ['id', 'vehicle_id', 'driver_id', 'date_depart', 'date_retour', 'mission', 'destination', 'departement', 'km_depart', 'km_arrivee', 'km_parcourus', 'litres_carburant', 'cout_carburant', 'consommation_l100', 'cout_par_km', 'observations', 'statut', 'created_date', 'updated_date', 'created_by'],
+};
+
 const SUPABASE_URL = (Deno.env.get('SUPABASE_URL') || '').replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
 const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const BASE44_SYSTEM_FIELDS = ['created_by_id', 'updated_by_id', '__v', '_id', 'is_sample'];
 
-function sanitizeRecord(record) {
-  const clean = { ...record };
-  for (const field of BASE44_SYSTEM_FIELDS) {
-    delete clean[field];
+function sanitizeForSupabase(record, table) {
+  const allowedColumns = SUPABASE_COLUMNS[table] || [];
+  const clean = {};
+
+  for (const [key, value] of Object.entries(record)) {
+    // Exclure champs système Base44
+    if (BASE44_SYSTEM_FIELDS.includes(key)) continue;
+    
+    // Exclure colonnes non présentes dans Supabase
+    if (!allowedColumns.includes(key)) continue;
+    
+    // Convertir les chaînes vides en null pour les dates/nombres
+    if (value === '') {
+      clean[key] = null;
+    } else {
+      clean[key] = value;
+    }
   }
+
   return clean;
 }
 
@@ -40,7 +71,7 @@ function baseHeaders() {
 async function upsertBatch(table, records) {
   if (records.length === 0) return { inserted: 0, errors: [] };
 
-  const sanitized = records.map(sanitizeRecord);
+  const sanitized = records.map(r => sanitizeForSupabase(r, table));
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
@@ -52,7 +83,6 @@ async function upsertBatch(table, records) {
 
   if (!res.ok) {
     const err = await res.text();
-    // Si erreur de type UUID, retenter enregistrement par enregistrement pour identifier les problèmes
     return { inserted: 0, errors: [err] };
   }
 
@@ -62,7 +92,6 @@ async function upsertBatch(table, records) {
 async function migrateEntity(base44, entityName, table) {
   const result = { entity: entityName, table, total: 0, inserted: 0, errors: [] };
 
-  // Récupérer tous les enregistrements (pagination par 200)
   let allRecords = [];
   let offset = 0;
   const batchSize = 200;
@@ -81,7 +110,6 @@ async function migrateEntity(base44, entityName, table) {
     return result;
   }
 
-  // Upsert par batch de 50
   const CHUNK = 50;
   for (let i = 0; i < allRecords.length; i += CHUNK) {
     const chunk = allRecords.slice(i, i + CHUNK);
