@@ -221,42 +221,58 @@ export default function TruckAssignmentBoard({ campaigns }) {
 
                       {/* Add truck row with multi-select checkboxes */}
                       {availableVehicles.length > 0 && (
-                        <div className="pt-1 space-y-1">
-                          <div className="text-xs text-muted-foreground mb-2">
+                        <div className="pt-1 space-y-2">
+                          <div className="text-xs text-muted-foreground font-medium">
                             Sélectionner les camions à affecter :
                           </div>
-                          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-border rounded-lg bg-muted/30">
+                          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 border border-border rounded-lg bg-background">
                             {availableVehicles.map(v => {
                               const isSelected = (addingTo[campaign.id] || []).includes(v.id);
                               return (
-                                <div
+                                <label
                                   key={v.id}
-                                  className="flex items-center gap-2 p-2 rounded-md hover:bg-background transition-colors cursor-pointer"
-                                  onClick={() => toggleVehicleSelection(campaign.id, v.id)}
+                                  className={`flex items-center gap-2.5 p-2.5 rounded-md border transition-all cursor-pointer ${
+                                    isSelected 
+                                      ? 'bg-secondary/10 border-secondary/50 shadow-sm' 
+                                      : 'bg-muted/30 border-transparent hover:bg-muted/50'
+                                  }`}
                                 >
                                   <Checkbox
                                     checked={isSelected}
-                                    onCheckedChange={() => toggleVehicleSelection(campaign.id, v.id)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setAddingTo(prev => ({
+                                          ...prev,
+                                          [campaign.id]: [...(prev[campaign.id] || []), v.id]
+                                        }));
+                                      } else {
+                                        setAddingTo(prev => ({
+                                          ...prev,
+                                          [campaign.id]: (prev[campaign.id] || []).filter(id => id !== v.id)
+                                        }));
+                                      }
+                                    }}
+                                    className="data-[state=checked]:bg-secondary data-[state=checked]:border-secondary"
                                   />
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium truncate">{v.immatriculation}</p>
+                                    <p className="text-xs font-semibold truncate">{v.immatriculation}</p>
                                     <p className="text-[10px] text-muted-foreground truncate">
                                       {v.code_camion && `${v.code_camion} · `}{v.marque} {v.modele}
                                     </p>
                                   </div>
-                                </div>
+                                </label>
                               );
                             })}
                           </div>
                           {(addingTo[campaign.id] || []).length > 0 && (
                             <Button
                               size="sm"
-                              className="w-full h-8 mt-2 text-xs bg-secondary hover:bg-secondary/90"
+                              className="w-full h-9 mt-1 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground font-medium"
                               onClick={() => handleAssign(campaign.id)}
                               disabled={assignMutation.isPending}
                             >
-                              <Plus className="w-3.5 h-3.5 mr-2" />
-                              Affecter {(addingTo[campaign.id] || []).length} camion{(addingTo[campaign.id] || []).length !== 1 ? 's' : ''}
+                              <Plus className="w-4 h-4 mr-2" />
+                              Affecter {(addingTo[campaign.id] || []).length} camion{(addingTo[campaign.id] || []).length !== 1 ? 's' : ''} sélectionné{(addingTo[campaign.id] || []).length !== 1 ? 's' : ''}
                             </Button>
                           )}
                         </div>
