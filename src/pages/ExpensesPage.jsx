@@ -13,11 +13,12 @@ import { toast } from "sonner";
 import ExpenseValidationPanel from "@/components/expenses/ExpenseValidationPanel";
 
 const typeLabels = { carburant: "Carburant", peage: "Péage", rations: "Rations", contravention: "Contravention", transport: "Transport", autre: "Autre" };
+const typeLabelsForm = { peage: "Péage", rations: "Rations", contravention: "Contravention", transport: "Transport", autre: "Autre" };
 const typeColors = { carburant: "bg-orange-500/10 text-orange-600", peage: "bg-blue-500/10 text-blue-600", rations: "bg-green-500/10 text-green-600", contravention: "bg-red-500/10 text-red-600", transport: "bg-purple-500/10 text-purple-600", autre: "bg-muted text-muted-foreground" };
 const statutLabels = { en_attente: "En attente", valide: "Validé", rejete: "Rejeté" };
 const statutColors = { en_attente: "bg-amber-500/10 text-amber-600", valide: "bg-emerald-500/10 text-emerald-600", rejete: "bg-destructive/10 text-destructive" };
 
-const emptyForm = { vehicle_id: "", driver_id: "", type_frais: "carburant", date_frais: "", montant: "", description: "", statut: "en_attente" };
+const emptyForm = { vehicle_id: "", driver_id: "", type_frais: "peage", date_frais: "", montant: "", description: "", statut: "en_attente" };
 
 export default function ExpensesPage() {
   const [search, setSearch] = useState("");
@@ -111,6 +112,7 @@ export default function ExpensesPage() {
           <SelectContent>
             <SelectItem value="all">Tous types</SelectItem>
             {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+
           </SelectContent>
         </Select>
 
@@ -222,7 +224,7 @@ export default function ExpensesPage() {
               <Label className="text-xs">Type de frais {!viewOnly && "*"}</Label>
               <Select value={form.type_frais} onValueChange={v => !viewOnly && setForm({ ...form, type_frais: v })} disabled={viewOnly}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                <SelectContent>{Object.entries(typeLabelsForm).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
