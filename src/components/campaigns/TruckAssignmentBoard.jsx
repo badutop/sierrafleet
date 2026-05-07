@@ -5,6 +5,7 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Truck, GripVertical, Ship, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,8 +22,8 @@ const statutLabels = { planifiee: "Planifiée", en_cours: "En cours", terminee: 
 export default function TruckAssignmentBoard({ campaigns }) {
   const queryClient = useQueryClient();
   const [isDragging, setIsDragging] = useState(false);
-  // Per-campaign: which vehicle is being selected to add
-  const [addingTo, setAddingTo] = useState({}); // { [campaignId]: selectedVehicleId }
+  // Per-campaign: which vehicles are being selected to add (multi-select)
+  const [addingTo, setAddingTo] = useState({}); // { [campaignId]: string[] }
 
   const { data: rotations = [] } = useQuery({
     queryKey: ["rotations-all"],
@@ -107,10 +108,26 @@ export default function TruckAssignmentBoard({ campaigns }) {
   };
 
   const handleAssign = (campaignId) => {
-    const vehicleId = addingTo[campaignId];
-    if (!vehicleId) return;
-    assignMutation.mutate({ vehicle_id: vehicleId, campaign_id: campaignId });
-    setAddingTo(prev => ({ ...prev, [campaignId]: undefined }));
+    const vehicleIds = addingTo[campaignId] || [];
+    if (vehicleIds.length === 0) return;
+    
+    // Assign all selected vehicles
+    vehicleIds.forEach(vehicleId => {
+      assignMutation.mutate({ vehicle_id: vehicleId, campaign_id: campaignId });
+    });
+    
+    setAddingTo(prev => ({ ...prev, [campaignId]: [] }));
+  };
+
+  const toggleVehicleSelection = (campaignId, vehicleId) => {
+    setAddingTo(prev => {
+      const current = prev[campaignId] || [];
+      const exists = current.includes(vehicleId);
+      return {
+        ...prev,
+        [campaignId]: exists ? current.filter(id => id !== vehicleId) : [...current, vehicleId]
+      };
+    });
   };
 
   if (activeCampaigns.length === 0) {
@@ -202,32 +219,44 @@ export default function TruckAssignmentBoard({ campaigns }) {
                       })}
                       {provided.placeholder}
 
-                      {/* Add truck row */}
+                      {/* Add truck row with multi-select checkboxes */}
                       {availableVehicles.length > 0 && (
-                        <div className="flex gap-2 pt-1">
-                          <Select
-                            value={selectedVehicle || ""}
-                            onValueChange={v => setAddingTo(prev => ({ ...prev, [campaign.id]: v }))}
-                          >
-                            <SelectTrigger className="h-8 text-xs flex-1">
-                              <SelectValue placeholder="+ Affecter un camion…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableVehicles.map(v => (
-                                <SelectItem key={v.id} value={v.id}>
-                                  {v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation}{v.marque ? ` — ${v.marque}` : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {selectedVehicle && (
+                        <div className="pt-1 space-y-1">
+                          <div className="text-xs text-muted-foreground mb-2">
+                            Sélectionner les camions à affecter :
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-border rounded-lg bg-muted/30">
+                            {availableVehicles.map(v => {
+                              const isSelected = (addingTo[campaign.id] || []).includes(v.id);
+                              return (
+                                <div
+                                  key={v.id}
+                                  className="flex items-center gap-2 p-2 rounded-md hover:bg-background transition-colors cursor-pointer"
+                                  onClick={() => toggleVehicleSelection(campaign.id, v.id)}
+                                >
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => toggleVehicleSelection(campaign.id, v.id)}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium truncate">{v.immatriculation}</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">
+                                      {v.code_camion && `${v.code_camion} · `}{v.marque} {v.modele}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {(addingTo[campaign.id] || []).length > 0 && (
                             <Button
                               size="sm"
-                              className="h-8 px-3 text-xs bg-secondary hover:bg-secondary/90"
+                              className="w-full h-8 mt-2 text-xs bg-secondary hover:bg-secondary/90"
                               onClick={() => handleAssign(campaign.id)}
                               disabled={assignMutation.isPending}
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3.5 h-3.5 mr-2" />
+                              Affecter {(addingTo[campaign.id] || []).length} camion{(addingTo[campaign.id] || []).length !== 1 ? 's' : ''}
                             </Button>
                           )}
                         </div>
