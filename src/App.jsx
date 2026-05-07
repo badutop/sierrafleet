@@ -25,6 +25,7 @@ import CampaignsList from '@/pages/campaigns/CampaignsList';
 import CampaignDetail from '@/pages/campaigns/CampaignDetail';
 import ClientsPage from '@/pages/campaigns/ClientsPage';
 import RotationsCalendar from '@/pages/campaigns/RotationsCalendar';
+import MigrationPage from '@/pages/MigrationPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -70,6 +71,7 @@ const AuthenticatedApp = () => {
         <Route path="/campaigns/calendar" element={<RotationsCalendar />} />
         <Route path="/campaigns/:id" element={<CampaignDetail />} />
         <Route path="/clients" element={<ClientsPage />} />
+        <Route path="/migration" element={<MigrationPage />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
