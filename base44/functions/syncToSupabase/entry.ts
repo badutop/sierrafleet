@@ -28,6 +28,17 @@ function baseHeaders() {
   };
 }
 
+// Champs système Base44 à exclure (non présents dans Supabase)
+const BASE44_SYSTEM_FIELDS = ['created_by_id', 'updated_by_id', '__v', '_id'];
+
+function sanitizeRecord(record) {
+  const clean = { ...record };
+  for (const field of BASE44_SYSTEM_FIELDS) {
+    delete clean[field];
+  }
+  return clean;
+}
+
 async function upsertRecord(table, record) {
   const url = `${SUPABASE_URL}/rest/v1/${table}`;
   console.log(`[upsert] POST ${url}`);
@@ -37,7 +48,7 @@ async function upsertRecord(table, record) {
       ...baseHeaders(),
       'Prefer': 'resolution=merge-duplicates,return=minimal',
     },
-    body: JSON.stringify([record]),
+    body: JSON.stringify([sanitizeRecord(record)]),
   });
   if (!res.ok) {
     const err = await res.text();
