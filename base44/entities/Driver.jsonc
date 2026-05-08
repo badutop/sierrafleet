@@ -23,16 +23,13 @@
     },
     "date_embauche": {
       "type": "string",
-      "format": "date",
-      "description": "Date d'embauche du chauffeur"
+      "format": "date"
     },
     "contact_urgence_nom": {
-      "type": "string",
-      "description": "Nom du contact en cas d'urgence"
+      "type": "string"
     },
     "contact_urgence_telephone": {
-      "type": "string",
-      "description": "T\u00e9l\u00e9phone du contact en cas d'urgence"
+      "type": "string"
     },
     "photo_url": {
       "type": "string"
@@ -45,6 +42,14 @@
         "en_mission"
       ],
       "default": "actif"
+    },
+    "doc_permis_url": {
+      "type": "string",
+      "description": "URL scan du permis de conduire"
+    },
+    "doc_cni_url": {
+      "type": "string",
+      "description": "URL scan de la Carte Nationale d'Identit\u00e9"
     }
   },
   "required": [

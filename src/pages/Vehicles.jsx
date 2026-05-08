@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Truck, Gauge, Calendar, Pencil, Trash2, FileText } from "lucide-react";
+import { Plus, Search, Truck, Gauge, Calendar, Pencil, Trash2, FileText, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import VehicleDocuments from "@/components/vehicles/VehicleDocuments";
@@ -17,7 +17,7 @@ const statusLabels = { disponible: "Disponible", en_mission: "En mission", en_ma
 const statusColors = { disponible: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", en_mission: "bg-blue-500/10 text-blue-600 border-blue-500/20", en_maintenance: "bg-amber-500/10 text-amber-600 border-amber-500/20", hors_service: "bg-destructive/10 text-destructive border-destructive/20" };
 const typeLabels = { camion: "Camion", utilitaire: "Utilitaire", liaison: "Liaison", remorque: "Remorque", bc: "BC - Benne Céréalière" };
 
-const emptyForm = { code_camion: "", immatriculation: "", marque: "", modele: "", type_vehicule: "camion", annee: "", couleur: "", km_actuel: "", capacite_charge_tonnes: "", date_assurance: "", date_visite_technique: "", date_carte_grise: "" };
+const emptyForm = { code_camion: "", immatriculation: "", marque: "", modele: "", type_vehicule: "camion", annee: "", couleur: "", km_actuel: "", capacite_charge_tonnes: "", date_assurance: "", date_visite_technique: "", date_carte_grise: "", driver_id: "" };
 
 export default function Vehicles() {
   const [search, setSearch] = useState("");
@@ -32,6 +32,11 @@ export default function Vehicles() {
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ["vehicles"],
     queryFn: () => base44.entities.Vehicle.list(),
+  });
+
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: () => base44.entities.Driver.list(),
   });
 
   const createMutation = useMutation({
@@ -132,6 +137,7 @@ export default function Vehicles() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Type</span><span className="font-medium">{typeLabels[v.type_vehicule] || v.type_vehicule}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Charge</span><span className="font-medium">{v.capacite_charge_tonnes || "-"} T</span></div>
                 {v.date_assurance && <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Assurance</span><span className="font-medium">{v.date_assurance}</span></div>}
+                {v.driver_id && (() => { const d = drivers.find(d => d.id === v.driver_id); return d ? <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><User className="w-3 h-3" /> Chauffeur</span><span className="font-medium">{d.prenom} {d.nom}</span></div> : null; })()}
                 <div className="flex gap-2 pt-2 border-t border-border">
                   <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => openEdit(v)}>
                     <Pencil className="w-3 h-3 mr-1" /> Modifier
@@ -208,6 +214,16 @@ export default function Vehicles() {
             <div>
               <Label className="text-xs">Carte grise</Label>
               <Input type="date" className="mt-1" value={form.date_carte_grise || ""} onChange={e => setForm({ ...form, date_carte_grise: e.target.value })} />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Chauffeur affecté</Label>
+              <Select value={form.driver_id || "none"} onValueChange={v => setForm({ ...form, driver_id: v === "none" ? "" : v })}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Aucun chauffeur" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Aucun chauffeur —</SelectItem>
+                  {drivers.map(d => <SelectItem key={d.id} value={d.id}>{d.prenom} {d.nom} · Permis {d.categorie_permis || "-"}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="flex gap-2 mt-4">

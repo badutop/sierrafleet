@@ -46,6 +46,10 @@
       ],
       "default": "disponible"
     },
+    "driver_id": {
+      "type": "string",
+      "description": "ID du chauffeur affect\u00e9"
+    },
     "km_actuel": {
       "type": "number",
       "default": 0
