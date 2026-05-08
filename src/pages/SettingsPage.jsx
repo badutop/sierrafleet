@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, RotateCcw, Settings, Fuel, Save } from "lucide-react";
+import { Download, RotateCcw, Settings, Fuel, Save, FileText } from "lucide-react";
+import { getPrixTonne, getTvaPct, INVOICE_PRICE_KEY, INVOICE_TVA_KEY } from "@/components/campaigns/CampaignInvoice";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { demoVehicles, demoDrivers, generateDemoTrips, generateDemoFuel, generateDemoMaintenance } from "@/lib/demoData";
@@ -18,7 +19,18 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [fuelPrice, setFuelPrice] = useState(() => getFuelPricePerLitre());
   const [fuelSaved, setFuelSaved] = useState(false);
+  const [prixTonne, setPrixTonne] = useState(() => getPrixTonne());
+  const [tvaPct, setTvaPct] = useState(() => getTvaPct());
+  const [invoiceSaved, setInvoiceSaved] = useState(false);
   const queryClient = useQueryClient();
+
+  const saveInvoiceSettings = () => {
+    localStorage.setItem(INVOICE_PRICE_KEY, String(prixTonne));
+    localStorage.setItem(INVOICE_TVA_KEY, String(tvaPct));
+    setInvoiceSaved(true);
+    setTimeout(() => setInvoiceSaved(false), 2000);
+    toast.success("Paramètres de facturation enregistrés");
+  };
 
   const saveFuelPrice = () => {
     localStorage.setItem(FUEL_PRICE_KEY, String(fuelPrice));
@@ -97,6 +109,30 @@ export default function SettingsPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-1">Ce prix sera utilisé automatiquement pour calculer les montants d'approvisionnement.</p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-secondary/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base"><FileText className="w-4 h-4 text-secondary" />Facturation campagnes</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <Label className="text-xs">Prix par tonne (FCFA / T)</Label>
+              <div className="flex gap-2 mt-1">
+                <Input type="number" min="0" value={prixTonne} onChange={e => setPrixTonne(Number(e.target.value))} placeholder="Ex: 15000" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">TVA (%)</Label>
+              <div className="flex gap-2 mt-1">
+                <Input type="number" min="0" max="100" value={tvaPct} onChange={e => setTvaPct(Number(e.target.value))} placeholder="Ex: 18" />
+              </div>
+            </div>
+            <Button size="sm" onClick={saveInvoiceSettings} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground w-full">
+              <Save className="w-4 h-4 mr-1" />{invoiceSaved ? "Sauvegardé !" : "Sauvegarder"}
+            </Button>
+            <p className="text-xs text-muted-foreground">Ces valeurs seront utilisées pour générer la facture lors de la clôture d'une campagne.</p>
           </CardContent>
         </Card>
 

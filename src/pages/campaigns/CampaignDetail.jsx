@@ -15,6 +15,7 @@ import CampaignRotationsTable from "./CampaignRotationsTable";
 import FillEfficiencyBar from "@/components/campaigns/FillEfficiencyBar";
 import CampaignTruckAssignmentTable from "@/components/campaigns/CampaignTruckAssignmentTable";
 import CampaignReport from "@/components/campaigns/CampaignReport";
+import CampaignInvoice from "@/components/campaigns/CampaignInvoice";
 
 const statutColors = { planifiee: "bg-blue-500/10 text-blue-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-muted text-muted-foreground", suspendue: "bg-amber-500/10 text-amber-600" };
 const statutLabels = { planifiee: "Planifiée", en_cours: "En cours", terminee: "Terminée", suspendue: "Suspendue" };
@@ -24,6 +25,7 @@ export default function CampaignDetail() {
   const queryClient = useQueryClient();
   const [rotSheetOpen, setRotSheetOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
 
   const { data: campaign } = useQuery({ queryKey: ["campaign", id], queryFn: () => base44.entities.Campaign.filter({ id }).then(r => r[0]) });
   const { data: client } = useQuery({ queryKey: ["client", campaign?.client_id], queryFn: () => base44.entities.Client.filter({ id: campaign.client_id }).then(r => r[0]), enabled: !!campaign?.client_id });
@@ -43,6 +45,7 @@ export default function CampaignDetail() {
       queryClient.invalidateQueries({ queryKey: ["campaign", id] });
       toast.success("Campagne clôturée");
       setReportOpen(true);
+      setTimeout(() => setInvoiceOpen(true), 300);
     },
   });
 
@@ -86,11 +89,14 @@ export default function CampaignDetail() {
               <Lock className="w-4 h-4 mr-2" /> Clôturer la campagne
             </Button>
           </>)}
-          {campaign.statut === "terminee" && (
+          {campaign.statut === "terminee" && (<>
             <Button variant="outline" onClick={() => setReportOpen(true)}>
               <FileText className="w-4 h-4 mr-2" /> Voir le rapport
             </Button>
-          )}
+            <Button variant="outline" onClick={() => setInvoiceOpen(true)} className="border-secondary text-secondary hover:bg-secondary/10">
+              <FileText className="w-4 h-4 mr-2" /> Facture
+            </Button>
+          </>)}
         </div>
       </div>
 
@@ -168,6 +174,16 @@ export default function CampaignDetail() {
           <DailyDeclarations campaignId={id} declarations={declarations} vehicles={vehicles} campaign={campaign} />
         </TabsContent>
       </Tabs>
+
+      {/* Facture */}
+      {invoiceOpen && (
+        <CampaignInvoice
+          campaign={campaign}
+          client={client}
+          rotations={rotations}
+          onClose={() => setInvoiceOpen(false)}
+        />
+      )}
 
       {/* Rapport de clôture */}
       {reportOpen && (
