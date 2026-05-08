@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,6 +89,12 @@ function DocUploadField({ label, value, fieldKey, onUploaded }) {
   const inputRef = useRef();
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(null);
+
+  // Afficher l'aperçu si une URL existante est chargée (édition)
+  useEffect(() => {
+    if (value && !preview) setPreview(value);
+    if (!value) setPreview(null);
+  }, [value]);
 
   const handleFile = async (e) => {
     const file = e.target.files[0];
