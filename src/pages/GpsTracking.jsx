@@ -21,18 +21,43 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-const movingIcon = new L.DivIcon({
-  html: `<div style="background:#16a34a;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 6px rgba(22,163,74,0.8)"></div>`,
-  className: "", iconSize: [14, 14], iconAnchor: [7, 7],
-});
-const parkingIcon = new L.DivIcon({
-  html: `<div style="background:#64748b;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4)"></div>`,
-  className: "", iconSize: [12, 12], iconAnchor: [6, 6],
-});
-const selectedIcon = new L.DivIcon({
-  html: `<div style="background:#f97316;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 8px rgba(249,115,22,0.9)"></div>`,
-  className: "", iconSize: [16, 16], iconAnchor: [8, 8],
-});
+// Truck SVG icon factory — direction in degrees, color, pulse for moving
+function makeTruckIcon(color, direction = 0, pulse = false, selected = false) {
+  const size = selected ? 44 : 36;
+  const half = size / 2;
+  const ring = selected
+    ? `<circle cx="${half}" cy="${half}" r="${half - 2}" fill="none" stroke="${color}" stroke-width="2.5" opacity="0.5"/>`
+    : "";
+  const pulseAnim = pulse
+    ? `<circle cx="${half}" cy="${half}" r="${half - 2}" fill="none" stroke="${color}" stroke-width="1.5" opacity="0">
+        <animate attributeName="r" from="${half - 4}" to="${half + 4}" dur="1.4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.7" to="0" dur="1.4s" repeatCount="indefinite"/>
+      </circle>`
+    : "";
+  // Truck SVG path (top-view simplified), points upward (north), rotated by direction
+  const truckPath = `
+    <g transform="rotate(${direction}, ${half}, ${half})">
+      <rect x="${half - 7}" y="${half - 11}" width="14" height="20" rx="3" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <rect x="${half - 5}" y="${half - 14}" width="10" height="6" rx="2" fill="${color}" stroke="white" stroke-width="1.2"/>
+      <rect x="${half - 9}" y="${half + 6}" width="5" height="3" rx="1" fill="white" opacity="0.7"/>
+      <rect x="${half + 4}" y="${half + 6}" width="5" height="3" rx="1" fill="white" opacity="0.7"/>
+      <rect x="${half - 4}" y="${half - 12}" width="8" height="3" rx="1" fill="white" opacity="0.6"/>
+    </g>`;
+  const shadow = `<ellipse cx="${half}" cy="${half + 14}" rx="8" ry="3" fill="rgba(0,0,0,0.15)"/>`;
+  const html = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size + 6}" viewBox="0 0 ${size} ${size + 6}" style="overflow:visible">
+    ${shadow}
+    <circle cx="${half}" cy="${half}" r="${half - 2}" fill="white" opacity="0.95" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.25))"/>
+    ${ring}
+    ${pulseAnim}
+    ${truckPath}
+  </svg>`;
+  return new L.DivIcon({
+    html,
+    className: "",
+    iconSize: [size, size + 6],
+    iconAnchor: [half, half],
+  });
+}
 
 function MapFlyTo({ position }) {
   const map = useMap();
@@ -319,38 +344,71 @@ export default function GpsTracking() {
             {flyTo && <MapFlyTo position={flyTo} />}
 
             {/* Live markers */}
-            {tab !== "track" && locations.map(loc => (
-              <Marker
-                key={loc.imei}
-                position={[loc.lat, loc.lng]}
-                icon={selectedImei === loc.imei ? selectedIcon : (loc.speed > 0 ? movingIcon : parkingIcon)}
-                eventHandlers={{ click: () => handleSelectVehicle(loc) }}
-              >
-                <Popup>
-                  <div className="text-xs space-y-1">
-                    <p className="font-bold">{loc.vehicleNumber || loc.deviceName}</p>
-                    <p>Vitesse : <strong>{loc.speed || 0} km/h</strong></p>
-                    <p>Statut : <strong>{loc.speed > 0 ? "En mouvement" : "Arrêté"}</strong></p>
-                    {loc.address && <p>{loc.address}</p>}
-                    <p className="text-muted-foreground">{loc.positionTime}</p>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+            {tab !== "track" && locations.map(loc => {
+              const isMoving = loc.speed > 0;
+              const isSelected = selectedImei === loc.imei;
+              const color = isSelected ? "#f97316" : isMoving ? "#16a34a" : "#64748b";
+              const icon = makeTruckIcon(color, loc.direction || 0, isMoving, isSelected);
+              return (
+                <Marker
+                  key={loc.imei}
+                  position={[loc.lat, loc.lng]}
+                  icon={icon}
+                  eventHandlers={{ click: () => handleSelectVehicle(loc) }}
+                >
+                  <Popup>
+                    <div className="text-xs space-y-1">
+                      <p className="font-bold">{loc.vehicleNumber || loc.deviceName}</p>
+                      <p>Vitesse : <strong>{loc.speed || 0} km/h</strong></p>
+                      <p>Statut : <strong>{isMoving ? "🟢 En mouvement" : "⚫ Arrêté"}</strong></p>
+                      {loc.address && <p>{loc.address}</p>}
+                      <p className="text-muted-foreground">{loc.positionTime}</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
 
-            {/* Track polyline */}
+            {/* Track polyline + waypoints */}
             {tab === "track" && trackPoints.length > 0 && (
               <>
+                {/* Shadow/halo line */}
                 <Polyline
                   positions={trackPoints.map(p => [p.lat, p.lng])}
                   color="#f97316"
-                  weight={3}
-                  opacity={0.85}
+                  weight={8}
+                  opacity={0.18}
                 />
-                {/* Start */}
-                <Marker position={[trackPoints[0].lat, trackPoints[0].lng]} icon={new L.DivIcon({ html: `<div style="background:#16a34a;color:white;font-size:9px;padding:2px 5px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.3)">Départ</div>`, className: "", iconAnchor: [20, 10] })} />
-                {/* End */}
-                <Marker position={[trackPoints[trackPoints.length-1].lat, trackPoints[trackPoints.length-1].lng]} icon={new L.DivIcon({ html: `<div style="background:#ef4444;color:white;font-size:9px;padding:2px 5px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.3)">Arrivée</div>`, className: "", iconAnchor: [20, 10] })} />
+                {/* Main trajectory */}
+                <Polyline
+                  positions={trackPoints.map(p => [p.lat, p.lng])}
+                  color="#f97316"
+                  weight={3.5}
+                  opacity={0.9}
+                  dashArray={null}
+                />
+                {/* Intermediate waypoints every ~10 points */}
+                {trackPoints.filter((_, i) => i > 0 && i < trackPoints.length - 1 && i % 10 === 0).map((p, i) => (
+                  <Marker key={`wp-${i}`} position={[p.lat, p.lng]} icon={new L.DivIcon({
+                    html: `<svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="#f97316" stroke="white" stroke-width="1.5"/></svg>`,
+                    className: "", iconSize: [10, 10], iconAnchor: [5, 5]
+                  })} />
+                ))}
+                {/* Truck icon at last position showing direction of travel */}
+                <Marker
+                  position={[trackPoints[trackPoints.length - 1].lat, trackPoints[trackPoints.length - 1].lng]}
+                  icon={makeTruckIcon("#f97316", trackPoints[trackPoints.length - 1].direction || 0, false, true)}
+                />
+                {/* Start label */}
+                <Marker position={[trackPoints[0].lat, trackPoints[0].lng]} icon={new L.DivIcon({
+                  html: `<div style="background:#16a34a;color:white;font-size:9px;font-weight:600;padding:3px 7px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🚦 Départ</div>`,
+                  className: "", iconAnchor: [28, 10]
+                })} />
+                {/* End label */}
+                <Marker position={[trackPoints[trackPoints.length-1].lat, trackPoints[trackPoints.length-1].lng]} icon={new L.DivIcon({
+                  html: `<div style="background:#ef4444;color:white;font-size:9px;font-weight:600;padding:3px 7px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3);margin-top:32px">🏁 Arrivée</div>`,
+                  className: "", iconAnchor: [28, -8]
+                })} />
               </>
             )}
           </MapContainer>
