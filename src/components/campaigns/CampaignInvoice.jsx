@@ -458,8 +458,7 @@ export default function CampaignInvoice({ campaign, client, rotations, onClose }
         `*Total TTC : ${fmt(montantTTC)} FCFA*\n\n` +
         `_(La facture PDF a été téléchargée — veuillez la joindre à ce message)_`
       );
-      const phone = client?.contact_telephone?.replace(/\D/g, "") || "";
-      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+      window.open(`https://wa.me/?text=${msg}`, "_blank");
     }
     setSharing(false);
   };
