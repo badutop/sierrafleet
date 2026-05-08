@@ -107,6 +107,7 @@ export default function SettingsPage() {
           <CardContent className="space-y-3">
             <div><Label className="text-xs">Km avant vidange (alerte)</Label><Input type="number" defaultValue={500} className="mt-1" /></div>
             <div><Label className="text-xs">Jours avant expiration assurance</Label><Input type="number" defaultValue={30} className="mt-1" /></div>
+            <div><Label className="text-xs">Jours avant expiration visite technique</Label><Input type="number" defaultValue={30} className="mt-1" /></div>
             <div><Label className="text-xs">Jours avant expiration permis</Label><Input type="number" defaultValue={60} className="mt-1" /></div>
           </CardContent>
         </Card>
