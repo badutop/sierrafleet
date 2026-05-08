@@ -150,7 +150,7 @@ export default function TruckAssignmentBoard({ campaigns }) {
           {activeCampaigns.map(campaign => {
             const trucks = campaignTrucks[campaign.id] || [];
             const alreadyAssigned = assignedVehicleIds[campaign.id] || new Set();
-            const availableVehicles = vehicles.filter(v => !alreadyAssigned.has(v.id));
+            const availableVehicles = vehicles.filter(v => !alreadyAssigned.has(v.id) && v.statut !== "en_maintenance" && v.statut !== "hors_service");
             const selectedVehicle = addingTo[campaign.id];
 
             return (
