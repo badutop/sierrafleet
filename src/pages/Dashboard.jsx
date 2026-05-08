@@ -16,6 +16,7 @@ import RotationsTrendChart   from "@/components/dashboard/RotationsTrendChart";
 import ExpenseBreakdownChart from "@/components/dashboard/ExpenseBreakdownChart";
 import TopDriversCard        from "@/components/dashboard/TopDriversCard";
 import DashboardAlerts       from "@/components/dashboard/DashboardAlerts";
+import GpsLiveWidget         from "@/components/dashboard/GpsLiveWidget";
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 const fmt = (n) => n.toLocaleString("fr-FR");
@@ -190,6 +191,11 @@ export default function Dashboard() {
         <ExpenseBreakdownChart expenses={expenses} />
         <TopDriversCard        drivers={drivers} rotations={rotations} campaigns={campaigns} />
         <DashboardAlerts       alerts={alerts} />
+      </div>
+
+      {/* ── Row 6 : GPS Live Widget ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <GpsLiveWidget />
       </div>
     </div>
   );
