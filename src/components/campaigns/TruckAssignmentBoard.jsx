@@ -34,6 +34,19 @@ export default function TruckAssignmentBoard({ campaigns }) {
     queryFn: () => base44.entities.Vehicle.list()
   });
 
+  const { data: maintenances = [] } = useQuery({
+    queryKey: ["maintenances"],
+    queryFn: () => base44.entities.Maintenance.list()
+  });
+
+  const vehiclesInMaintenance = useMemo(() => {
+    return new Set(
+      maintenances
+        .filter(m => m.statut === "en_cours" || m.statut === "planifie")
+        .map(m => m.vehicle_id)
+    );
+  }, [maintenances]);
+
   // Move truck: update existing rotation to new campaign
   const moveMutation = useMutation({
     mutationFn: ({ rotationId, newCampaignId }) =>
@@ -150,7 +163,12 @@ export default function TruckAssignmentBoard({ campaigns }) {
           {activeCampaigns.map(campaign => {
             const trucks = campaignTrucks[campaign.id] || [];
             const alreadyAssigned = assignedVehicleIds[campaign.id] || new Set();
-            const availableVehicles = vehicles.filter(v => !alreadyAssigned.has(v.id) && v.statut !== "en_maintenance" && v.statut !== "hors_service");
+            const availableVehicles = vehicles.filter(v =>
+              !alreadyAssigned.has(v.id) &&
+              v.statut !== "en_maintenance" &&
+              v.statut !== "hors_service" &&
+              !vehiclesInMaintenance.has(v.id)
+            );
             const selectedVehicle = addingTo[campaign.id];
 
             return (

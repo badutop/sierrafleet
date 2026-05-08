@@ -29,6 +29,20 @@ export default function CampaignTruckAssignmentTable({ campaignId }) {
     queryFn: () => base44.entities.Rotation.filter({ campaign_id: campaignId }),
   });
 
+  const { data: maintenances = [] } = useQuery({
+    queryKey: ["maintenances"],
+    queryFn: () => base44.entities.Maintenance.list(),
+  });
+
+  // IDs de véhicules ayant une maintenance active (en_cours ou planifie)
+  const vehiclesInMaintenance = useMemo(() => {
+    return new Set(
+      maintenances
+        .filter(m => m.statut === "en_cours" || m.statut === "planifie")
+        .map(m => m.vehicle_id)
+    );
+  }, [maintenances]);
+
   const assignedRotations = useMemo(() => {
     const seen = new Map();
     [...rotations]
@@ -39,7 +53,12 @@ export default function CampaignTruckAssignmentTable({ campaignId }) {
 
   const assignedVehicleIds = useMemo(() => new Set(assignedRotations.map(r => r.vehicle_id)), [assignedRotations]);
   const vehicleMap = useMemo(() => Object.fromEntries(allVehicles.map(v => [v.id, v])), [allVehicles]);
-  const availableVehicles = allVehicles.filter(v => !assignedVehicleIds.has(v.id));
+  const availableVehicles = allVehicles.filter(v =>
+    !assignedVehicleIds.has(v.id) &&
+    v.statut !== "en_maintenance" &&
+    v.statut !== "hors_service" &&
+    !vehiclesInMaintenance.has(v.id)
+  );
 
   const assignMutation = useMutation({
     mutationFn: (vehicleId) =>
