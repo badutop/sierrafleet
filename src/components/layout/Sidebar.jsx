@@ -39,15 +39,11 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
         collapsed ? "w-[72px]" : "w-[260px]",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        <div className={cn("flex items-center h-16 px-4 border-b border-sidebar-border", collapsed ? "justify-center" : "gap-3")}>
-          <div className="w-9 h-9 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
-            <Truck className="w-5 h-5 text-sidebar-primary-foreground" />
-          </div>
-          {!collapsed && (
-            <div className="overflow-hidden">
-              <h1 className="font-bold text-sm text-sidebar-primary-foreground leading-tight">Sierra Logistics</h1>
-              <p className="text-[10px] text-sidebar-foreground/60">Gestion de Flotte</p>
-            </div>
+        <div className={cn("flex items-center h-16 px-3 border-b border-sidebar-border", collapsed ? "justify-center" : "justify-center")}>
+          {collapsed ? (
+            <img src="https://media.base44.com/images/public/69f9299ed58f49c27c655c94/f179a6017_sierra-logistics-logo-ptit.png" alt="Sierra Logistics" className="w-10 h-10 object-contain" />
+          ) : (
+            <img src="https://media.base44.com/images/public/69f9299ed58f49c27c655c94/f179a6017_sierra-logistics-logo-ptit.png" alt="Sierra Logistics" className="h-12 object-contain" />
           )}
         </div>
 
