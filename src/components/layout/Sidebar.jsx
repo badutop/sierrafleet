@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { path: "/", label: "Tableau de bord", icon: LayoutDashboard },
-  { path: "/vehicles", label: "Parc Véhicules", icon: Truck },
   { path: "/drivers", label: "Chauffeurs", icon: Users },
+  { path: "/vehicles", label: "Parc Véhicules", icon: Truck },
   { path: "/clients", label: "Clients", icon: Building2 },
   { path: "/suppliers", label: "Fournisseurs", icon: Factory },
   { path: "/spare-parts", label: "Pièces Détachées", icon: Package },
