@@ -12,51 +12,78 @@ import { Plus, User, Phone, CreditCard, Route, Pencil, Trash2, Upload, ExternalL
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-// Recadre l'image pour isoler le document (supprime les bords noirs/sombres)
+// Recadre l'image pour isoler le document par détection de bords (Sobel + analyse des lignes/colonnes)
 async function cropToDocument(file) {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
+      const w = img.width, h = img.height;
       const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
 
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const pixels = data.data;
-      const w = canvas.width, h = canvas.height;
-      const threshold = 40; // luminosité seuil pour détecter le fond sombre
+      const data = ctx.getImageData(0, 0, w, h).data;
 
-      let minX = w, maxX = 0, minY = h, maxY = 0;
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const i = (y * w + x) * 4;
-          const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
-          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-          if (lum > threshold) {
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-          }
+      // Luminosité de chaque pixel
+      const lum = new Float32Array(w * h);
+      for (let i = 0; i < w * h; i++) {
+        lum[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+      }
+
+      // Gradient Sobel pour détecter les contours
+      const edge = new Float32Array(w * h);
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const gx =
+            -lum[(y - 1) * w + (x - 1)] + lum[(y - 1) * w + (x + 1)]
+            - 2 * lum[y * w + (x - 1)] + 2 * lum[y * w + (x + 1)]
+            - lum[(y + 1) * w + (x - 1)] + lum[(y + 1) * w + (x + 1)];
+          const gy =
+            -lum[(y - 1) * w + (x - 1)] - 2 * lum[(y - 1) * w + x] - lum[(y - 1) * w + (x + 1)]
+            + lum[(y + 1) * w + (x - 1)] + 2 * lum[(y + 1) * w + x] + lum[(y + 1) * w + (x + 1)];
+          edge[y * w + x] = Math.sqrt(gx * gx + gy * gy);
         }
       }
 
-      // Ajouter un petit padding
-      const pad = 10;
-      minX = Math.max(0, minX - pad);
-      minY = Math.max(0, minY - pad);
-      maxX = Math.min(w, maxX + pad);
-      maxY = Math.min(h, maxY + pad);
+      // Somme des gradients par ligne et par colonne
+      const rowScore = new Float32Array(h);
+      const colScore = new Float32Array(w);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          rowScore[y] += edge[y * w + x];
+          colScore[x] += edge[y * w + x];
+        }
+      }
 
-      const cropW = maxX - minX;
-      const cropH = maxY - minY;
+      // Seuil adaptatif : 15% du score max
+      const maxRow = Math.max(...rowScore);
+      const maxCol = Math.max(...colScore);
+      const rowThresh = maxRow * 0.15;
+      const colThresh = maxCol * 0.15;
 
-      if (cropW < 50 || cropH < 50) {
-        // Recadrage non pertinent, retourner le fichier original
-        URL.revokeObjectURL(url);
+      // Trouver les premières/dernières lignes/colonnes avec suffisamment de contours
+      let top = 0, bottom = h - 1, left = 0, right = w - 1;
+      for (let y = 0; y < h; y++) { if (rowScore[y] >= rowThresh) { top = y; break; } }
+      for (let y = h - 1; y >= 0; y--) { if (rowScore[y] >= rowThresh) { bottom = y; break; } }
+      for (let x = 0; x < w; x++) { if (colScore[x] >= colThresh) { left = x; break; } }
+      for (let x = w - 1; x >= 0; x--) { if (colScore[x] >= colThresh) { right = x; break; } }
+
+      // Padding léger de 8px
+      const pad = 8;
+      top = Math.max(0, top - pad);
+      bottom = Math.min(h - 1, bottom + pad);
+      left = Math.max(0, left - pad);
+      right = Math.min(w - 1, right + pad);
+
+      const cropW = right - left;
+      const cropH = bottom - top;
+
+      // Si le recadrage est trop petit ou couvre plus de 90% déjà, garder l'original
+      if (cropW < 100 || cropH < 100 || (cropW / w > 0.9 && cropH / h > 0.9)) {
         resolve(file);
         return;
       }
@@ -64,12 +91,10 @@ async function cropToDocument(file) {
       const out = document.createElement("canvas");
       out.width = cropW;
       out.height = cropH;
-      const outCtx = out.getContext("2d");
-      outCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
-      URL.revokeObjectURL(url);
+      out.getContext("2d").drawImage(canvas, left, top, cropW, cropH, 0, 0, cropW, cropH);
       out.toBlob((blob) => {
         resolve(new File([blob], file.name, { type: "image/jpeg" }));
-      }, "image/jpeg", 0.92);
+      }, "image/jpeg", 0.93);
     };
     img.src = url;
   });
