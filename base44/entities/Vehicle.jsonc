@@ -75,6 +75,18 @@
     },
     "km_prochaine_vidange": {
       "type": "number"
+    },
+    "doc_carte_grise_url": {
+      "type": "string",
+      "description": "URL du document num\u00e9ris\u00e9 de la carte grise"
+    },
+    "doc_assurance_url": {
+      "type": "string",
+      "description": "URL du document num\u00e9ris\u00e9 de l'assurance"
+    },
+    "doc_visite_technique_url": {
+      "type": "string",
+      "description": "URL du rapport de visite technique num\u00e9ris\u00e9"
     }
   },
   "required": [

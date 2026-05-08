@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Truck, Gauge, Calendar, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Truck, Gauge, Calendar, Pencil, Trash2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import VehicleDocuments from "@/components/vehicles/VehicleDocuments";
 
 const statusLabels = { disponible: "Disponible", en_mission: "En mission", en_maintenance: "Maintenance", hors_service: "Hors service" };
 const statusColors = { disponible: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", en_mission: "bg-blue-500/10 text-blue-600 border-blue-500/20", en_maintenance: "bg-amber-500/10 text-amber-600 border-amber-500/20", hors_service: "bg-destructive/10 text-destructive border-destructive/20" };
@@ -25,6 +26,7 @@ export default function Vehicles() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [docsVehicle, setDocsVehicle] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: vehicles = [], isLoading } = useQuery({
@@ -134,6 +136,15 @@ export default function Vehicles() {
                   <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => openEdit(v)}>
                     <Pencil className="w-3 h-3 mr-1" /> Modifier
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className={cn("h-7 text-xs", (v.doc_carte_grise_url || v.doc_assurance_url || v.doc_visite_technique_url) ? "text-blue-600 border-blue-200 hover:bg-blue-50" : "")}
+                    onClick={() => setDocsVehicle(v)}
+                    title="Documents"
+                  >
+                    <FileText className="w-3 h-3" />
+                  </Button>
                   <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(v)} disabled={deleteMutation.isPending}>
                     <Trash2 className="w-3 h-3" />
                   </Button>
@@ -143,6 +154,12 @@ export default function Vehicles() {
           ))}
         </div>
       )}
+
+      <VehicleDocuments
+        vehicle={docsVehicle}
+        open={!!docsVehicle}
+        onClose={() => setDocsVehicle(null)}
+      />
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
