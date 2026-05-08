@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import md5lib from 'npm:md5@2.3.0';
 
 // --- Config ---
 const API_URL = Deno.env.get("TRACKSOLID_API_URL") || "https://hk-open.tracksolidpro.com/route/rest";
@@ -11,12 +12,9 @@ const USER_PWD_MD5 = Deno.env.get("TRACKSOLID_USER_PWD_MD5") || "21218cca77804d2
 let cachedToken = null;
 let tokenExpiresAt = 0;
 
-// --- MD5 helper (using Web Crypto via subtle + TextEncoder) ---
-async function md5(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest("MD5", msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+// --- MD5 helper ---
+function md5(message) {
+  return md5lib(message).toUpperCase();
 }
 
 // Build sign: md5(appSecret + sorted_params_keyvalue + appSecret) uppercase

@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Navigation, Truck, AlertTriangle, Activity, RefreshCw, Route, Bell, Gauge, Clock } from "lucide-react";
+import { Navigation, Truck, Activity, RefreshCw, Route, Bell, Gauge, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, subHours } from "date-fns";
+import VehicleDetailPanel from "@/components/gps/VehicleDetailPanel";
 
 // Fix Leaflet default icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -142,39 +142,33 @@ export default function GpsTracking() {
 
       {/* KPI Strip */}
       <div className="grid grid-cols-3 gap-3">
-        <Card className="py-3 px-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <Activity className="w-4 h-4 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">En mouvement</p>
-              <p className="text-xl font-bold text-emerald-600">{movingCount}</p>
-            </div>
+        <div className="bg-card border border-border rounded-xl py-3 px-4 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+            <Activity className="w-4 h-4 text-emerald-600" />
           </div>
-        </Card>
-        <Card className="py-3 px-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-slate-500/10 flex items-center justify-center">
-              <Truck className="w-4 h-4 text-slate-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">À l'arrêt</p>
-              <p className="text-xl font-bold text-slate-600">{parkingCount}</p>
-            </div>
+          <div>
+            <p className="text-xs text-muted-foreground">En mouvement</p>
+            <p className="text-xl font-bold text-emerald-600">{movingCount}</p>
           </div>
-        </Card>
-        <Card className="py-3 px-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Navigation className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total dispositifs</p>
-              <p className="text-xl font-bold text-primary">{locations.length}</p>
-            </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl py-3 px-4 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-slate-500/10 flex items-center justify-center">
+            <Truck className="w-4 h-4 text-slate-600" />
           </div>
-        </Card>
+          <div>
+            <p className="text-xs text-muted-foreground">À l'arrêt</p>
+            <p className="text-xl font-bold text-slate-600">{parkingCount}</p>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl py-3 px-4 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Navigation className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Total dispositifs</p>
+            <p className="text-xl font-bold text-primary">{locations.length}</p>
+          </div>
+        </div>
       </div>
 
       {/* Main Layout */}
@@ -204,6 +198,12 @@ export default function GpsTracking() {
           {/* Live Tab */}
           {tab === "live" && (
             <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
+              {selectedLocation && (
+                <VehicleDetailPanel
+                  loc={selectedLocation}
+                  onClose={() => setSelectedImei(null)}
+                />
+              )}
               {locLoading ? (
                 <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin" /></div>
               ) : locations.map(loc => (
