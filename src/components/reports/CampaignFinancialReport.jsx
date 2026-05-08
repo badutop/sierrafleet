@@ -1,15 +1,40 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, AlertCircle } from "lucide-react";
 import { getPrixTonne, getTvaPct } from "@/components/campaigns/CampaignInvoice";
+import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
 
 const fmt = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0));
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR") : "—";
 
+const now = new Date();
+const defaultFilter = { mode: "all", month: now.getMonth() + 1, year: now.getFullYear(), from: "", to: "" };
+
+const MargeIcon = ({ taux }) => {
+  if (taux === null) return <Minus className="w-3.5 h-3.5 text-muted-foreground" />;
+  if (taux >= 20) return <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />;
+  if (taux >= 0) return <TrendingUp className="w-3.5 h-3.5 text-amber-500" />;
+  return <TrendingDown className="w-3.5 h-3.5 text-destructive" />;
+};
+
+const MargeBadge = ({ taux }) => {
+  if (taux === null) return <Badge variant="outline" className="text-xs">N/A</Badge>;
+  const cls = taux >= 20 ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+    : taux >= 0 ? "bg-amber-100 text-amber-700 border-amber-200"
+      : "bg-red-100 text-red-700 border-red-200";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold border ${cls}`}>
+      <MargeIcon taux={taux} />
+      {taux.toFixed(1)}%
+    </span>
+  );
+};
+
 export default function CampaignFinancialReport() {
+  const [filter, setFilter] = useState(defaultFilter);
   const prixTonne = getPrixTonne();
   const tvaPct = getTvaPct();
 
@@ -19,21 +44,25 @@ export default function CampaignFinancialReport() {
   const { data: expenses = [] } = useQuery({ queryKey: ["expenses-all"], queryFn: () => base44.entities.Expense.list("-date_frais", 2000) });
   const { data: fuelEntries = [] } = useQuery({ queryKey: ["fuel-all"], queryFn: () => base44.entities.FuelEntry.list("-date", 2000) });
   const { data: maintenances = [] } = useQuery({ queryKey: ["maint-all"], queryFn: () => base44.entities.Maintenance.list("-date_entretien", 2000) });
-  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
 
-  // Véhicules par campagne : on retrouve les vehicle_id utilisés dans les rotations de chaque campagne
+  const range = useMemo(() => getDateRange(filter), [filter]);
+
+  // Filtre les campagnes dont la date_debut tombe dans la plage choisie
+  const filteredCampaigns = useMemo(() =>
+    campaigns.filter(c => inRange(c.date_debut, range)),
+    [campaigns, range]
+  );
+
   const rows = useMemo(() => {
-    return campaigns.map(camp => {
+    return filteredCampaigns.map(camp => {
       const client = clients.find(c => c.id === camp.client_id);
       const campRotations = rotations.filter(r => r.campaign_id === camp.id && r.statut !== "annulee");
       const campVehicleIds = [...new Set(campRotations.map(r => r.vehicle_id))];
 
-      // Chiffre d'affaires : tonnage réel × prix/tonne × (1 + TVA)
       const tonnage = campRotations.reduce((s, r) => s + (Number(r.poids_charge_tonnes) || 0), 0);
       const caHT = tonnage * prixTonne;
       const caTTC = caHT * (1 + tvaPct / 100);
 
-      // Dépenses carburant : on prend les entrées carburant liées aux véhicules pendant la campagne
       const campStart = camp.date_debut ? new Date(camp.date_debut) : null;
       const campEnd = camp.date_fin_prevue ? new Date(camp.date_fin_prevue) : new Date();
 
@@ -43,14 +72,12 @@ export default function CampaignFinancialReport() {
       });
       const coutCarburant = campFuel.reduce((s, f) => s + (Number(f.montant_total) || 0), 0);
 
-      // Dépenses maintenance liées aux véhicules de la campagne sur la période
       const campMaint = maintenances.filter(m => {
         const mDate = m.date_entretien ? new Date(m.date_entretien) : null;
         return campVehicleIds.includes(m.vehicle_id) && mDate && (!campStart || mDate >= campStart) && mDate <= campEnd;
       });
       const coutMaintenance = campMaint.reduce((s, m) => s + (Number(m.cout) || 0), 0);
 
-      // Frais divers (expenses) liés aux véhicules de la campagne sur la période
       const campExpenses = expenses.filter(e => {
         const eDate = e.date_frais ? new Date(e.date_frais) : null;
         return campVehicleIds.includes(e.vehicle_id) && eDate && (!campStart || eDate >= campStart) && eDate <= campEnd;
@@ -61,25 +88,10 @@ export default function CampaignFinancialReport() {
       const marge = caHT - coutTotal;
       const tauxMarge = caHT > 0 ? (marge / caHT) * 100 : null;
 
-      return {
-        ...camp,
-        client,
-        campRotations: campRotations.length,
-        tonnage,
-        caHT,
-        caTTC,
-        coutCarburant,
-        coutMaintenance,
-        coutFrais,
-        coutTotal,
-        marge,
-        tauxMarge,
-        campVehicleIds,
-      };
+      return { ...camp, client, campRotations: campRotations.length, tonnage, caHT, caTTC, coutCarburant, coutMaintenance, coutFrais, coutTotal, marge, tauxMarge };
     }).sort((a, b) => new Date(b.date_debut || 0) - new Date(a.date_debut || 0));
-  }, [campaigns, clients, rotations, fuelEntries, maintenances, expenses, prixTonne, tvaPct]);
+  }, [filteredCampaigns, clients, rotations, fuelEntries, maintenances, expenses, prixTonne, tvaPct]);
 
-  // Totaux globaux
   const totals = useMemo(() => rows.reduce((acc, r) => ({
     caHT: acc.caHT + r.caHT,
     caTTC: acc.caTTC + r.caTTC,
@@ -92,26 +104,6 @@ export default function CampaignFinancialReport() {
 
   const tauxMargeGlobal = totals.caHT > 0 ? (totals.marge / totals.caHT) * 100 : null;
 
-  const MargeIcon = ({ taux }) => {
-    if (taux === null) return <Minus className="w-3.5 h-3.5 text-muted-foreground" />;
-    if (taux >= 20) return <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />;
-    if (taux >= 0) return <TrendingUp className="w-3.5 h-3.5 text-amber-500" />;
-    return <TrendingDown className="w-3.5 h-3.5 text-destructive" />;
-  };
-
-  const MargeBadge = ({ marge, taux }) => {
-    if (taux === null) return <Badge variant="outline" className="text-xs">N/A</Badge>;
-    const cls = taux >= 20 ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-      : taux >= 0 ? "bg-amber-100 text-amber-700 border-amber-200"
-        : "bg-red-100 text-red-700 border-red-200";
-    return (
-      <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold border ${cls}`}>
-        <MargeIcon taux={taux} />
-        {taux.toFixed(1)}%
-      </span>
-    );
-  };
-
   if (prixTonne === 0) {
     return (
       <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800">
@@ -122,14 +114,17 @@ export default function CampaignFinancialReport() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Filtre */}
+      <PeriodFilter filter={filter} onChange={setFilter} />
+
       {/* KPI globaux */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: "CA Total HT", value: fmt(totals.caHT) + " FCFA", color: "text-primary" },
           { label: "Dépenses totales", value: fmt(totals.coutTotal) + " FCFA", color: "text-destructive" },
           { label: "Marge brute", value: fmt(totals.marge) + " FCFA", color: totals.marge >= 0 ? "text-emerald-600" : "text-destructive" },
-          { label: "Taux de marge global", value: tauxMargeGlobal !== null ? tauxMargeGlobal.toFixed(1) + "%" : "—", color: tauxMargeGlobal >= 0 ? "text-emerald-600" : "text-destructive" },
+          { label: "Taux de marge", value: tauxMargeGlobal !== null ? tauxMargeGlobal.toFixed(1) + "%" : "—", color: (tauxMargeGlobal ?? 0) >= 0 ? "text-emerald-600" : "text-destructive" },
         ].map((kpi, i) => (
           <div key={i} className="bg-card border border-border rounded-xl p-4">
             <p className="text-xs text-muted-foreground mb-1">{kpi.label}</p>
@@ -138,10 +133,8 @@ export default function CampaignFinancialReport() {
         ))}
       </div>
 
-      {/* Note méthodologie */}
       <p className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-lg">
-        ℹ️ Le <strong>chiffre d'affaires HT</strong> est calculé depuis le tonnage réel × prix/tonne ({fmt(prixTonne)} FCFA/T, TVA {tvaPct}%). 
-        Les <strong>dépenses</strong> (carburant, maintenance, frais) sont imputées aux véhicules ayant participé à la campagne sur sa période.
+        ℹ️ CA HT = tonnage réel × {fmt(prixTonne)} FCFA/T (TVA {tvaPct}%). Les dépenses sont imputées aux véhicules ayant participé à chaque campagne sur sa période.
       </p>
 
       {/* Tableau */}
@@ -168,6 +161,11 @@ export default function CampaignFinancialReport() {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={12} className="text-center text-xs text-muted-foreground py-8">Aucune campagne sur cette période.</TableCell>
+              </TableRow>
+            )}
             {rows.map(row => (
               <TableRow key={row.id} className="hover:bg-muted/20">
                 <TableCell className="text-xs font-medium max-w-[160px] truncate">{row.nom_campagne}</TableCell>
@@ -181,20 +179,21 @@ export default function CampaignFinancialReport() {
                 <TableCell className="text-xs text-right text-muted-foreground">{fmt(row.coutFrais)}</TableCell>
                 <TableCell className="text-xs text-right font-semibold text-destructive">{fmt(row.coutTotal)}</TableCell>
                 <TableCell className={`text-xs text-right font-bold ${row.marge >= 0 ? "text-emerald-600" : "text-destructive"}`}>{fmt(row.marge)}</TableCell>
-                <TableCell className="text-xs text-center"><MargeBadge marge={row.marge} taux={row.tauxMarge} /></TableCell>
+                <TableCell className="text-xs text-center"><MargeBadge taux={row.tauxMarge} /></TableCell>
               </TableRow>
             ))}
-            {/* Ligne totaux */}
-            <TableRow className="bg-primary/5 border-t-2 border-primary/20 font-bold">
-              <TableCell className="text-xs font-bold" colSpan={5}>TOTAL</TableCell>
-              <TableCell className="text-xs text-right font-bold text-primary">{fmt(totals.caHT)}</TableCell>
-              <TableCell className="text-xs text-right font-bold text-orange-600">{fmt(totals.coutCarburant)}</TableCell>
-              <TableCell className="text-xs text-right font-bold text-blue-600">{fmt(totals.coutMaintenance)}</TableCell>
-              <TableCell className="text-xs text-right font-bold text-muted-foreground">{fmt(totals.coutFrais)}</TableCell>
-              <TableCell className="text-xs text-right font-bold text-destructive">{fmt(totals.coutTotal)}</TableCell>
-              <TableCell className={`text-xs text-right font-bold ${totals.marge >= 0 ? "text-emerald-600" : "text-destructive"}`}>{fmt(totals.marge)}</TableCell>
-              <TableCell className="text-xs text-center"><MargeBadge marge={totals.marge} taux={tauxMargeGlobal} /></TableCell>
-            </TableRow>
+            {rows.length > 0 && (
+              <TableRow className="bg-primary/5 border-t-2 border-primary/20">
+                <TableCell className="text-xs font-bold" colSpan={5}>TOTAL</TableCell>
+                <TableCell className="text-xs text-right font-bold text-primary">{fmt(totals.caHT)}</TableCell>
+                <TableCell className="text-xs text-right font-bold text-orange-600">{fmt(totals.coutCarburant)}</TableCell>
+                <TableCell className="text-xs text-right font-bold text-blue-600">{fmt(totals.coutMaintenance)}</TableCell>
+                <TableCell className="text-xs text-right font-bold text-muted-foreground">{fmt(totals.coutFrais)}</TableCell>
+                <TableCell className="text-xs text-right font-bold text-destructive">{fmt(totals.coutTotal)}</TableCell>
+                <TableCell className={`text-xs text-right font-bold ${totals.marge >= 0 ? "text-emerald-600" : "text-destructive"}`}>{fmt(totals.marge)}</TableCell>
+                <TableCell className="text-xs text-center"><MargeBadge taux={tauxMargeGlobal} /></TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
