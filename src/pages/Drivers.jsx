@@ -8,97 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, User, Phone, CreditCard, Route, Pencil, Trash2, Upload, ExternalLink, Loader2, Truck, X, Crop } from "lucide-react";
+import { Plus, User, Phone, CreditCard, Route, Pencil, Trash2, Upload, ExternalLink, Loader2, Truck, X, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import DocumentScanner from "@/components/drivers/DocumentScanner";
 
-// Recadre l'image pour isoler le document par détection de bords (Sobel + analyse des lignes/colonnes)
-async function cropToDocument(file) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const w = img.width, h = img.height;
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-      URL.revokeObjectURL(url);
-
-      const data = ctx.getImageData(0, 0, w, h).data;
-
-      // Luminosité de chaque pixel
-      const lum = new Float32Array(w * h);
-      for (let i = 0; i < w * h; i++) {
-        lum[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
-      }
-
-      // Gradient Sobel pour détecter les contours
-      const edge = new Float32Array(w * h);
-      for (let y = 1; y < h - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-          const gx =
-            -lum[(y - 1) * w + (x - 1)] + lum[(y - 1) * w + (x + 1)]
-            - 2 * lum[y * w + (x - 1)] + 2 * lum[y * w + (x + 1)]
-            - lum[(y + 1) * w + (x - 1)] + lum[(y + 1) * w + (x + 1)];
-          const gy =
-            -lum[(y - 1) * w + (x - 1)] - 2 * lum[(y - 1) * w + x] - lum[(y - 1) * w + (x + 1)]
-            + lum[(y + 1) * w + (x - 1)] + 2 * lum[(y + 1) * w + x] + lum[(y + 1) * w + (x + 1)];
-          edge[y * w + x] = Math.sqrt(gx * gx + gy * gy);
-        }
-      }
-
-      // Somme des gradients par ligne et par colonne
-      const rowScore = new Float32Array(h);
-      const colScore = new Float32Array(w);
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          rowScore[y] += edge[y * w + x];
-          colScore[x] += edge[y * w + x];
-        }
-      }
-
-      // Seuil adaptatif : 15% du score max
-      const maxRow = Math.max(...rowScore);
-      const maxCol = Math.max(...colScore);
-      const rowThresh = maxRow * 0.15;
-      const colThresh = maxCol * 0.15;
-
-      // Trouver les premières/dernières lignes/colonnes avec suffisamment de contours
-      let top = 0, bottom = h - 1, left = 0, right = w - 1;
-      for (let y = 0; y < h; y++) { if (rowScore[y] >= rowThresh) { top = y; break; } }
-      for (let y = h - 1; y >= 0; y--) { if (rowScore[y] >= rowThresh) { bottom = y; break; } }
-      for (let x = 0; x < w; x++) { if (colScore[x] >= colThresh) { left = x; break; } }
-      for (let x = w - 1; x >= 0; x--) { if (colScore[x] >= colThresh) { right = x; break; } }
-
-      // Padding léger de 8px
-      const pad = 8;
-      top = Math.max(0, top - pad);
-      bottom = Math.min(h - 1, bottom + pad);
-      left = Math.max(0, left - pad);
-      right = Math.min(w - 1, right + pad);
-
-      const cropW = right - left;
-      const cropH = bottom - top;
-
-      // Si le recadrage est trop petit ou couvre plus de 90% déjà, garder l'original
-      if (cropW < 100 || cropH < 100 || (cropW / w > 0.9 && cropH / h > 0.9)) {
-        resolve(file);
-        return;
-      }
-
-      const out = document.createElement("canvas");
-      out.width = cropW;
-      out.height = cropH;
-      out.getContext("2d").drawImage(canvas, left, top, cropW, cropH, 0, 0, cropW, cropH);
-      out.toBlob((blob) => {
-        resolve(new File([blob], file.name, { type: "image/jpeg" }));
-      }, "image/jpeg", 0.93);
-    };
-    img.src = url;
-  });
-}
 
 const statusLabels = { actif: "Actif", inactif: "Inactif", en_mission: "En mission" };
 const statusColors = { actif: "bg-emerald-500/10 text-emerald-600", inactif: "bg-muted text-muted-foreground", en_mission: "bg-blue-500/10 text-blue-600" };
@@ -114,26 +28,31 @@ function DocUploadField({ label, value, fieldKey, onUploaded }) {
   const inputRef = useRef();
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
-  // Afficher l'aperçu si une URL existante est chargée (édition)
   useEffect(() => {
     if (value && !preview) setPreview(value);
     if (!value) setPreview(null);
   }, [value]);
 
+  // Importation depuis fichier (galerie / PDF)
   const handleFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
+    const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    onUploaded(fieldKey, file_url);
+    if (previewUrl) setPreview(previewUrl);
+    setUploading(false);
+    toast.success(`${label} uploadé`);
+  };
 
-    // Si c'est une image, recadrer sur le document
-    let fileToUpload = file;
-    if (file.type.startsWith("image/")) {
-      fileToUpload = await cropToDocument(file);
-      setPreview(URL.createObjectURL(fileToUpload));
-    }
-
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: fileToUpload });
+  // Après capture via le scanner avec gabarit
+  const handleScanned = async (file, previewUrl) => {
+    setUploading(true);
+    setPreview(previewUrl);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
     onUploaded(fieldKey, file_url);
     setUploading(false);
     toast.success(`${label} uploadé`);
@@ -141,42 +60,46 @@ function DocUploadField({ label, value, fieldKey, onUploaded }) {
 
   return (
     <div className="col-span-2">
+      {scannerOpen && (
+        <DocumentScanner onCapture={handleScanned} onClose={() => setScannerOpen(false)} />
+      )}
       <Label className="text-xs">{label}</Label>
       <div className="flex gap-2 mt-1">
         <Button
-          type="button"
-          size="sm"
-          variant="outline"
+          type="button" size="sm" variant="outline"
           className="flex-1 h-8 text-xs justify-start"
+          onClick={() => setScannerOpen(true)}
+          disabled={uploading}
+        >
+          <Camera className="w-3 h-3 mr-1.5" />
+          {uploading ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Upload...</> : "Scanner avec caméra"}
+        </Button>
+        <Button
+          type="button" size="sm" variant="outline"
+          className="h-8 text-xs px-2"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
         >
-          {uploading ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Upload className="w-3 h-3 mr-1.5" />}
-          {uploading ? "Recadrage & upload..." : value ? "Remplacer" : "Scanner / Importer"}
+          <Upload className="w-3 h-3" />
         </Button>
         {value && (
           <Button type="button" size="sm" variant="outline" className="h-8 px-2" asChild>
             <a href={value} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-3.5 h-3.5" /></a>
           </Button>
         )}
-        <input ref={inputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={handleFile} />
+        <input ref={inputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFile} />
       </div>
 
-      {/* Aperçu de l'image recadrée */}
       {preview && (
         <div className="mt-2 relative inline-block">
-          <img src={preview} alt="Aperçu document" className="max-h-40 rounded border border-border object-contain bg-muted" />
+          <img src={preview} alt="Aperçu document" className="max-h-36 rounded-lg border border-border object-contain bg-muted shadow-sm" style={{ aspectRatio: "1.585/1", width: "100%" }} />
           <button
             type="button"
             onClick={() => { setPreview(null); onUploaded(fieldKey, ""); }}
-            className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full w-4 h-4 flex items-center justify-center"
+            className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center shadow"
           >
-            <X className="w-2.5 h-2.5" />
+            <X className="w-3 h-3" />
           </button>
-          <div className="flex items-center gap-1 mt-0.5">
-            <Crop className="w-3 h-3 text-emerald-600" />
-            <p className="text-[10px] text-emerald-600">Document recadré automatiquement</p>
-          </div>
         </div>
       )}
       {!preview && value && <p className="text-[10px] text-emerald-600 mt-0.5">✓ Document enregistré</p>}
