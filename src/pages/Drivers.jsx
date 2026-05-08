@@ -56,7 +56,7 @@ function DocUploadField({ label, value, fieldKey, onUploaded }) {
             <a href={value} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-3.5 h-3.5" /></a>
           </Button>
         )}
-        <input ref={inputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFile} />
+        <input ref={inputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={handleFile} />
       </div>
       {value && <p className="text-[10px] text-emerald-600 mt-0.5">✓ Document enregistré</p>}
     </div>
