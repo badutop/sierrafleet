@@ -1,6 +1,7 @@
-import React, { useRef } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Share2, Download } from "lucide-react";
+import { jsPDF } from "jspdf";
 
 const LOGO_URL = "https://media.base44.com/images/public/69f9299ed58f49c27c655c94/f179a6017_sierra-logistics-logo-ptit.png";
 const SIERRA_NAVY = "#1e3a5f";
@@ -64,6 +65,7 @@ const PRINT_STYLES = `
 `;
 
 export default function CampaignInvoice({ campaign, client, rotations, onClose }) {
+  const [sharing, setSharing] = useState(false);
   const prixTonne = getPrixTonne();
   const tvaPct = getTvaPct();
 
@@ -197,6 +199,271 @@ export default function CampaignInvoice({ campaign, client, rotations, onClose }
     setTimeout(() => { w.print(); }, 600);
   };
 
+  // Génère un PDF et retourne un Blob
+  const generatePdfBlob = () => {
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 40;
+    let y = margin;
+
+    const lineH = 14;
+    const colW = (pageW - margin * 2) / 6;
+
+    // En-tête bleu
+    doc.setFillColor(30, 58, 95);
+    doc.rect(0, 0, pageW, 70, "F");
+
+    // Logo texte
+    doc.setTextColor(249, 115, 22);
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("Sierra Logistics", margin, 30);
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "normal");
+    doc.text("Transport & Logistique · Dakar, Sénégal", margin, 42);
+
+    // FACTURE (droite)
+    doc.setTextColor(249, 115, 22);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("FACTURE", pageW - margin, 28, { align: "right" });
+    doc.setFontSize(9);
+    doc.setTextColor(200, 220, 255);
+    doc.setFont("helvetica", "normal");
+    doc.text(`N° ${invoiceNum}`, pageW - margin, 42, { align: "right" });
+    doc.text(`Date : ${today}   Échéance : ${echeance}`, pageW - margin, 54, { align: "right" });
+
+    y = 90;
+
+    // Parties
+    doc.setFillColor(30, 58, 95);
+    doc.roundedRect(margin, y, (pageW - margin * 2) / 2 - 6, 56, 4, 4, "F");
+    doc.setTextColor(249, 115, 22);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("Sierra Logistics", margin + 10, y + 20);
+    doc.setFontSize(8);
+    doc.setTextColor(200, 220, 255);
+    doc.setFont("helvetica", "normal");
+    doc.text("Transport & Logistique", margin + 10, y + 32);
+    doc.text("Dakar, Sénégal", margin + 10, y + 43);
+
+    const cx = margin + (pageW - margin * 2) / 2 + 6;
+    doc.setFillColor(249, 250, 251);
+    doc.setDrawColor(229, 231, 235);
+    doc.roundedRect(cx, y, (pageW - margin * 2) / 2 - 6, 56, 4, 4, "FD");
+    doc.setTextColor(30, 58, 95);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(client?.nom || "—", cx + 10, y + 20);
+    doc.setFontSize(8);
+    doc.setTextColor(107, 114, 128);
+    doc.setFont("helvetica", "normal");
+    if (client?.contact_nom) doc.text(client.contact_nom, cx + 10, y + 32);
+    if (client?.contact_telephone) doc.text(client.contact_telephone, cx + 10, y + 43);
+
+    y += 70;
+
+    // Ref campagne
+    doc.setFillColor(239, 246, 255);
+    doc.setDrawColor(30, 58, 95);
+    doc.rect(margin, y, pageW - margin * 2, 26, "F");
+    doc.setLineWidth(3);
+    doc.setDrawColor(30, 58, 95);
+    doc.line(margin, y, margin, y + 26);
+    doc.setLineWidth(0.5);
+    doc.setTextColor(55, 65, 81);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Campagne : `, margin + 6, y + 11);
+    doc.setFont("helvetica", "normal");
+    doc.text(campaign.nom_campagne, margin + 52, y + 11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Période : `, margin + 6, y + 20);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${fmtDate(campaign.date_debut)} → ${fmtDate(campaign.date_fin_prevue)}    |    Rotations : ${rotationsDone.length}`, margin + 40, y + 20);
+
+    y += 36;
+
+    // Section title
+    doc.setTextColor(30, 58, 95);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("DÉTAIL DES ROTATIONS", margin, y + 8);
+    doc.setDrawColor(249, 115, 22);
+    doc.setLineWidth(1.5);
+    doc.line(margin, y + 10, margin + 120, y + 10);
+    doc.setLineWidth(0.5);
+
+    y += 18;
+
+    // Table header
+    const cols = [30, 55, 85, 55, 60, 65]; // widths
+    const colX = [margin];
+    for (let i = 1; i < cols.length; i++) colX.push(colX[i - 1] + cols[i - 1]);
+
+    doc.setFillColor(30, 58, 95);
+    doc.rect(margin, y, pageW - margin * 2, 16, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    const headers = ["#", "Date", "N° Bon Client", "Poids (T)", "Prix/T", "Montant HT"];
+    headers.forEach((h, i) => {
+      const align = i >= 3 ? "right" : "left";
+      const x = align === "right" ? colX[i] + cols[i] - 4 : colX[i] + 4;
+      doc.text(h, x, y + 10, { align });
+    });
+    y += 16;
+
+    // Table rows
+    doc.setFont("helvetica", "normal");
+    rotationsDone.forEach((r, i) => {
+      const poids = Number(r.poids_charge_tonnes) || 0;
+      const montant = poids * prixTonne;
+      if (i % 2 === 1) { doc.setFillColor(249, 250, 251); doc.rect(margin, y, pageW - margin * 2, lineH, "F"); }
+      doc.setTextColor(i % 2 === 0 ? 55 : 55, 65, 81);
+      doc.setFontSize(7.5);
+      const row = [
+        String(r.numero_rotation || (i + 1)),
+        fmtDate(r.date_rotation),
+        r.numero_bon_client || "—",
+        fmt(poids, 3),
+        fmt(prixTonne),
+        `${fmt(montant)} FCFA`,
+      ];
+      row.forEach((val, j) => {
+        const align = j >= 3 ? "right" : "left";
+        const x = align === "right" ? colX[j] + cols[j] - 4 : colX[j] + 4;
+        doc.text(val, x, y + 9, { align });
+      });
+      y += lineH;
+      if (y > pageH - 100) { doc.addPage(); y = 40; }
+    });
+
+    // Tfoot
+    doc.setFillColor(232, 240, 253);
+    doc.setDrawColor(30, 58, 95);
+    doc.setLineWidth(1.2);
+    doc.line(margin, y, pageW - margin, y);
+    doc.rect(margin, y, pageW - margin * 2, lineH + 2, "F");
+    doc.setTextColor(30, 58, 95);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text(`TOTAL — ${rotationsDone.length} rotation${rotationsDone.length > 1 ? "s" : ""}`, margin + 4, y + 9);
+    doc.text(`${fmt(tonnageTotal, 3)} T`, colX[3] + cols[3] - 4, y + 9, { align: "right" });
+    doc.text(`${fmt(montantHT)} FCFA`, colX[5] + cols[5] - 4, y + 9, { align: "right" });
+    y += lineH + 12;
+
+    // Totaux
+    const totW = 200;
+    const totX = pageW - margin - totW;
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.5);
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(totX, y, totW, 56, 4, 4, "FD");
+    doc.setTextColor(55, 65, 81); doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    doc.text("Montant HT", totX + 10, y + 14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${fmt(montantHT)} FCFA`, totX + totW - 10, y + 14, { align: "right" });
+    doc.setFillColor(249, 250, 251);
+    doc.rect(totX, y + 18, totW, 16, "F");
+    doc.setFont("helvetica", "normal"); doc.setTextColor(107, 114, 128);
+    doc.text(`TVA (${tvaPct}%)`, totX + 10, y + 28);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${fmt(montantTVA)} FCFA`, totX + totW - 10, y + 28, { align: "right" });
+    doc.setFillColor(30, 58, 95);
+    doc.roundedRect(totX, y + 34, totW, 22, 4, 4, "F");
+    doc.setTextColor(255, 255, 255); doc.setFontSize(10); doc.setFont("helvetica", "bold");
+    doc.text("TOTAL TTC", totX + 10, y + 48);
+    doc.setTextColor(249, 115, 22);
+    doc.text(`${fmt(montantTTC)} FCFA`, totX + totW - 10, y + 48, { align: "right" });
+
+    y += 70;
+
+    // Signatures
+    doc.setDrawColor(209, 213, 219);
+    doc.setLineWidth(0.8);
+    const sigW = (pageW - margin * 2 - 20) / 2;
+    doc.setLineDash([4, 3]);
+    doc.roundedRect(margin, y, sigW, 60, 4, 4);
+    doc.roundedRect(margin + sigW + 20, y, sigW, 60, 4, 4);
+    doc.setLineDash([]);
+    doc.setTextColor(156, 163, 175); doc.setFontSize(7); doc.setFont("helvetica", "bold");
+    doc.text("SIGNATURE & CACHET", margin + sigW / 2, y + 12, { align: "center" });
+    doc.setTextColor(30, 58, 95); doc.setFontSize(9);
+    doc.text("Sierra Logistics", margin + sigW / 2, y + 30, { align: "center" });
+    doc.setTextColor(156, 163, 175); doc.setFontSize(7);
+    doc.text("SIGNATURE & CACHET", margin + sigW + 20 + sigW / 2, y + 12, { align: "center" });
+    doc.setTextColor(30, 58, 95); doc.setFontSize(9);
+    doc.text(client?.nom || "Client", margin + sigW + 20 + sigW / 2, y + 30, { align: "center" });
+
+    y += 72;
+
+    // Footer
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageW - margin, y);
+    doc.setTextColor(30, 58, 95); doc.setFontSize(9); doc.setFont("helvetica", "bold");
+    doc.text("Sierra ", margin, y + 12);
+    doc.setTextColor(249, 115, 22);
+    doc.text("Logistics", margin + 26, y + 12);
+    doc.setTextColor(156, 163, 175); doc.setFontSize(7); doc.setFont("helvetica", "normal");
+    doc.text(`Document généré le ${today}  ·  N° ${invoiceNum}`, pageW - margin, y + 12, { align: "right" });
+
+    return doc.output("blob");
+  };
+
+  const handleDownload = () => {
+    const blob = generatePdfBlob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Facture-${invoiceNum}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleShareWhatsApp = async () => {
+    setSharing(true);
+    const blob = generatePdfBlob();
+    const file = new File([blob], `Facture-${invoiceNum}.pdf`, { type: "application/pdf" });
+
+    // Web Share API (mobile/navigateurs compatibles)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: `Facture ${invoiceNum}`,
+        text: `Facture Sierra Logistics — ${campaign.nom_campagne}\nClient : ${client?.nom || "—"}\nTotal TTC : ${fmt(montantTTC)} FCFA`,
+      });
+    } else {
+      // Fallback : télécharger le PDF + ouvrir WhatsApp Web avec un message
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Facture-${invoiceNum}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      const msg = encodeURIComponent(
+        `📄 *Facture Sierra Logistics*\n\n` +
+        `N° ${invoiceNum}\n` +
+        `Campagne : ${campaign.nom_campagne}\n` +
+        `Client : ${client?.nom || "—"}\n` +
+        `Rotations : ${rotationsDone.length}\n` +
+        `Tonnage total : ${fmt(tonnageTotal, 3)} T\n` +
+        `Montant HT : ${fmt(montantHT)} FCFA\n` +
+        `TVA (${tvaPct}%) : ${fmt(montantTVA)} FCFA\n` +
+        `*Total TTC : ${fmt(montantTTC)} FCFA*\n\n` +
+        `_(La facture PDF a été téléchargée — veuillez la joindre à ce message)_`
+      );
+      const phone = client?.contact_telephone?.replace(/\D/g, "") || "";
+      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+    }
+    setSharing(false);
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-start justify-center overflow-y-auto p-4">
       <div className="w-full max-w-4xl my-6 rounded-2xl overflow-hidden shadow-2xl">
@@ -204,8 +471,11 @@ export default function CampaignInvoice({ campaign, client, rotations, onClose }
         <div className="flex items-center justify-between px-6 py-3" style={{ background: SIERRA_NAVY }}>
           <span className="font-bold text-white">Facture — {invoiceNum}</span>
           <div className="flex gap-2">
-            <Button onClick={handlePrint} style={{ background: SIERRA_ORANGE, color: "white" }} className="hover:opacity-90 text-sm h-8 px-3">
-              Imprimer / PDF
+            <Button onClick={handleDownload} style={{ background: SIERRA_ORANGE, color: "white" }} className="hover:opacity-90 text-sm h-8 px-3">
+              <Download className="w-4 h-4 mr-1" /> PDF
+            </Button>
+            <Button onClick={handleShareWhatsApp} disabled={sharing} className="h-8 px-3 text-sm bg-green-600 hover:bg-green-700 text-white">
+              <Share2 className="w-4 h-4 mr-1" /> {sharing ? "..." : "WhatsApp"}
             </Button>
             <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/10 h-8 w-8">
               <X className="w-4 h-4" />
