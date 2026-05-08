@@ -8,9 +8,72 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, User, Phone, CreditCard, Route, Pencil, Trash2, Upload, ExternalLink, Loader2, Truck } from "lucide-react";
+import { Plus, User, Phone, CreditCard, Route, Pencil, Trash2, Upload, ExternalLink, Loader2, Truck, X, Crop } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+// Recadre l'image pour isoler le document (supprime les bords noirs/sombres)
+async function cropToDocument(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const pixels = data.data;
+      const w = canvas.width, h = canvas.height;
+      const threshold = 40; // luminosité seuil pour détecter le fond sombre
+
+      let minX = w, maxX = 0, minY = h, maxY = 0;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          if (lum > threshold) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      // Ajouter un petit padding
+      const pad = 10;
+      minX = Math.max(0, minX - pad);
+      minY = Math.max(0, minY - pad);
+      maxX = Math.min(w, maxX + pad);
+      maxY = Math.min(h, maxY + pad);
+
+      const cropW = maxX - minX;
+      const cropH = maxY - minY;
+
+      if (cropW < 50 || cropH < 50) {
+        // Recadrage non pertinent, retourner le fichier original
+        URL.revokeObjectURL(url);
+        resolve(file);
+        return;
+      }
+
+      const out = document.createElement("canvas");
+      out.width = cropW;
+      out.height = cropH;
+      const outCtx = out.getContext("2d");
+      outCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+      URL.revokeObjectURL(url);
+      out.toBlob((blob) => {
+        resolve(new File([blob], file.name, { type: "image/jpeg" }));
+      }, "image/jpeg", 0.92);
+    };
+    img.src = url;
+  });
+}
 
 const statusLabels = { actif: "Actif", inactif: "Inactif", en_mission: "En mission" };
 const statusColors = { actif: "bg-emerald-500/10 text-emerald-600", inactif: "bg-muted text-muted-foreground", en_mission: "bg-blue-500/10 text-blue-600" };
@@ -25,19 +88,28 @@ const emptyForm = {
 function DocUploadField({ label, value, fieldKey, onUploaded }) {
   const inputRef = useRef();
   const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(null);
 
   const handleFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+    // Si c'est une image, recadrer sur le document
+    let fileToUpload = file;
+    if (file.type.startsWith("image/")) {
+      fileToUpload = await cropToDocument(file);
+      setPreview(URL.createObjectURL(fileToUpload));
+    }
+
+    const { file_url } = await base44.integrations.Core.UploadFile({ file: fileToUpload });
     onUploaded(fieldKey, file_url);
     setUploading(false);
     toast.success(`${label} uploadé`);
   };
 
   return (
-    <div>
+    <div className="col-span-2">
       <Label className="text-xs">{label}</Label>
       <div className="flex gap-2 mt-1">
         <Button
@@ -49,7 +121,7 @@ function DocUploadField({ label, value, fieldKey, onUploaded }) {
           disabled={uploading}
         >
           {uploading ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Upload className="w-3 h-3 mr-1.5" />}
-          {uploading ? "Upload..." : value ? "Remplacer" : "Scanner / Importer"}
+          {uploading ? "Recadrage & upload..." : value ? "Remplacer" : "Scanner / Importer"}
         </Button>
         {value && (
           <Button type="button" size="sm" variant="outline" className="h-8 px-2" asChild>
@@ -58,7 +130,25 @@ function DocUploadField({ label, value, fieldKey, onUploaded }) {
         )}
         <input ref={inputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={handleFile} />
       </div>
-      {value && <p className="text-[10px] text-emerald-600 mt-0.5">✓ Document enregistré</p>}
+
+      {/* Aperçu de l'image recadrée */}
+      {preview && (
+        <div className="mt-2 relative inline-block">
+          <img src={preview} alt="Aperçu document" className="max-h-40 rounded border border-border object-contain bg-muted" />
+          <button
+            type="button"
+            onClick={() => { setPreview(null); onUploaded(fieldKey, ""); }}
+            className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full w-4 h-4 flex items-center justify-center"
+          >
+            <X className="w-2.5 h-2.5" />
+          </button>
+          <div className="flex items-center gap-1 mt-0.5">
+            <Crop className="w-3 h-3 text-emerald-600" />
+            <p className="text-[10px] text-emerald-600">Document recadré automatiquement</p>
+          </div>
+        </div>
+      )}
+      {!preview && value && <p className="text-[10px] text-emerald-600 mt-0.5">✓ Document enregistré</p>}
     </div>
   );
 }
@@ -215,8 +305,10 @@ export default function Drivers() {
             <div className="col-span-2 border-t border-border pt-3">
               <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Documents d'identité</p>
             </div>
-            <DocUploadField label="Scan Permis de conduire" value={form.doc_permis_url} fieldKey="doc_permis_url" onUploaded={handleDocUploaded} />
-            <DocUploadField label="Scan CNI (Carte Nationale d'Identité)" value={form.doc_cni_url} fieldKey="doc_cni_url" onUploaded={handleDocUploaded} />
+            <div className="col-span-2 grid grid-cols-1 gap-3">
+              <DocUploadField label="Scan Permis de conduire" value={form.doc_permis_url} fieldKey="doc_permis_url" onUploaded={handleDocUploaded} />
+              <DocUploadField label="Scan CNI (Carte Nationale d'Identité)" value={form.doc_cni_url} fieldKey="doc_cni_url" onUploaded={handleDocUploaded} />
+            </div>
 
             {/* Contact urgence */}
             <div className="col-span-2 border-t border-border pt-3">
