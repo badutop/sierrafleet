@@ -70,7 +70,7 @@ const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse OCR et validation des num�
 export default function BonValidationStep({ bons: initialBons, driver, vehicle, rotations, onBack, onValidated }) {
   const [bons, setBons] = useState(
     initialBons.map((b, i) => DEMO_MODE
-      ? { ...b, ocrNumber: `DEMO-BON-${i + 1}`, validStatus: "valid", validReason: null, rotation: rotations.find(r => r.driver_id === driver?.id) || null }
+      ? { ...b, ocrNumber: `DEMO-BON-${i + 1}`, validStatus: "valid", validReason: null, rotation: rotations?.[i] || null }
       : { ...b, ocrNumber: null, validStatus: "loading", validReason: null }
     )
   );
@@ -99,6 +99,7 @@ export default function BonValidationStep({ bons: initialBons, driver, vehicle, 
 
   // Déclenche la validation dès que tous les OCR sont remplis
   useEffect(() => {
+    if (DEMO_MODE) return; // bypasse en mode démo
     if (ocrResults.some(r => r === null)) return;
     const used = new Set();
     setBons(prev => prev.map((bon, i) => {
