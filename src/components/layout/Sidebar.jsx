@@ -75,7 +75,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
 
         {/* Déconnexion */}
         <button
-          onClick={() => base44.auth.logout()}
+          onClick={() => base44.auth.logout("/landing")}
           className={cn(
             "flex items-center gap-3 mx-2 mb-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
             "text-sidebar-foreground/60 hover:bg-red-500/15 hover:text-red-400",

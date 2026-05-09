@@ -21,6 +21,7 @@ import Suppliers from '@/pages/Suppliers';
 import ExpensesPage from '@/pages/ExpensesPage';
 import UsersPage from '@/pages/UsersPage';
 import LandingPage from '@/pages/LandingPage';
+import { base44 } from '@/api/base44Client';
 import CampaignsList from '@/pages/campaigns/CampaignsList';
 import CampaignDetail from '@/pages/campaigns/CampaignDetail';
 import ClientsPage from '@/pages/campaigns/ClientsPage';
@@ -46,8 +47,9 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Show landing page instead of auto-redirecting
-      return <LandingPage />;
+      // Redirect directly to login
+      base44.auth.redirectToLogin(window.location.origin + "/");
+      return null;
     }
   }
 
