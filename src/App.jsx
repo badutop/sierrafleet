@@ -47,9 +47,7 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect directly to login
-      base44.auth.redirectToLogin(window.location.origin + "/");
-      return null;
+      return <LandingPage />;
     }
   }
 
