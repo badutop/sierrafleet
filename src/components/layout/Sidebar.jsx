@@ -3,9 +3,10 @@ import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Truck, BookOpen, Fuel, Wrench, 
   Users, BarChart3, Settings, ChevronLeft, ChevronRight,
-  Package, Receipt, UserCog, Ship, Building2, Factory, Navigation, Zap
+  Package, Receipt, UserCog, Ship, Building2, Factory, Navigation, Zap, LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { base44 } from "@/api/base44Client";
 
 const navItems = [
   { path: "/",            label: "Tableau de bord",          icon: LayoutDashboard, module: "dashboard" },
@@ -71,6 +72,20 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
             );
           })}
         </nav>
+
+        {/* Déconnexion */}
+        <button
+          onClick={() => base44.auth.logout()}
+          className={cn(
+            "flex items-center gap-3 mx-2 mb-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+            "text-sidebar-foreground/60 hover:bg-red-500/15 hover:text-red-400",
+            collapsed && "justify-center"
+          )}
+          title="Se déconnecter"
+        >
+          <LogOut className="w-5 h-5 shrink-0" />
+          {!collapsed && <span>Déconnexion</span>}
+        </button>
 
         <button
           onClick={() => setCollapsed(!collapsed)}
