@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Fuel, TrendingUp, AlertTriangle, Truck, BarChart2, Plus, ShieldCheck } from "lucide-react";
+import { Fuel, TrendingUp, AlertTriangle, Truck, BarChart2, Plus, ShieldCheck, Zap } from "lucide-react";
+import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
 import { toast } from "sonner";
 import FuelSupplyDialog from "@/components/fuel/FuelSupplyDialog";
 import FuelSupplyTable from "@/components/fuel/FuelSupplyTable";
@@ -41,6 +42,7 @@ export default function FuelManagementV2() {
   const [editEntry, setEditEntry] = useState(null);
   const [activeTab, setActiveTab] = useState("approvisionnements");
   const [period, setPeriod] = useState("mois_courant");
+  const [autoRefuelOpen, setAutoRefuelOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Données
@@ -233,9 +235,14 @@ export default function FuelManagementV2() {
             {entries.length} approvisionnements · {consumptionData.length} véhicules suivis
           </p>
         </div>
-        <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleNew}>
-          <Plus className="w-4 h-4 mr-2" /> Nouvel approvisionnement
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" className="border-secondary text-secondary hover:bg-secondary/10" onClick={() => setAutoRefuelOpen(true)}>
+            <Zap className="w-4 h-4 mr-2" /> Rechargement Auto
+          </Button>
+          <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleNew}>
+            <Plus className="w-4 h-4 mr-2" /> Nouvel approvisionnement
+          </Button>
+        </div>
       </div>
 
       {/* Filtre période */}
@@ -382,6 +389,20 @@ export default function FuelManagementV2() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Auto Refuel Flow */}
+      {autoRefuelOpen && (
+        <AutoRefuelFlow
+          drivers={drivers}
+          vehicles={vehicles}
+          rotations={rotations}
+          onClose={() => {
+            setAutoRefuelOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["fuel"] });
+            queryClient.invalidateQueries({ queryKey: ["rotations"] });
+          }}
+        />
+      )}
 
       {/* Dialog */}
       <FuelSupplyDialog

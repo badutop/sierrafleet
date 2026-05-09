@@ -1,0 +1,197 @@
+import React, { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Camera, ArrowLeft, CheckCircle2, Loader2, MapPin } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
+import DocumentScanner from "@/components/drivers/DocumentScanner";
+
+export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone }) {
+  const [pumpPhoto, setPumpPhoto] = useState(null); // {file, previewUrl}
+  const [station, setStation] = useState("");
+  const [litres, setLitres] = useState("");
+  const [gps, setGps] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [sending, setSending] = useState(false);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    navigator.geolocation?.getCurrentPosition(
+      pos => setGps({ lat: pos.coords.latitude.toFixed(5), lng: pos.coords.longitude.toFixed(5) }),
+      () => {}
+    );
+  }, []);
+
+  const handleCapture = (file, previewUrl) => {
+    setPumpPhoto({ file, previewUrl });
+    setScanning(false);
+  };
+
+  const handleFileInput = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPumpPhoto({ file, previewUrl: URL.createObjectURL(file) });
+    e.target.value = "";
+  };
+
+  const handleConfirm = async () => {
+    if (!pumpPhoto || !litres || !station) {
+      toast.error("Complétez tous les champs");
+      return;
+    }
+    setSaving(true);
+
+    try {
+      // Upload photo pompe
+      const { file_url: pumpUrl } = await base44.integrations.Core.UploadFile({ file: pumpPhoto.file });
+
+      // Crée l'entrée FuelEntry
+      const fuelEntry = await base44.entities.FuelEntry.create({
+        vehicle_id: vehicle.id,
+        date: new Date().toISOString().split("T")[0],
+        station,
+        litres: Number(litres),
+        montant_total: 0,
+        statut: "valide",
+        recu_url: pumpUrl,
+      });
+
+      // Marque les bons comme utilisés
+      await Promise.all(
+        bons.filter(b => b.rotation?.id).map(b =>
+          base44.entities.Rotation.update(b.rotation.id, { bon_physique_recu: true })
+        )
+      );
+
+      // Envoie la notification WhatsApp (fire & forget)
+      sendWhatsAppConfirmation({ driver, vehicle, bons, station, litres, gps, fuelEntry });
+
+      const transaction = {
+        id: fuelEntry.id,
+        heure: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        date: new Date().toLocaleDateString("fr-FR"),
+        litres,
+        station,
+        gps,
+        bonsNums: bons.map(b => b.ocrNumber).join(", "),
+      };
+
+      onDone(transaction);
+    } catch (err) {
+      toast.error("Erreur lors de l'enregistrement : " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sendWhatsAppConfirmation = async ({ driver, vehicle, bons, station, litres, gps, fuelEntry }) => {
+    try {
+      // Récupère les paramètres WA
+      const [phoneSettings, apikeySettings] = await Promise.all([
+        base44.entities.AppSetting.filter({ key: "wa_alert_phone" }),
+        base44.entities.AppSetting.filter({ key: "wa_alert_apikey" }),
+      ]);
+      const phone = phoneSettings[0]?.value;
+      const apikey = apikeySettings[0]?.value;
+      if (!phone || !apikey) return;
+
+      const now = new Date();
+      const msg = encodeURIComponent(
+        `✅ *Rechargement Effectué*\n\n` +
+        `👤 Chauffeur : ${driver.prenom} ${driver.nom}\n` +
+        `🚛 Véhicule : ${vehicle.immatriculation}\n` +
+        `⛽ Litres : ${litres} L\n` +
+        `🏭 Station : ${station}\n` +
+        `📋 Bons : ${bons.map(b => b.ocrNumber).join(", ")}\n` +
+        `🕐 Heure : ${now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}\n` +
+        (gps ? `📍 GPS : ${gps.lat}, ${gps.lng}\n` : "") +
+        `🆔 Tx : ${fuelEntry.id?.slice(0, 8)}`
+      );
+
+      await fetch(`https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${msg}&apikey=${apikey}`);
+    } catch {}
+  };
+
+  return (
+    <div className="p-5 space-y-5">
+      <div>
+        <h2 className="font-bold text-base">Photo de la pompe</h2>
+        <p className="text-xs text-muted-foreground">Photographiez l'écran de la pompe après rechargement</p>
+      </div>
+
+      {scanning && (
+        <DocumentScanner onCapture={handleCapture} onClose={() => setScanning(false)} />
+      )}
+
+      {/* Photo pompe */}
+      {!pumpPhoto ? (
+        <div className="border-2 border-dashed border-muted-foreground/30 rounded-xl p-6 text-center space-y-3">
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+            <Camera className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground">Aucune photo de la pompe</p>
+          <div className="flex gap-2 justify-center">
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Camera className="w-4 h-4 mr-1" /> Galerie
+            </Button>
+            <Button size="sm" className="bg-primary" onClick={() => setScanning(true)}>
+              <Camera className="w-4 h-4 mr-1" /> Scanner
+            </Button>
+          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileInput} />
+        </div>
+      ) : (
+        <div className="relative rounded-xl overflow-hidden">
+          <img src={pumpPhoto.previewUrl} alt="Pompe" className="w-full h-48 object-cover" />
+          <button
+            className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 text-xs"
+            onClick={() => setPumpPhoto(null)}
+          >
+            ✕
+          </button>
+          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3 text-green-400" />
+            Photo capturée
+            {gps && <span className="ml-auto flex items-center gap-1 opacity-70"><MapPin className="w-3 h-3" />{gps.lat}, {gps.lng}</span>}
+          </div>
+        </div>
+      )}
+
+      {/* Champs */}
+      <div className="space-y-3">
+        <div>
+          <Label className="text-xs font-semibold">Station / Lieu</Label>
+          <Input className="mt-1" placeholder="Ex: Station Total Dakar" value={station} onChange={e => setStation(e.target.value)} />
+        </div>
+        <div>
+          <Label className="text-xs font-semibold">Litres servis</Label>
+          <Input className="mt-1 w-32" type="number" placeholder="Ex: 150" value={litres} onChange={e => setLitres(e.target.value)} min={1} />
+        </div>
+      </div>
+
+      {/* GPS */}
+      {gps && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+          <MapPin className="w-3.5 h-3.5 text-green-600" />
+          Position GPS capturée : {gps.lat}, {gps.lng}
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <Button variant="outline" className="flex-1" onClick={onBack} disabled={saving}>
+          <ArrowLeft className="w-4 h-4 mr-2" /> Retour
+        </Button>
+        <Button
+          className="flex-2 bg-green-600 hover:bg-green-700 text-white font-bold px-6"
+          disabled={!pumpPhoto || !litres || !station || saving}
+          onClick={handleConfirm}
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+          Confirmer le rechargement
+        </Button>
+      </div>
+    </div>
+  );
+}
