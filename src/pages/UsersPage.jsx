@@ -95,20 +95,25 @@ export default function UsersPage() {
   const handleInvite = async () => {
     if (!inviteEmail) return;
     setInviting(true);
-    // Envoyer l'invitation
-    await base44.users.inviteUser(inviteEmail, inviteRole === "admin" ? "admin" : "user");
-    // Sauvegarder la config en attente (appliquée au premier login de l'utilisateur)
-    const pendingData = { email: inviteEmail.toLowerCase(), role: inviteRole, modules: inviteModules, applied: false };
-    if (inviteRole === "chauffeur" && inviteDriverId) pendingData.driver_id = inviteDriverId;
-    await base44.entities.PendingUserConfig.create(pendingData);
-    toast.success(`Invitation envoyée à ${inviteEmail}`);
-    setInviteEmail("");
-    setInviteRole("collecteur_bons");
-    setInviteModules(DEFAULT_MODULES);
-    setInviteDriverId("");
-    setInviteOpen(false);
-    setInviting(false);
-    queryClient.invalidateQueries({ queryKey: ["users"] });
+    try {
+      await base44.functions.invoke("inviteUser", {
+        email: inviteEmail,
+        role: inviteRole,
+        modules: inviteModules,
+        driver_id: inviteDriverId || null,
+      });
+      toast.success(`Invitation envoyée à ${inviteEmail}`);
+      setInviteEmail("");
+      setInviteRole("collecteur_bons");
+      setInviteModules(DEFAULT_MODULES);
+      setInviteDriverId("");
+      setInviteOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    } catch (err) {
+      toast.error(`Erreur : ${err.message}`);
+    } finally {
+      setInviting(false);
+    }
   };
 
   const handleDelete = (u) => {
