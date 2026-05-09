@@ -6,6 +6,10 @@ import { Camera, RefreshCw, CheckCircle2, ArrowRight } from "lucide-react";
 import BonSlot from "./BonSlot";
 
 const REQUIRED_BONS = 3;
+const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la capture des photos
+
+// Image placeholder utilisée en mode démo
+const DEMO_PREVIEW = "https://placehold.co/320x200/e2e8f0/64748b?text=BON+DEMO";
 
 export default function BonCaptureStep({ drivers, vehicles, rotations, onDone }) {
   const [driverId, setDriverId] = useState("");
@@ -15,7 +19,7 @@ export default function BonCaptureStep({ drivers, vehicles, rotations, onDone })
 
   const driver = drivers.find(d => d.id === driverId);
   const vehicle = vehicles.find(v => v.id === vehicleId);
-  const allCaptured = bons.every(b => b !== null);
+  const allCaptured = DEMO_MODE || bons.every(b => b !== null);
   const canProceed = driverId && vehicleId && allCaptured;
 
   const handleCapture = (slotIdx, file, previewUrl) => {
@@ -36,8 +40,14 @@ export default function BonCaptureStep({ drivers, vehicles, rotations, onDone })
   };
 
   const handleNext = () => {
+    const demoBons = Array(REQUIRED_BONS).fill(null).map((_, i) => ({
+      file: null,
+      previewUrl: DEMO_PREVIEW,
+      slotIndex: i,
+      ocrNumber: null,
+    }));
     onDone({
-      bons: bons.map((b, i) => ({ ...b, slotIndex: i, ocrNumber: null })),
+      bons: DEMO_MODE ? demoBons : bons.map((b, i) => ({ ...b, slotIndex: i, ocrNumber: null })),
       driver,
       vehicle,
     });
@@ -88,6 +98,12 @@ export default function BonCaptureStep({ drivers, vehicles, rotations, onDone })
           Chaque bon doit être lisible et non utilisé
         </p>
       </div>
+
+      {DEMO_MODE && (
+        <div className="bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 text-xs text-amber-800 font-semibold flex items-center gap-1.5">
+          ⚡ MODE DÉMO — Photos non requises, choisissez juste chauffeur + véhicule
+        </div>
+      )}
 
       {/* Slots bons */}
       <div className="space-y-3">
