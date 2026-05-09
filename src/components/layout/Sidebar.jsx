@@ -8,25 +8,30 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { path: "/", label: "Tableau de bord", icon: LayoutDashboard },
-  { path: "/drivers", label: "Chauffeurs", icon: Users },
-  { path: "/vehicles", label: "Parc Véhicules", icon: Truck },
-  { path: "/clients", label: "Clients", icon: Building2 },
-  { path: "/suppliers", label: "Fournisseurs", icon: Factory },
-  { path: "/spare-parts", label: "Pièces Détachées", icon: Package },
-  { path: "/expenses", label: "Frais", icon: Receipt },
-  { path: "/campaigns", label: "Campagnes", icon: Ship },
-  { path: "/gps", label: "GPS Tracking", icon: Navigation },
-  { path: "/fuel", label: "Carburant", icon: Fuel },
-  { path: "/maintenance", label: "Maintenance & Réparations", icon: Wrench },
-  { path: "/journal", label: "Journal des Dépenses", icon: BookOpen },
-  { path: "/reports", label: "Rapports", icon: BarChart3 },
-  { path: "/users", label: "Utilisateurs", icon: UserCog },
-  { path: "/settings", label: "Paramètres", icon: Settings },
+  { path: "/",            label: "Tableau de bord",          icon: LayoutDashboard, module: "dashboard" },
+  { path: "/campaigns",   label: "Campagnes",                icon: Ship,            module: "campaigns" },
+  { path: "/drivers",     label: "Chauffeurs",               icon: Users,           module: "drivers" },
+  { path: "/vehicles",    label: "Parc Véhicules",           icon: Truck,           module: "vehicles" },
+  { path: "/clients",     label: "Clients",                  icon: Building2,       module: "campaigns" },
+  { path: "/fuel",        label: "Carburant",                icon: Fuel,            module: "fuel" },
+  { path: "/maintenance", label: "Maintenance & Réparations",icon: Wrench,          module: "maintenance" },
+  { path: "/expenses",    label: "Frais",                    icon: Receipt,         module: "expenses" },
+  { path: "/spare-parts", label: "Pièces Détachées",         icon: Package,         module: "spare-parts" },
+  { path: "/suppliers",   label: "Fournisseurs",             icon: Factory,         module: "suppliers" },
+  { path: "/journal",     label: "Journal des Dépenses",     icon: BookOpen,        module: "journal" },
+  { path: "/reports",     label: "Rapports",                 icon: BarChart3,       module: "reports" },
+  { path: "/gps",         label: "GPS Tracking",             icon: Navigation,      module: "gps" },
+  { path: "/users",       label: "Utilisateurs",             icon: UserCog,         module: "users" },
+  { path: "/settings",    label: "Paramètres",               icon: Settings,        module: "settings" },
 ];
 
-export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
+export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, currentUser }) {
   const location = useLocation();
+
+  // Admin = accès total. Sinon on filtre sur les modules autorisés.
+  const visibleItems = !currentUser || currentUser.role === "admin" || !currentUser.modules?.length
+    ? navItems
+    : navItems.filter(item => currentUser.modules.includes(item.module));
 
   return (
     <>
@@ -52,7 +57,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
         </div>
 
         <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
-          {navItems.map(item => {
+          {visibleItems.map(item => {
             const active = location.pathname === item.path || (item.path !== "/" && location.pathname.startsWith(item.path + "/"));
             return (
               <Link key={item.path} to={item.path} onClick={() => setMobileOpen(false)}

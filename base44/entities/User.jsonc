@@ -12,6 +12,14 @@
         "executeur_depenses"
       ],
       "default": "collecteur_bons"
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Liste des modules autoris\u00e9s pour cet utilisateur"
     }
-  }
+  },
+  "required": []
 }

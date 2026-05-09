@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { UserCog, Mail, Pencil, Trash2, ShieldCheck, UserPlus } from "lucide-react";
+import { UserCog, Mail, Pencil, Trash2, UserPlus, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import ModuleSelector, { ALL_MODULES } from "@/components/users/ModuleSelector";
 
 const roleLabels = {
   admin: "Administrateur",
@@ -28,14 +29,21 @@ const roleColors = {
   executeur_depenses: "bg-amber-500/10 text-amber-600",
 };
 
+const DEFAULT_MODULES = ALL_MODULES.map(m => m.key);
+
 export default function UsersPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("collecteur_bons");
-  const [editRole, setEditRole] = useState("collecteur_bons");
+  const [inviteModules, setInviteModules] = useState(DEFAULT_MODULES);
   const [inviting, setInviting] = useState(false);
+
+  const [editRole, setEditRole] = useState("collecteur_bons");
+  const [editModules, setEditModules] = useState(DEFAULT_MODULES);
+
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
@@ -45,7 +53,11 @@ export default function UsersPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["users"] }); setEditOpen(false); toast.success("Rôle mis à jour"); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setEditOpen(false);
+      toast.success("Utilisateur mis à jour");
+    },
   });
 
   const deleteMutation = useMutation({
@@ -53,17 +65,21 @@ export default function UsersPage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["users"] }); toast.success("Utilisateur supprimé"); },
   });
 
-  const openEdit = (u) => { setEditingUser(u); setEditRole(u.role || "collecteur_bons"); setEditOpen(true); };
+  const openEdit = (u) => {
+    setEditingUser(u);
+    setEditRole(u.role || "collecteur_bons");
+    setEditModules(u.modules?.length ? u.modules : DEFAULT_MODULES);
+    setEditOpen(true);
+  };
 
   const handleInvite = async () => {
     if (!inviteEmail) return;
     setInviting(true);
-    const isAdmin = inviteRole === "admin";
-    await base44.users.inviteUser(inviteEmail, isAdmin ? "admin" : "user");
-    // After invite, if not admin role, update the role
+    await base44.users.inviteUser(inviteEmail, inviteRole === "admin" ? "admin" : "user");
     toast.success(`Invitation envoyée à ${inviteEmail}`);
     setInviteEmail("");
     setInviteRole("collecteur_bons");
+    setInviteModules(DEFAULT_MODULES);
     setInviteOpen(false);
     setInviting(false);
     queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -71,6 +87,13 @@ export default function UsersPage() {
 
   const handleDelete = (u) => {
     if (confirm(`Supprimer l'utilisateur ${u.full_name || u.email} ?`)) deleteMutation.mutate(u.id);
+  };
+
+  const handleSaveEdit = () => {
+    updateMutation.mutate({
+      id: editingUser.id,
+      data: { role: editRole, modules: editModules },
+    });
   };
 
   return (
@@ -93,45 +116,52 @@ export default function UsersPage() {
             <UserCog className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>Aucun utilisateur trouvé</p>
           </div>
-        ) : users.map(u => (
-          <Card key={u.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center">
-                    <UserCog className="w-5 h-5 text-primary" />
+        ) : users.map(u => {
+          const moduleCount = u.role === "admin" ? ALL_MODULES.length : (u.modules?.length ?? ALL_MODULES.length);
+          return (
+            <Card key={u.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center">
+                      <UserCog className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">{u.full_name || "—"}</CardTitle>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" />{u.email}</p>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-base">{u.full_name || "—"}</CardTitle>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" />{u.email}</p>
-                  </div>
+                  <Badge className={cn("text-[10px]", roleColors[u.role] || "bg-muted text-muted-foreground")}>
+                    {roleLabels[u.role] || u.role || "—"}
+                  </Badge>
                 </div>
-                <Badge className={cn("text-[10px]", roleColors[u.role] || "bg-muted text-muted-foreground")}>
-                  {roleLabels[u.role] || u.role || "—"}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="text-xs">
-              <div className="flex justify-between text-muted-foreground mb-3">
-                <span>Créé le</span>
-                <span>{u.created_date ? new Date(u.created_date).toLocaleDateString("fr-FR") : "—"}</span>
-              </div>
-              <div className="flex gap-2 pt-2 border-t border-border">
-                <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => openEdit(u)}>
-                  <Pencil className="w-3 h-3 mr-1" /> Modifier rôle
-                </Button>
-                <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(u)} disabled={deleteMutation.isPending}>
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardHeader>
+              <CardContent className="text-xs">
+                <div className="flex justify-between text-muted-foreground mb-2">
+                  <span>Créé le</span>
+                  <span>{u.created_date ? new Date(u.created_date).toLocaleDateString("fr-FR") : "—"}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-muted-foreground mb-3">
+                  <LayoutGrid className="w-3 h-3" />
+                  <span>{u.role === "admin" ? "Accès complet" : `${moduleCount} module${moduleCount > 1 ? "s" : ""} autorisé${moduleCount > 1 ? "s" : ""}`}</span>
+                </div>
+                <div className="flex gap-2 pt-2 border-t border-border">
+                  <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => openEdit(u)}>
+                    <Pencil className="w-3 h-3 mr-1" /> Modifier
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(u)} disabled={deleteMutation.isPending}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Invite Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Inviter un utilisateur</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
             <div>
@@ -145,6 +175,14 @@ export default function UsersPage() {
                 <SelectContent>{Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {inviteRole !== "admin" && (
+              <div>
+                <Label className="text-xs mb-2 block">Modules autorisés</Label>
+                <div className="border border-border rounded-lg p-3 bg-muted/30">
+                  <ModuleSelector selected={inviteModules} onChange={setInviteModules} />
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex gap-2 mt-4">
             <Button variant="outline" className="flex-1" onClick={() => setInviteOpen(false)}>Annuler</Button>
@@ -155,23 +193,31 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Role Dialog */}
+      {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Modifier le rôle</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Modifier l'accès</DialogTitle></DialogHeader>
           {editingUser && (
             <div className="space-y-4 mt-2">
               <p className="text-sm text-muted-foreground">{editingUser.full_name} — {editingUser.email}</p>
               <div>
-                <Label className="text-xs">Nouveau rôle</Label>
+                <Label className="text-xs">Rôle</Label>
                 <Select value={editRole} onValueChange={setEditRole}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              {editRole !== "admin" && (
+                <div>
+                  <Label className="text-xs mb-2 block">Modules autorisés</Label>
+                  <div className="border border-border rounded-lg p-3 bg-muted/30">
+                    <ModuleSelector selected={editModules} onChange={setEditModules} />
+                  </div>
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setEditOpen(false)}>Annuler</Button>
-                <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={() => updateMutation.mutate({ id: editingUser.id, data: { role: editRole } })} disabled={updateMutation.isPending}>
+                <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSaveEdit} disabled={updateMutation.isPending}>
                   {updateMutation.isPending ? "Enregistrement..." : "Enregistrer"}
                 </Button>
               </div>
