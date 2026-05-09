@@ -7,6 +7,9 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 
+const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la photo de pompe
+const DEMO_PUMP_URL = "https://placehold.co/640x480/e2e8f0/64748b?text=POMPE+DEMO";
+
 export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone }) {
   const [pumpPhoto, setPumpPhoto] = useState(null); // {file, previewUrl}
   const [station, setStation] = useState("");
@@ -37,21 +40,28 @@ export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone })
   };
 
   const handleConfirm = async () => {
-    if (!pumpPhoto || !litres || !station) {
+    if ((!pumpPhoto && !DEMO_MODE) || !litres || !station) {
       toast.error("Complétez tous les champs");
       return;
     }
     setSaving(true);
 
     try {
-      // Upload photo pompe
-      const { file_url: pumpUrl } = await base44.integrations.Core.UploadFile({ file: pumpPhoto.file });
+      // Upload photo pompe (ou URL démo)
+      let pumpUrl = DEMO_PUMP_URL;
+      if (!DEMO_MODE && pumpPhoto) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: pumpPhoto.file });
+        pumpUrl = file_url;
+      } else if (pumpPhoto) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: pumpPhoto.file });
+        pumpUrl = file_url;
+      }
 
-      // Crée l'entrée FuelEntry
+      // Crée l'entrée FuelEntry (préfixe "Refuel auto — " pour identification)
       const fuelEntry = await base44.entities.FuelEntry.create({
         vehicle_id: vehicle.id,
         date: new Date().toISOString().split("T")[0],
-        station,
+        station: `Refuel auto — ${station}`,
         litres: Number(litres),
         montant_total: 0,
         statut: "valide",
@@ -121,6 +131,12 @@ export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone })
         <p className="text-xs text-muted-foreground">Photographiez l'écran de la pompe après rechargement</p>
       </div>
 
+      {DEMO_MODE && (
+        <div className="bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 text-xs text-amber-800 font-semibold flex items-center gap-1.5">
+          ⚡ MODE DÉMO — Photo non requise
+        </div>
+      )}
+
       {scanning && (
         <DocumentScanner onCapture={handleCapture} onClose={() => setScanning(false)} />
       )}
@@ -185,7 +201,7 @@ export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone })
         </Button>
         <Button
           className="flex-2 bg-green-600 hover:bg-green-700 text-white font-bold px-6"
-          disabled={!pumpPhoto || !litres || !station || saving}
+          disabled={(!pumpPhoto && !DEMO_MODE) || !litres || !station || saving}
           onClick={handleConfirm}
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
