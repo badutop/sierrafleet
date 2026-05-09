@@ -15,7 +15,9 @@ const features = [
 
 export default function LandingPage() {
   const handleLogin = () => {
-    base44.auth.redirectToLogin(window.location.origin + "/");
+    const appId = import.meta.env.VITE_BASE44_APP_ID;
+    const nextUrl = window.location.origin + "/";
+    window.location.href = `https://base44.com/login?app_id=${appId}&next=${encodeURIComponent(nextUrl)}`;
   };
 
   return (
