@@ -2,9 +2,13 @@ import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, X, RotateCcw } from "lucide-react";
 
+const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
+
 export default function DocumentScanner({ onCapture, onClose }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const guideRef = useRef(null);
+  const containerRef = useRef(null);
   const streamRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [captured, setCaptured] = useState(null);
@@ -32,27 +36,53 @@ export default function DocumentScanner({ onCapture, onClose }) {
   const takePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    const guide = guideRef.current;
+    const container = containerRef.current;
+    if (!video || !canvas || !guide || !container) return;
 
+    // Dimensions réelles du video stream
     const vw = video.videoWidth;
     const vh = video.videoHeight;
 
-    // Le gabarit occupe 85% de la largeur, ratio carte d'identité 1.585:1
-    const guideW = vw * 0.85;
-    const guideH = guideW / 1.585;
-    const guideX = (vw - guideW) / 2;
-    const guideY = (vh - guideH) / 2;
+    // Dimensions affichées dans le DOM
+    const containerRect = container.getBoundingClientRect();
+    const guideRect = guide.getBoundingClientRect();
 
-    canvas.width = guideW;
-    canvas.height = guideH;
-    canvas.getContext("2d").drawImage(video, guideX, guideY, guideW, guideH, 0, 0, guideW, guideH);
+    // Ratio entre pixels vidéo et pixels CSS (object-cover)
+    // La vidéo est en object-cover dans le container
+    const displayW = containerRect.width;
+    const displayH = containerRect.height;
+
+    // Facteur de mise à l'échelle object-cover
+    const scaleX = vw / displayW;
+    const scaleY = vh / displayH;
+    // object-cover garde le ratio en coupant, on prend le plus grand facteur
+    const scale = Math.max(scaleX, scaleY);
+
+    // Offset de la vidéo centrée en object-cover
+    const renderedW = vw / scale;
+    const renderedH = vh / scale;
+    const offsetX = (displayW - renderedW) / 2;
+    const offsetY = (displayH - renderedH) / 2;
+
+    // Position du cadre guide dans les coordonnées vidéo
+    const gLeft = (guideRect.left - containerRect.left - offsetX) * scale;
+    const gTop = (guideRect.top - containerRect.top - offsetY) * scale;
+    const gW = guideRect.width * scale;
+    const gH = guideRect.height * scale;
+
+    // Dessine uniquement la zone du document
+    canvas.width = Math.round(gW);
+    canvas.height = Math.round(gH);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, Math.round(gLeft), Math.round(gTop), Math.round(gW), Math.round(gH), 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob((blob) => {
       const file = new File([blob], "document.jpg", { type: "image/jpeg" });
       const previewUrl = URL.createObjectURL(blob);
       setCaptured({ file, previewUrl });
       stopCamera();
-    }, "image/jpeg", 0.93);
+    }, "image/jpeg", 0.95);
   };
 
   const retake = () => {
@@ -77,35 +107,37 @@ export default function DocumentScanner({ onCapture, onClose }) {
       </div>
 
       {/* Viewfinder */}
-      <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+      <div ref={containerRef} className="flex-1 relative flex items-center justify-center overflow-hidden">
         {!captured ? (
           <>
             <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
-            {/* Overlay sombre avec découpe */}
+
             {ready && (
               <div className="absolute inset-0 pointer-events-none">
-                {/* Fond sombre */}
-                <div className="absolute inset-0 bg-black/50" style={{ maskImage: "none" }} />
-                {/* Cadre de guidage centré */}
+                {/* Cadre de guidage — occupe 85% de la largeur */}
                 <div
+                  ref={guideRef}
                   className="absolute"
                   style={{
-                    left: "7.5%", right: "7.5%",
-                    top: "50%", transform: "translateY(-50%)",
-                    aspectRatio: "1.585 / 1",
-                    boxShadow: "0 0 0 9999px rgba(0,0,0,0.55)",
+                    left: "7.5%",
+                    right: "7.5%",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    aspectRatio: `${GUIDE_RATIO} / 1`,
+                    boxShadow: "0 0 0 9999px rgba(0,0,0,0.60)",
                     border: "2px solid rgba(255,255,255,0.85)",
                     borderRadius: "8px",
                     zIndex: 10,
                   }}
                 >
                   {/* Coins de guidage */}
-                  {[["top-0 left-0","border-t-2 border-l-2 rounded-tl"],
-                    ["top-0 right-0","border-t-2 border-r-2 rounded-tr"],
-                    ["bottom-0 left-0","border-b-2 border-l-2 rounded-bl"],
-                    ["bottom-0 right-0","border-b-2 border-r-2 rounded-br"]
+                  {[
+                    ["top-0 left-0", "border-t-2 border-l-2 rounded-tl"],
+                    ["top-0 right-0", "border-t-2 border-r-2 rounded-tr"],
+                    ["bottom-0 left-0", "border-b-2 border-l-2 rounded-bl"],
+                    ["bottom-0 right-0", "border-b-2 border-r-2 rounded-br"],
                   ].map(([pos, cls], i) => (
-                    <div key={i} className={`absolute ${pos} w-6 h-6 border-secondary ${cls}`} />
+                    <div key={i} className={`absolute ${pos} w-7 h-7 border-secondary ${cls}`} />
                   ))}
                   <p className="absolute bottom-2 left-0 right-0 text-center text-white/80 text-xs">
                     Alignez le document dans le cadre
@@ -115,7 +147,13 @@ export default function DocumentScanner({ onCapture, onClose }) {
             )}
           </>
         ) : (
-          <img src={captured.previewUrl} alt="Capture" className="max-h-full max-w-full object-contain" />
+          /* Prévisualisation : uniquement le document recadré */
+          <img
+            src={captured.previewUrl}
+            alt="Document capturé"
+            className="max-h-full max-w-full object-contain rounded"
+            style={{ background: "#000" }}
+          />
         )}
         <canvas ref={canvasRef} className="hidden" />
       </div>
