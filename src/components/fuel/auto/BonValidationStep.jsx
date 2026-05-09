@@ -65,11 +65,18 @@ Si illisible, retourne exactement: ILLISIBLE`,
   return null;
 }
 
+const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse OCR et validation des numéros
+
 export default function BonValidationStep({ bons: initialBons, driver, vehicle, rotations, onBack, onValidated }) {
   const [bons, setBons] = useState(
-    initialBons.map(b => ({ ...b, ocrNumber: null, validStatus: "loading", validReason: null }))
+    initialBons.map((b, i) => DEMO_MODE
+      ? { ...b, ocrNumber: `DEMO-BON-${i + 1}`, validStatus: "valid", validReason: null, rotation: rotations.find(r => r.driver_id === driver?.id) || null }
+      : { ...b, ocrNumber: null, validStatus: "loading", validReason: null }
+    )
   );
-  const [ocrResults, setOcrResults] = useState(Array(initialBons.length).fill(null));
+  const [ocrResults, setOcrResults] = useState(
+    DEMO_MODE ? initialBons.map((_, i) => `DEMO-BON-${i + 1}`) : Array(initialBons.length).fill(null)
+  );
   const [litres, setLitres] = useState(150);
 
   // Quand tous les OCR arrivent, on valide
@@ -123,14 +130,19 @@ export default function BonValidationStep({ bons: initialBons, driver, vehicle, 
 
   return (
     <div className="p-5 space-y-5">
-      {/* Runners OCR invisibles */}
-      {initialBons.map((bon, i) => (
+      {/* Runners OCR invisibles (désactivés en mode démo) */}
+      {!DEMO_MODE && initialBons.map((bon, i) => (
         <OcrRunner key={i} bon={bon} index={i} onResult={handleOcrResult} />
       ))}
 
       <div>
         <h2 className="font-bold text-base">Validation des bons</h2>
         <p className="text-xs text-muted-foreground">Extraction OCR et vérification automatique</p>
+        {DEMO_MODE && (
+          <div className="mt-2 bg-amber-100 border border-amber-300 rounded-lg px-3 py-1.5 text-xs text-amber-800 font-semibold flex items-center gap-1.5">
+            ⚡ MODE DÉMO — Numéros et validation bypasses
+          </div>
+        )}
       </div>
 
       {/* Chauffeur / Véhicule */}
