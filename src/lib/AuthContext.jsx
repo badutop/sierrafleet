@@ -92,16 +92,19 @@ export const AuthProvider = ({ children }) => {
 
   const applyPendingConfig = async (currentUser) => {
     try {
-      const pending = await base44.entities.PendingUserConfig.filter({ email: currentUser.email.toLowerCase(), applied: false });
-      if (pending && pending.length > 0) {
-        const config = pending[0];
+      // Fetch all non-applied pending configs and compare email case-insensitively
+      const allPending = await base44.entities.PendingUserConfig.filter({ applied: false });
+      const userEmail = currentUser.email.toLowerCase();
+      const config = allPending?.find(p => p.email?.toLowerCase() === userEmail);
+      if (config) {
         const updateData = { role: config.role, modules: config.modules };
         if (config.driver_id) updateData.driver_id = config.driver_id;
         await base44.auth.updateMe(updateData);
         await base44.entities.PendingUserConfig.update(config.id, { applied: true });
+        console.log(`Applied pending config for ${userEmail}: role=${config.role}`);
       }
     } catch (e) {
-      // Silently ignore - not critical
+      console.error('applyPendingConfig error:', e);
     }
   };
 

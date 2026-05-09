@@ -1,6 +1,5 @@
 import React from "react";
 import { base44 } from "@/api/base44Client";
-import { appParams } from "@/lib/app-params";
 import { Truck, Shield, BarChart2, Clock, ArrowRight, Package, Users } from "lucide-react";
 
 const TRUCK_BG = "https://media.base44.com/images/public/69f9299ed58f49c27c655c94/798922e26_generated_image.png";
@@ -16,10 +15,7 @@ const features = [
 
 export default function LandingPage() {
   const handleLogin = () => {
-    const appBaseUrl = appParams.appBaseUrl || "https://app.base44.com";
-    const appId = appParams.appId || import.meta.env.VITE_BASE44_APP_ID;
-    const nextUrl = window.location.origin + "/";
-    window.location.href = `${appBaseUrl}/apps/${appId}/login?next=${encodeURIComponent(nextUrl)}`;
+    base44.auth.redirectToLogin(window.location.origin + "/");
   };
 
   return (
