@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { UserCog, Mail, Pencil, Trash2, UserPlus, LayoutGrid } from "lucide-react";
+import { UserCog, Mail, Pencil, Trash2, UserPlus, LayoutGrid, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ModuleSelector, { ALL_MODULES } from "@/components/users/ModuleSelector";
@@ -19,6 +19,7 @@ const roleLabels = {
   responsable_operations: "Resp. Opérations",
   collecteur_bons: "Collecteur de bons",
   executeur_depenses: "Exécuteur Dépenses",
+  chauffeur: "Chauffeur",
 };
 
 const roleColors = {
@@ -27,6 +28,7 @@ const roleColors = {
   responsable_operations: "bg-purple-500/10 text-purple-600",
   collecteur_bons: "bg-green-500/10 text-green-600",
   executeur_depenses: "bg-amber-500/10 text-amber-600",
+  chauffeur: "bg-secondary/10 text-secondary",
 };
 
 const DEFAULT_MODULES = ALL_MODULES.map(m => m.key);
@@ -39,16 +41,28 @@ export default function UsersPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("collecteur_bons");
   const [inviteModules, setInviteModules] = useState(DEFAULT_MODULES);
+  const [inviteDriverId, setInviteDriverId] = useState("");
   const [inviting, setInviting] = useState(false);
 
   const [editRole, setEditRole] = useState("collecteur_bons");
   const [editModules, setEditModules] = useState(DEFAULT_MODULES);
+  const [editDriverId, setEditDriverId] = useState("");
 
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: () => base44.entities.User.list(),
+  });
+
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: () => base44.entities.Driver.list(),
+  });
+
+  const { data: allVehiclesForDisplay = [] } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: () => base44.entities.Vehicle.list(),
   });
 
   const updateMutation = useMutation({
@@ -69,6 +83,7 @@ export default function UsersPage() {
     setEditingUser(u);
     setEditRole(u.role || "collecteur_bons");
     setEditModules(u.modules?.length ? u.modules : DEFAULT_MODULES);
+    setEditDriverId(u.driver_id || "");
     setEditOpen(true);
   };
 
@@ -80,6 +95,7 @@ export default function UsersPage() {
     setInviteEmail("");
     setInviteRole("collecteur_bons");
     setInviteModules(DEFAULT_MODULES);
+    setInviteDriverId("");
     setInviteOpen(false);
     setInviting(false);
     queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -90,10 +106,9 @@ export default function UsersPage() {
   };
 
   const handleSaveEdit = () => {
-    updateMutation.mutate({
-      id: editingUser.id,
-      data: { role: editRole, modules: editModules },
-    });
+    const data = { role: editRole, modules: editModules };
+    if (editRole === "chauffeur" && editDriverId) data.driver_id = editDriverId;
+    updateMutation.mutate({ id: editingUser.id, data });
   };
 
   return (
@@ -141,10 +156,20 @@ export default function UsersPage() {
                   <span>Créé le</span>
                   <span>{u.created_date ? new Date(u.created_date).toLocaleDateString("fr-FR") : "—"}</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground mb-3">
+                <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
                   <LayoutGrid className="w-3 h-3" />
-                  <span>{u.role === "admin" ? "Accès complet" : `${moduleCount} module${moduleCount > 1 ? "s" : ""} autorisé${moduleCount > 1 ? "s" : ""}`}</span>
+                  <span>{u.role === "admin" ? "Accès complet" : u.role === "chauffeur" ? "Rechargement Auto uniquement" : `${moduleCount} module${moduleCount > 1 ? "s" : ""} autorisé${moduleCount > 1 ? "s" : ""}`}</span>
                 </div>
+                {u.role === "chauffeur" && u.driver_id && (() => {
+                  const d = drivers.find(x => x.id === u.driver_id);
+                  const v = d ? allVehiclesForDisplay?.find(v => v.driver_id === d.id) : null;
+                  return d ? (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                      <Truck className="w-3 h-3" />
+                      <span>{d.prenom} {d.nom}{v ? ` — ${v.immatriculation}` : ""}</span>
+                    </div>
+                  ) : null;
+                })()}
                 <div className="flex gap-2 pt-2 border-t border-border">
                   <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => openEdit(u)}>
                     <Pencil className="w-3 h-3 mr-1" /> Modifier
@@ -175,7 +200,20 @@ export default function UsersPage() {
                 <SelectContent>{Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            {inviteRole !== "admin" && (
+            {inviteRole === "chauffeur" ? (
+              <div>
+                <Label className="text-xs">Chauffeur associé</Label>
+                <Select value={inviteDriverId} onValueChange={setInviteDriverId}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner un chauffeur..." /></SelectTrigger>
+                  <SelectContent>
+                    {drivers.filter(d => d.statut !== "inactif").map(d => (
+                      <SelectItem key={d.id} value={d.id}>{d.prenom} {d.nom}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">Le chauffeur et son véhicule seront affichés automatiquement.</p>
+              </div>
+            ) : inviteRole !== "admin" && (
               <div>
                 <Label className="text-xs mb-2 block">Modules autorisés</Label>
                 <div className="border border-border rounded-lg p-3 bg-muted/30">
@@ -207,7 +245,20 @@ export default function UsersPage() {
                   <SelectContent>{Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              {editRole !== "admin" && (
+              {editRole === "chauffeur" ? (
+                <div>
+                  <Label className="text-xs">Chauffeur associé</Label>
+                  <Select value={editDriverId} onValueChange={setEditDriverId}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner un chauffeur..." /></SelectTrigger>
+                    <SelectContent>
+                      {drivers.filter(d => d.statut !== "inactif").map(d => (
+                        <SelectItem key={d.id} value={d.id}>{d.prenom} {d.nom}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">Le chauffeur et son véhicule seront affichés automatiquement.</p>
+                </div>
+              ) : editRole !== "admin" && (
                 <div>
                   <Label className="text-xs mb-2 block">Modules autorisés</Label>
                   <div className="border border-border rounded-lg p-3 bg-muted/30">

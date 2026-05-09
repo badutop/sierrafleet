@@ -27,6 +27,7 @@ import ClientsPage from '@/pages/campaigns/ClientsPage';
 import RotationsCalendar from '@/pages/campaigns/RotationsCalendar';
 import MigrationPage from '@/pages/MigrationPage';
 import GpsTracking from '@/pages/GpsTracking';
+import DriverRefuelPage from '@/pages/DriverRefuelPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -74,6 +75,7 @@ const AuthenticatedApp = () => {
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/migration" element={<MigrationPage />} />
         <Route path="/gps" element={<GpsTracking />} />
+        <Route path="/refuel" element={<DriverRefuelPage />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

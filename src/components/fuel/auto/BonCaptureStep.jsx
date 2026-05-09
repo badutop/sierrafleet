@@ -11,16 +11,17 @@ const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la capture des photos
 // Image placeholder utilisée en mode démo
 const DEMO_PREVIEW = "https://placehold.co/320x200/e2e8f0/64748b?text=BON+DEMO";
 
-export default function BonCaptureStep({ drivers, vehicles, rotations, onDone }) {
-  const [driverId, setDriverId] = useState("");
-  const [vehicleId, setVehicleId] = useState("");
+export default function BonCaptureStep({ drivers, vehicles, rotations, onDone, preselectedDriver = null, preselectedVehicle = null }) {
+  const isDriverMode = !!(preselectedDriver && preselectedVehicle);
+  const [driverId, setDriverId] = useState(preselectedDriver?.id || "");
+  const [vehicleId, setVehicleId] = useState(preselectedVehicle?.id || "");
   const [bons, setBons] = useState(Array(REQUIRED_BONS).fill(null)); // null | {file, previewUrl}
   const [activatingSlot, setActivatingSlot] = useState(null);
 
-  const driver = drivers.find(d => d.id === driverId);
-  const vehicle = vehicles.find(v => v.id === vehicleId);
+  const driver = preselectedDriver || drivers.find(d => d.id === driverId);
+  const vehicle = preselectedVehicle || vehicles.find(v => v.id === vehicleId);
   const allCaptured = DEMO_MODE || bons.every(b => b !== null);
-  const canProceed = driverId && vehicleId && allCaptured;
+  const canProceed = (isDriverMode || (driverId && vehicleId)) && allCaptured;
 
   const handleCapture = (slotIdx, file, previewUrl) => {
     setBons(prev => {
@@ -55,39 +56,52 @@ export default function BonCaptureStep({ drivers, vehicles, rotations, onDone })
 
   return (
     <div className="p-5 space-y-5">
-      {/* Sélection chauffeur / véhicule */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs font-semibold mb-1 block">Chauffeur</Label>
-          <Select value={driverId} onValueChange={setDriverId}>
-            <SelectTrigger className="h-10 text-sm">
-              <SelectValue placeholder="Choisir..." />
-            </SelectTrigger>
-            <SelectContent>
-              {drivers.filter(d => d.statut !== "inactif").map(d => (
-                <SelectItem key={d.id} value={d.id}>
-                  {d.prenom} {d.nom}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Chauffeur / véhicule — affiché ou sélectionnable */}
+      {isDriverMode ? (
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 grid grid-cols-2 gap-3">
+          <div>
+            <p className="text-xs text-muted-foreground font-medium mb-0.5">Chauffeur</p>
+            <p className="text-sm font-bold">{driver?.prenom} {driver?.nom}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium mb-0.5">Véhicule</p>
+            <p className="text-sm font-bold font-mono">{vehicle?.immatriculation}</p>
+          </div>
         </div>
-        <div>
-          <Label className="text-xs font-semibold mb-1 block">Véhicule</Label>
-          <Select value={vehicleId} onValueChange={setVehicleId}>
-            <SelectTrigger className="h-10 text-sm">
-              <SelectValue placeholder="Choisir..." />
-            </SelectTrigger>
-            <SelectContent>
-              {vehicles.map(v => (
-                <SelectItem key={v.id} value={v.id}>
-                  {v.immatriculation} {v.code_camion ? `(${v.code_camion})` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs font-semibold mb-1 block">Chauffeur</Label>
+            <Select value={driverId} onValueChange={setDriverId}>
+              <SelectTrigger className="h-10 text-sm">
+                <SelectValue placeholder="Choisir..." />
+              </SelectTrigger>
+              <SelectContent>
+                {drivers.filter(d => d.statut !== "inactif").map(d => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.prenom} {d.nom}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs font-semibold mb-1 block">Véhicule</Label>
+            <Select value={vehicleId} onValueChange={setVehicleId}>
+              <SelectTrigger className="h-10 text-sm">
+                <SelectValue placeholder="Choisir..." />
+              </SelectTrigger>
+              <SelectContent>
+                {vehicles.map(v => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.immatriculation} {v.code_camion ? `(${v.code_camion})` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Instruction */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
