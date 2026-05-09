@@ -89,12 +89,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const applyPendingConfig = async (currentUser) => {
+    try {
+      const pending = await base44.entities.PendingUserConfig.filter({ email: currentUser.email.toLowerCase(), applied: false });
+      if (pending && pending.length > 0) {
+        const config = pending[0];
+        const updateData = { role: config.role, modules: config.modules };
+        if (config.driver_id) updateData.driver_id = config.driver_id;
+        await base44.auth.updateMe(updateData);
+        await base44.entities.PendingUserConfig.update(config.id, { applied: true });
+      }
+    } catch (e) {
+      // Silently ignore - not critical
+    }
+  };
+
   const checkUserAuth = async () => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
-      setUser(currentUser);
+      // Appliquer la config en attente si l'utilisateur vient d'accepter l'invitation
+      await applyPendingConfig(currentUser);
+      const refreshedUser = await base44.auth.me();
+      setUser(refreshedUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);

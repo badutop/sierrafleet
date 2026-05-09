@@ -95,16 +95,12 @@ export default function UsersPage() {
   const handleInvite = async () => {
     if (!inviteEmail) return;
     setInviting(true);
+    // Envoyer l'invitation
     await base44.users.inviteUser(inviteEmail, inviteRole === "admin" ? "admin" : "user");
-    // Attendre que l'utilisateur soit créé puis mettre à jour son rôle/modules
-    await new Promise(r => setTimeout(r, 2000));
-    const updatedUsers = await base44.entities.User.list();
-    const newUser = updatedUsers.find(u => u.email === inviteEmail);
-    if (newUser) {
-      const updateData = { role: inviteRole, modules: inviteModules };
-      if (inviteRole === "chauffeur" && inviteDriverId) updateData.driver_id = inviteDriverId;
-      await base44.entities.User.update(newUser.id, updateData);
-    }
+    // Sauvegarder la config en attente (appliquée au premier login de l'utilisateur)
+    const pendingData = { email: inviteEmail.toLowerCase(), role: inviteRole, modules: inviteModules, applied: false };
+    if (inviteRole === "chauffeur" && inviteDriverId) pendingData.driver_id = inviteDriverId;
+    await base44.entities.PendingUserConfig.create(pendingData);
     toast.success(`Invitation envoyée à ${inviteEmail}`);
     setInviteEmail("");
     setInviteRole("collecteur_bons");
