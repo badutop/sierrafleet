@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +34,12 @@ const roleColors = {
 const DEFAULT_MODULES = ALL_MODULES.map(m => m.key);
 
 export default function UsersPage() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
   const [editOpen, setEditOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
@@ -132,9 +137,10 @@ export default function UsersPage() {
             <p>Aucun utilisateur trouvé</p>
           </div>
         ) : users.map(u => {
+          const isMe = currentUser && u.id === currentUser.id;
           const moduleCount = u.role === "admin" ? ALL_MODULES.length : (u.modules?.length ?? ALL_MODULES.length);
           return (
-            <Card key={u.id} className="hover:shadow-lg transition-shadow">
+            <Card key={u.id} className={cn("hover:shadow-lg transition-shadow", isMe && "ring-2 ring-secondary")}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -146,9 +152,12 @@ export default function UsersPage() {
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" />{u.email}</p>
                     </div>
                   </div>
-                  <Badge className={cn("text-[10px]", roleColors[u.role] || "bg-muted text-muted-foreground")}>
-                    {roleLabels[u.role] || u.role || "—"}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    {isMe && <Badge className="text-[10px] bg-secondary/20 text-secondary border border-secondary/30">Vous</Badge>}
+                    <Badge className={cn("text-[10px]", roleColors[u.role] || "bg-muted text-muted-foreground")}>
+                      {roleLabels[u.role] || u.role || "—"}
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="text-xs">
