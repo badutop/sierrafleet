@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, RotateCcw, Settings, Fuel, Save, FileText } from "lucide-react";
+import { Download, RotateCcw, Settings, Fuel, Save, FileText, MessageCircle } from "lucide-react";
 import { getPrixTonne, getTvaPct, INVOICE_PRICE_KEY, INVOICE_TVA_KEY } from "@/components/campaigns/CampaignInvoice";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,6 +15,20 @@ export function getFuelPricePerLitre() {
   return Number(localStorage.getItem(FUEL_PRICE_KEY) || 650);
 }
 
+// Sauvegarde/lecture d'un AppSetting en base
+async function readSetting(key) {
+  const list = await base44.entities.AppSetting.filter({ key });
+  return list[0]?.value || "";
+}
+async function saveSetting(key, value) {
+  const list = await base44.entities.AppSetting.filter({ key });
+  if (list[0]) {
+    await base44.entities.AppSetting.update(list[0].id, { value });
+  } else {
+    await base44.entities.AppSetting.create({ key, value });
+  }
+}
+
 export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [fuelPrice, setFuelPrice] = useState(() => getFuelPricePerLitre());
@@ -22,7 +36,26 @@ export default function SettingsPage() {
   const [prixTonne, setPrixTonne] = useState(() => getPrixTonne());
   const [tvaPct, setTvaPct] = useState(() => getTvaPct());
   const [invoiceSaved, setInvoiceSaved] = useState(false);
+  const [waPhone, setWaPhone] = useState("");
+  const [waApiKey, setWaApiKey] = useState("");
+  const [waSaved, setWaSaved] = useState(false);
   const queryClient = useQueryClient();
+
+  // Charge les settings WhatsApp depuis la base au montage
+  useEffect(() => {
+    readSetting("wa_alert_phone").then(setWaPhone);
+    readSetting("wa_alert_apikey").then(setWaApiKey);
+  }, []);
+
+  const saveWaSettings = async () => {
+    await Promise.all([
+      saveSetting("wa_alert_phone", waPhone.trim()),
+      saveSetting("wa_alert_apikey", waApiKey.trim()),
+    ]);
+    setWaSaved(true);
+    setTimeout(() => setWaSaved(false), 2000);
+    toast.success("Paramètres WhatsApp enregistrés");
+  };
 
   const saveInvoiceSettings = () => {
     localStorage.setItem(INVOICE_PRICE_KEY, String(prixTonne));
@@ -42,7 +75,6 @@ export default function SettingsPage() {
   const resetDemo = async () => {
     if (!confirm("Ceci va supprimer toutes les données et recharger les données de démonstration. Continuer ?")) return;
     setLoading(true);
-    // Delete all
     const [vehicles, drivers, trips, fuel, maint] = await Promise.all([
       base44.entities.Vehicle.list(), base44.entities.Driver.list(),
       base44.entities.TripLog.list("-created_date", 500), base44.entities.FuelEntry.list("-created_date", 500),
@@ -55,14 +87,11 @@ export default function SettingsPage() {
       ...fuel.map(f => base44.entities.FuelEntry.delete(f.id)),
       ...maint.map(m => base44.entities.Maintenance.delete(m.id)),
     ]);
-    // Re-seed
     const cv = await base44.entities.Vehicle.bulkCreate(demoVehicles);
     const cd = await base44.entities.Driver.bulkCreate(demoDrivers);
-    const vIds = cv.map(v => v.id);
-    const dIds = cd.map(d => d.id);
-    await base44.entities.TripLog.bulkCreate(generateDemoTrips(vIds, dIds));
-    await base44.entities.FuelEntry.bulkCreate(generateDemoFuel(vIds));
-    await base44.entities.Maintenance.bulkCreate(generateDemoMaintenance(vIds));
+    await base44.entities.TripLog.bulkCreate(generateDemoTrips(cv.map(v => v.id), cd.map(d => d.id)));
+    await base44.entities.FuelEntry.bulkCreate(generateDemoFuel(cv.map(v => v.id)));
+    await base44.entities.Maintenance.bulkCreate(generateDemoMaintenance(cv.map(v => v.id)));
     queryClient.invalidateQueries();
     setLoading(false);
     toast.success("Données de démonstration rechargées");
@@ -96,13 +125,7 @@ export default function SettingsPage() {
             <div>
               <Label className="text-xs">Prix du carburant (FCFA / litre)</Label>
               <div className="flex gap-2 mt-1">
-                <Input
-                  type="number"
-                  min="0"
-                  value={fuelPrice}
-                  onChange={e => setFuelPrice(Number(e.target.value))}
-                  placeholder="Ex: 650"
-                />
+                <Input type="number" min="0" value={fuelPrice} onChange={e => setFuelPrice(Number(e.target.value))} placeholder="Ex: 650" />
                 <Button size="sm" onClick={saveFuelPrice} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
                   <Save className="w-4 h-4 mr-1" />{fuelSaved ? "Sauvegardé !" : "Sauvegarder"}
                 </Button>
@@ -119,20 +142,52 @@ export default function SettingsPage() {
           <CardContent className="space-y-3">
             <div>
               <Label className="text-xs">Prix par tonne (FCFA / T)</Label>
-              <div className="flex gap-2 mt-1">
-                <Input type="number" min="0" value={prixTonne} onChange={e => setPrixTonne(Number(e.target.value))} placeholder="Ex: 15000" />
-              </div>
+              <Input type="number" min="0" value={prixTonne} onChange={e => setPrixTonne(Number(e.target.value))} placeholder="Ex: 15000" className="mt-1" />
             </div>
             <div>
               <Label className="text-xs">TVA (%)</Label>
-              <div className="flex gap-2 mt-1">
-                <Input type="number" min="0" max="100" value={tvaPct} onChange={e => setTvaPct(Number(e.target.value))} placeholder="Ex: 18" />
-              </div>
+              <Input type="number" min="0" max="100" value={tvaPct} onChange={e => setTvaPct(Number(e.target.value))} placeholder="Ex: 18" className="mt-1" />
             </div>
             <Button size="sm" onClick={saveInvoiceSettings} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground w-full">
               <Save className="w-4 h-4 mr-1" />{invoiceSaved ? "Sauvegardé !" : "Sauvegarder"}
             </Button>
             <p className="text-xs text-muted-foreground">Ces valeurs seront utilisées pour générer la facture lors de la clôture d'une campagne.</p>
+          </CardContent>
+        </Card>
+
+        {/* ── WhatsApp Alertes ── */}
+        <Card className="border-green-500/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base"><MessageCircle className="w-4 h-4 text-green-600" />Alertes WhatsApp</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <Label className="text-xs">Numéro WhatsApp destinataire</Label>
+              <Input
+                className="mt-1"
+                placeholder="Ex: 221776040340 (sans + ni espaces)"
+                value={waPhone}
+                onChange={e => setWaPhone(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Clé API CallMeBot</Label>
+              <Input
+                className="mt-1"
+                type="password"
+                placeholder="Votre clé API CallMeBot"
+                value={waApiKey}
+                onChange={e => setWaApiKey(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Pour obtenir une clé gratuite : envoyez <strong>"I allow callmebot to send me messages"</strong> au{" "}
+              <a href="https://wa.me/34644373777" target="_blank" rel="noreferrer" className="underline text-green-700">+34 644 37 37 77</a> sur WhatsApp.
+              <br />Les alertes documents sont envoyées automatiquement chaque matin à 8h.
+            </p>
+            <Button size="sm" onClick={saveWaSettings} className="bg-green-600 hover:bg-green-700 text-white w-full">
+              <Save className="w-4 h-4 mr-1" />{waSaved ? "Sauvegardé !" : "Sauvegarder"}
+            </Button>
           </CardContent>
         </Card>
 

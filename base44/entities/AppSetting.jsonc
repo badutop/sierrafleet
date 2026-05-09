@@ -1,0 +1,17 @@
+{
+  "name": "AppSetting",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Cl\u00e9 du param\u00e8tre (ex: wa_alert_phone)"
+    },
+    "value": {
+      "type": "string",
+      "description": "Valeur du param\u00e8tre"
+    }
+  },
+  "required": [
+    "key"
+  ]
+}
