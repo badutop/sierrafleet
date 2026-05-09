@@ -18,8 +18,8 @@ const ENTITY_TABLE_MAP = {
 
 // Colonnes attendues par table Supabase (basé sur le schéma SQL)
 const SUPABASE_COLUMNS = {
-  vehicles: ['id', 'code_camion', 'immatriculation', 'marque', 'modele', 'type_vehicule', 'annee', 'couleur', 'photo_url', 'statut', 'km_actuel', 'capacite_charge_tonnes', 'date_assurance', 'date_visite_technique', 'date_carte_grise', 'km_derniere_vidange', 'date_derniere_vidange', 'km_prochaine_vidange', 'created_date', 'updated_date', 'created_by'],
-  drivers: ['id', 'nom', 'prenom', 'telephone', 'numero_permis', 'categorie_permis', 'date_expiration_permis', 'date_embauche', 'contact_urgence_nom', 'contact_urgence_telephone', 'photo_url', 'statut', 'created_date', 'updated_date', 'created_by'],
+  vehicles: ['id', 'code_camion', 'immatriculation', 'marque', 'modele', 'type_vehicule', 'annee', 'couleur', 'photo_url', 'statut', 'driver_id', 'km_actuel', 'capacite_charge_tonnes', 'date_assurance', 'date_visite_technique', 'date_carte_grise', 'km_derniere_vidange', 'date_derniere_vidange', 'km_prochaine_vidange', 'doc_carte_grise_url', 'doc_assurance_url', 'doc_visite_technique_url', 'created_date', 'updated_date', 'created_by'],
+  drivers: ['id', 'nom', 'prenom', 'telephone', 'numero_permis', 'categorie_permis', 'date_expiration_permis', 'date_embauche', 'contact_urgence_nom', 'contact_urgence_telephone', 'photo_url', 'statut', 'doc_permis_url', 'doc_cni_url', 'created_date', 'updated_date', 'created_by'],
   clients: ['id', 'nom', 'code_client', 'zone', 'contact_nom', 'contact_telephone', 'consommation_estimee_litres', 'actif', 'created_date', 'updated_date', 'created_by'],
   depots: ['id', 'client_id', 'nom_depot', 'adresse', 'latitude', 'longitude', 'zone', 'actif', 'created_date', 'updated_date', 'created_by'],
   suppliers: ['id', 'nom', 'telephone', 'email', 'adresse', 'actif', 'created_date', 'updated_date', 'created_by'],
