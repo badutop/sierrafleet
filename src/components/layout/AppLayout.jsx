@@ -19,6 +19,7 @@ export default function AppLayout() {
       if (user?.role === "chauffeur") {
         navigate("/refuel", { replace: true });
       }
+      // L'admin reste sur l'app principale mais peut accéder à /refuel via le menu carburant
     }).catch(() => {});
   }, []);
 

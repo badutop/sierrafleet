@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Zap, Truck, User, LogOut, AlertCircle } from "lucide-react";
+import { Zap, Truck, User, LogOut, AlertCircle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
 import { toast } from "sonner";
 
@@ -37,7 +38,7 @@ export default function DriverRefuelPage() {
       setAllVehicles(vehicles);
       setAllRotations(rotations);
 
-      // Trouver le driver lié à cet utilisateur
+      // Trouver le driver lié à cet utilisateur (chauffeur normal)
       if (user.driver_id) {
         const d = drivers.find(d => d.id === user.driver_id);
         setDriver(d || null);
@@ -46,6 +47,7 @@ export default function DriverRefuelPage() {
           setVehicle(v || null);
         }
       }
+      // Admin : pas de driver_id, il choisira manuellement
     } catch (err) {
       toast.error("Erreur de chargement");
     } finally {
@@ -90,8 +92,46 @@ export default function DriverRefuelPage() {
             <p className="text-sm text-muted-foreground mt-1">Module chauffeur</p>
           </div>
 
-          {/* Infos chauffeur */}
-          {driver ? (
+          {/* Sélection manuelle pour admin, infos fixes pour chauffeur */}
+          {currentUser?.role === 'admin' ? (
+            <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Chauffeur</p>
+                <Select
+                  value={driver?.id || ""}
+                  onValueChange={(id) => {
+                    const d = allDrivers.find(x => x.id === id);
+                    setDriver(d || null);
+                    const v = d ? allVehicles.find(v => v.driver_id === d.id) : null;
+                    setVehicle(v || null);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionner un chauffeur..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allDrivers.filter(d => d.statut !== "inactif").map(d => (
+                      <SelectItem key={d.id} value={d.id}>{d.prenom} {d.nom}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {driver && (
+                <div className="border-t pt-3">
+                  <p className="text-xs text-muted-foreground mb-1">Véhicule assigné</p>
+                  {vehicle ? (
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-secondary" />
+                      <span className="font-bold font-mono">{vehicle.immatriculation}</span>
+                      {vehicle.code_camion && <span className="text-xs text-muted-foreground">— {vehicle.code_camion}</span>}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-amber-600">Aucun véhicule assigné à ce chauffeur</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : driver ? (
             <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -102,7 +142,6 @@ export default function DriverRefuelPage() {
                   <p className="font-bold text-base">{driver.prenom} {driver.nom}</p>
                 </div>
               </div>
-
               {vehicle ? (
                 <div className="flex items-center gap-3 border-t pt-3">
                   <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
