@@ -3,23 +3,18 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Accès refusé' }, { status: 403 });
-    }
-
+    
     const { email, role, modules, driver_id } = await req.json();
 
     if (!email) {
       return Response.json({ error: 'Email requis' }, { status: 400 });
     }
 
-    // Inviter l'utilisateur avec le rôle Base44 approprié
+    // Inviter l'utilisateur (user ou admin)
     const base44Role = role === 'admin' ? 'admin' : 'user';
     await base44.users.inviteUser(email, base44Role);
 
-    // Sauvegarder la config en attente
+    // Sauvegarder la config en attente (sera appliquée au premier login)
     const pendingData = {
       email: email.toLowerCase(),
       role,
