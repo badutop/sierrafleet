@@ -3,8 +3,10 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import {
   Truck, Route, Fuel, Wrench, Users, TrendingUp, Activity,
-  Package, AlertTriangle, CheckCircle2, BarChart3, ArrowUpRight, ArrowDownRight
+  Package, AlertTriangle, CheckCircle2, BarChart3, ArrowUpRight, ArrowDownRight, Zap
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import QuickTripDialog from "@/components/triplog/QuickTripDialog";
 import { demoVehicles, demoDrivers, generateDemoTrips, generateDemoFuel, generateDemoMaintenance } from "@/lib/demoData";
 
 // Dashboard components
@@ -55,6 +57,7 @@ function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel
 
 export default function Dashboard() {
   const [seeded, setSeeded] = useState(false);
+  const [quickTripOpen, setQuickTripOpen] = useState(false);
 
   const { data: vehicles = [], refetch: refetchV } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
   const { data: drivers = [], refetch: refetchD }  = useQuery({ queryKey: ["drivers"],  queryFn: () => base44.entities.Driver.list() });
@@ -149,9 +152,17 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Vue d'ensemble opérationnelle — {monthLabel}</p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-medium text-emerald-700">Système actif</span>
+        <div className="flex items-center gap-3">
+          <Button
+            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground h-8 text-xs"
+            onClick={() => setQuickTripOpen(true)}
+          >
+            <Zap className="w-3.5 h-3.5 mr-1.5" /> Nouveau trajet
+          </Button>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-medium text-emerald-700">Système actif</span>
+          </div>
         </div>
       </div>
 
@@ -197,6 +208,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <GpsLiveWidget />
       </div>
+
+      <QuickTripDialog open={quickTripOpen} onClose={() => setQuickTripOpen(false)} />
     </div>
   );
 }
