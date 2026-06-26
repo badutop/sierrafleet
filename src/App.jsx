@@ -1,10 +1,12 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import Login from '@/pages/Login';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import Dashboard from '@/pages/Dashboard';
 import Vehicles from '@/pages/Vehicles';
@@ -42,40 +44,38 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      return <LandingPage />;
-    }
+  // Handle non-auth errors
+  if (authError && authError.type === 'user_not_registered') {
+    return <UserNotRegisteredError />;
   }
 
   // Render the main app
   return (
     <Routes>
-      <Route path="/landing" element={<LandingPage />} />
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/vehicles" element={<Vehicles />} />
-        <Route path="/journal" element={<Journal />} />
-        <Route path="/fuel" element={<FuelManagementV2 />} />
-        <Route path="/fuel-supply" element={<FuelSupplyPage />} />
-        <Route path="/maintenance" element={<MaintenancePage />} />
-        <Route path="/drivers" element={<Drivers />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/spare-parts" element={<SpareParts />} />
-        <Route path="/suppliers" element={<Suppliers />} />
-        <Route path="/expenses" element={<ExpensesPage />} />
-        <Route path="/users" element={<UsersPage />} />
-        <Route path="/campaigns" element={<CampaignsList />} />
-        <Route path="/campaigns/calendar" element={<RotationsCalendar />} />
-        <Route path="/campaigns/:id" element={<CampaignDetail />} />
-        <Route path="/clients" element={<ClientsPage />} />
-        <Route path="/migration" element={<MigrationPage />} />
-        <Route path="/gps" element={<GpsTracking />} />
-        <Route path="/refuel" element={<DriverRefuelPage />} />
+      <Route path="/login" element={<Login />} />
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/vehicles" element={<Vehicles />} />
+          <Route path="/journal" element={<Journal />} />
+          <Route path="/fuel" element={<FuelManagementV2 />} />
+          <Route path="/fuel-supply" element={<FuelSupplyPage />} />
+          <Route path="/maintenance" element={<MaintenancePage />} />
+          <Route path="/drivers" element={<Drivers />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/spare-parts" element={<SpareParts />} />
+          <Route path="/suppliers" element={<Suppliers />} />
+          <Route path="/expenses" element={<ExpensesPage />} />
+          <Route path="/users" element={<UsersPage />} />
+          <Route path="/campaigns" element={<CampaignsList />} />
+          <Route path="/campaigns/calendar" element={<RotationsCalendar />} />
+          <Route path="/campaigns/:id" element={<CampaignDetail />} />
+          <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/migration" element={<MigrationPage />} />
+          <Route path="/gps" element={<GpsTracking />} />
+          <Route path="/refuel" element={<DriverRefuelPage />} />
+        </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
