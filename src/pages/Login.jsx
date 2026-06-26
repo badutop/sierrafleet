@@ -37,6 +37,14 @@ export default function Login() {
       icon={LogIn}
       title="Welcome back"
       subtitle="Log in to your account"
+      footer={
+        <>
+          Pas encore de compte ?{" "}
+          <Link to="/register" className="text-primary font-medium hover:underline">
+            S'inscrire
+          </Link>
+        </>
+      }
     >
       <Button
         variant="outline"
@@ -83,6 +91,9 @@ export default function Login() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
+              <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                Mot de passe oublié ?
+              </Link>
             </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
