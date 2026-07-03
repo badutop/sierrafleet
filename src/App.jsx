@@ -33,49 +33,30 @@ import GpsTracking from '@/pages/GpsTracking';
 import DriverRefuelPage from '@/pages/DriverRefuelPage';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  // Handle non-auth errors
-  if (authError && authError.type === 'user_not_registered') {
-    return <UserNotRegisteredError />;
-  }
-
-  // Render the main app
+  // Render the main app without any authentication gating
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/vehicles" element={<Vehicles />} />
-          <Route path="/journal" element={<Journal />} />
-          <Route path="/fuel" element={<FuelManagementV2 />} />
-          <Route path="/fuel-supply" element={<FuelSupplyPage />} />
-          <Route path="/maintenance" element={<MaintenancePage />} />
-          <Route path="/drivers" element={<Drivers />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/spare-parts" element={<SpareParts />} />
-          <Route path="/suppliers" element={<Suppliers />} />
-          <Route path="/expenses" element={<ExpensesPage />} />
-          <Route path="/users" element={<UsersPage />} />
-          <Route path="/campaigns" element={<CampaignsList />} />
-          <Route path="/campaigns/calendar" element={<RotationsCalendar />} />
-          <Route path="/campaigns/:id" element={<CampaignDetail />} />
-          <Route path="/clients" element={<ClientsPage />} />
-          <Route path="/migration" element={<MigrationPage />} />
-          <Route path="/gps" element={<GpsTracking />} />
-          <Route path="/refuel" element={<DriverRefuelPage />} />
-        </Route>
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/vehicles" element={<Vehicles />} />
+        <Route path="/journal" element={<Journal />} />
+        <Route path="/fuel" element={<FuelManagementV2 />} />
+        <Route path="/fuel-supply" element={<FuelSupplyPage />} />
+        <Route path="/maintenance" element={<MaintenancePage />} />
+        <Route path="/drivers" element={<Drivers />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/spare-parts" element={<SpareParts />} />
+        <Route path="/suppliers" element={<Suppliers />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
+        <Route path="/users" element={<UsersPage />} />
+        <Route path="/campaigns" element={<CampaignsList />} />
+        <Route path="/campaigns/calendar" element={<RotationsCalendar />} />
+        <Route path="/campaigns/:id" element={<CampaignDetail />} />
+        <Route path="/clients" element={<ClientsPage />} />
+        <Route path="/migration" element={<MigrationPage />} />
+        <Route path="/gps" element={<GpsTracking />} />
+        <Route path="/refuel" element={<DriverRefuelPage />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
