@@ -1,97 +1,166 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { base44 } from '@/api/base44Client';
+import { appParams } from '@/lib/app-params';
+import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // Supabase auth user (id, email, ...)
-  const [profile, setProfile] = useState(null); // ligne de la table `profiles` (role, modules, driver_id)
+  const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
-
-  const fetchProfile = async (userId) => {
-    if (!userId) return null;
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (error) {
-      console.error('Erreur lors de la récupération du profil:', error.message);
-      return null;
-    }
-    return data;
-  };
-
-  const applySession = async (session) => {
-    if (session?.user) {
-      setUser(session.user);
-      const userProfile = await fetchProfile(session.user.id);
-      setProfile(userProfile);
-      setIsAuthenticated(true);
-      setAuthError(null);
-    } else {
-      setUser(null);
-      setProfile(null);
-      setIsAuthenticated(false);
-    }
-    setIsLoadingAuth(false);
-  };
+  const [authChecked, setAuthChecked] = useState(false);
+  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
   useEffect(() => {
-    // 1. Récupère la session existante au chargement de l'app
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      applySession(session);
-    });
-
-    // 2. Écoute les changements (login, logout, refresh de token)
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      applySession(session);
-    });
-
-    return () => {
-      listener?.subscription?.unsubscribe();
-    };
+    checkAppState();
   }, []);
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
-    setIsAuthenticated(false);
-  };
-
-  const refreshProfile = async () => {
-    if (user?.id) {
-      const userProfile = await fetchProfile(user.id);
-      setProfile(userProfile);
+  const checkAppState = async () => {
+    try {
+      setIsLoadingPublicSettings(true);
+      setAuthError(null);
+      
+      // First, check app public settings (with token if available)
+      // This will tell us if auth is required, user not registered, etc.
+      const appClient = createAxiosClient({
+        baseURL: `/api/apps/public`,
+        headers: {
+          'X-App-Id': appParams.appId
+        },
+        token: appParams.token, // Include token if available
+        interceptResponses: true
+      });
+      
+      try {
+        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
+        setAppPublicSettings(publicSettings);
+        
+        // If we got the app public settings successfully, check if user is authenticated
+        if (appParams.token) {
+          await checkUserAuth();
+        } else {
+          setIsLoadingAuth(false);
+          setIsAuthenticated(false);
+          setAuthChecked(true);
+          setAuthError({ type: 'auth_required', message: 'Authentication required' });
+        }
+        setIsLoadingPublicSettings(false);
+      } catch (appError) {
+        console.error('App state check failed:', appError);
+        
+        // Handle app-level errors
+        if (appError.status === 403 && appError.data?.extra_data?.reason) {
+          const reason = appError.data.extra_data.reason;
+          if (reason === 'auth_required') {
+            setAuthError({
+              type: 'auth_required',
+              message: 'Authentication required'
+            });
+          } else if (reason === 'user_not_registered') {
+            setAuthError({
+              type: 'user_not_registered',
+              message: 'User not registered for this app'
+            });
+          } else {
+            setAuthError({
+              type: reason,
+              message: appError.message
+            });
+          }
+        } else {
+          setAuthError({
+            type: 'unknown',
+            message: appError.message || 'Failed to load app'
+          });
+        }
+        setIsLoadingPublicSettings(false);
+        setIsLoadingAuth(false);
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      setAuthError({
+        type: 'unknown',
+        message: error.message || 'An unexpected error occurred'
+      });
+      setIsLoadingPublicSettings(false);
+      setIsLoadingAuth(false);
     }
   };
 
-  // `currentUser` combine les infos Supabase Auth + le profil applicatif (role, modules, driver_id)
-  // pour rester compatible avec ce qu'utilisaient les composants (Sidebar, AppLayout...) via base44.auth.me()
-  const currentUser = user
-    ? {
-        id: user.id,
-        email: user.email,
-        full_name: profile?.full_name || '',
-        role: profile?.role || 'collecteur_bons',
-        modules: profile?.modules || [],
-        driver_id: profile?.driver_id || null,
+  const applyPendingConfig = async (currentUser) => {
+    try {
+      // Fetch all non-applied pending configs and compare email case-insensitively
+      const allPending = await base44.entities.PendingUserConfig.filter({ applied: false });
+      const userEmail = currentUser.email.toLowerCase();
+      const config = allPending?.find(p => p.email?.toLowerCase() === userEmail);
+      if (config) {
+        const updateData = { role: config.role, modules: config.modules };
+        if (config.driver_id) updateData.driver_id = config.driver_id;
+        await base44.auth.updateMe(updateData);
+        await base44.entities.PendingUserConfig.update(config.id, { applied: true });
+        console.log(`Applied pending config for ${userEmail}: role=${config.role}`);
       }
-    : null;
+    } catch (e) {
+      console.error('applyPendingConfig error:', e);
+    }
+  };
+
+  const checkUserAuth = async () => {
+    try {
+      // Now check if the user is authenticated
+      setIsLoadingAuth(true);
+      const currentUser = await base44.auth.me();
+      // Appliquer la config en attente si l'utilisateur vient d'accepter l'invitation
+      await applyPendingConfig(currentUser);
+      const refreshedUser = await base44.auth.me();
+      setUser(refreshedUser);
+      setIsAuthenticated(true);
+      setIsLoadingAuth(false);
+      setAuthChecked(true);
+    } catch (error) {
+      console.error('User auth check failed:', error);
+      setIsLoadingAuth(false);
+      setIsAuthenticated(false);
+      setAuthChecked(true);
+      
+      // If user auth fails, it might be an expired token
+      if (error.status === 401 || error.status === 403) {
+        setAuthError({
+          type: 'auth_required',
+          message: 'Authentication required'
+        });
+      }
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    setAuthError({ type: 'auth_required', message: 'Authentication required' });
+    base44.auth.logout();
+  };
+
+  const navigateToLogin = () => {
+    // Use the SDK's redirectToLogin method
+    base44.auth.redirectToLogin(window.location.href);
+  };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      profile,
-      currentUser,
-      isAuthenticated,
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
       isLoadingAuth,
+      isLoadingPublicSettings,
       authError,
+      appPublicSettings,
+      authChecked,
       logout,
-      refreshProfile,
+      navigateToLogin,
+      checkUserAuth,
+      checkAppState
     }}>
       {children}
     </AuthContext.Provider>

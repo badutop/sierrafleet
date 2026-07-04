@@ -26,18 +26,6 @@ VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
 VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
 ```
 
-**Migration vers Supabase (en cours) :**
-
-Ce projet migre progressivement de Base44 vers Supabase. Ajoutez également ces variables :
-
-```
-VITE_SUPABASE_URL=https://xxxxxxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=votre_clé_anon_publique
-```
-
-Avant la première utilisation, exécutez le script `supabase/migrations/001_profiles_and_auth.sql`
-dans le SQL Editor de votre projet Supabase (table `profiles`, rôles, RLS).
-
 Run the app: `npm run dev`
 
 **Publish your changes**

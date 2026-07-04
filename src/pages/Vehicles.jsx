@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Vehicle, Driver } from "@/api/supabaseClient.entities";
+import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,26 +31,26 @@ export default function Vehicles() {
 
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => Vehicle.list(),
+    queryFn: () => base44.entities.Vehicle.list(),
   });
 
   const { data: drivers = [] } = useQuery({
     queryKey: ["drivers"],
-    queryFn: () => Driver.list(),
+    queryFn: () => base44.entities.Driver.list(),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => Vehicle.create(data),
+    mutationFn: (data) => base44.entities.Vehicle.create(data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); closeDialog(); toast.success("Véhicule ajouté"); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => Vehicle.update(id, data),
+    mutationFn: ({ id, data }) => base44.entities.Vehicle.update(id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); closeDialog(); toast.success("Véhicule modifié"); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => Vehicle.delete(id),
+    mutationFn: (id) => base44.entities.Vehicle.delete(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); toast.success("Véhicule supprimé"); },
   });
 

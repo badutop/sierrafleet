@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { supabase } from "@/lib/supabaseClient";
+import React, { useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,54 +8,46 @@ import { Lock, Loader2, AlertTriangle } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 
 export default function ResetPassword() {
-  // Le lien de récupération Supabase établit automatiquement une session
-  // temporaire (via le hash de l'URL) que le SDK détecte tout seul.
-  const [hasRecoverySession, setHasRecoverySession] = useState(null); // null = en cours de vérification
+  const [searchParams] = useSearchParams();
+  const resetToken = searchParams.get("token");
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setHasRecoverySession(!!session);
-    });
-  }, []);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     if (newPassword !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas");
+      setError("Passwords do not match");
       return;
     }
     setLoading(true);
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-      if (updateError) throw updateError;
+      await base44.auth.resetPassword({ resetToken, newPassword });
       window.location.href = "/login";
     } catch (err) {
-      setError(err.message || "Échec de la réinitialisation du mot de passe");
+      setError(err.message || "Failed to reset password");
     } finally {
       setLoading(false);
     }
   };
 
-  if (hasRecoverySession === false) {
+  if (!resetToken) {
     return (
       <AuthLayout
         icon={AlertTriangle}
-        title="Lien invalide"
-        subtitle="Ce lien de réinitialisation est manquant ou invalide"
+        title="Invalid reset link"
+        subtitle="This password reset link is missing or invalid"
         footer={
           <Link to="/forgot-password" className="text-primary font-medium hover:underline">
-            Demander un nouveau lien
+            Request a new link
           </Link>
         }
       >
         <p className="text-sm text-foreground text-center">
-          Le lien utilisé semble incomplet ou expiré. Merci de redemander un email de réinitialisation.
+          The link you used appears to be incomplete. Please request a new password reset email.
         </p>
       </AuthLayout>
     );
@@ -64,8 +56,8 @@ export default function ResetPassword() {
   return (
     <AuthLayout
       icon={Lock}
-      title="Nouveau mot de passe"
-      subtitle="Saisissez votre nouveau mot de passe ci-dessous"
+      title="New password"
+      subtitle="Enter your new password below"
     >
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -74,7 +66,7 @@ export default function ResetPassword() {
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="password">Nouveau mot de passe</Label>
+          <Label htmlFor="password">New Password</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -91,7 +83,7 @@ export default function ResetPassword() {
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirm">Confirmer le mot de passe</Label>
+          <Label htmlFor="confirm">Confirm Password</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -110,10 +102,10 @@ export default function ResetPassword() {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Réinitialisation...
+              Resetting...
             </>
           ) : (
-            "Réinitialiser le mot de passe"
+            "Reset password"
           )}
         </Button>
       </form>
