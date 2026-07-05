@@ -117,8 +117,6 @@ export default function Drivers() {
   const queryClient = useQueryClient();
 
   const { data: drivers = [] } = useQuery({ queryKey: ["drivers"], queryFn: () => base44.entities.Driver.list() });
-  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
-  const { data: trips = [] } = useQuery({ queryKey: ["trips"], queryFn: () => base44.entities.TripLog.list("-date_depart", 200) });
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Driver.create(data),
