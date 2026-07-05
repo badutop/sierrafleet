@@ -1,8 +1,34 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, X, RotateCcw } from "lucide-react";
+import { Camera, X, RotateCcw, Loader2 } from "lucide-react";
+import jscanify from "jscanify";
 
 const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
+const OPENCV_URL = "https://docs.opencv.org/4.8.0/opencv.js";
+
+let opencvLoadPromise = null;
+function loadOpenCv() {
+  if (window.cv && window.cv.Mat) return Promise.resolve();
+  if (opencvLoadPromise) return opencvLoadPromise;
+  opencvLoadPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${OPENCV_URL}"]`);
+    const onLoad = () => {
+      if (window.cv?.onRuntimeInitialized !== undefined) {
+        window.cv.onRuntimeInitialized = resolve;
+      } else {
+        resolve();
+      }
+    };
+    if (existing) { onLoad(); return; }
+    const script = document.createElement("script");
+    script.src = OPENCV_URL;
+    script.async = true;
+    script.onload = onLoad;
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
+  return opencvLoadPromise;
+}
 
 export default function DocumentScanner({
   onCapture,
@@ -19,9 +45,14 @@ export default function DocumentScanner({
   const streamRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [captured, setCaptured] = useState(null);
+  const [cvReady, setCvReady] = useState(false);
+  const isDocumentMode = guideShape !== "circle";
 
   useEffect(() => {
     startCamera();
+    if (isDocumentMode) {
+      loadOpenCv().then(() => setCvReady(true)).catch(() => setCvReady(false));
+    }
     return () => stopCamera();
   }, []);
 
@@ -40,6 +71,30 @@ export default function DocumentScanner({
     streamRef.current?.getTracks().forEach(t => t.stop());
   };
 
+  // Recadrage manuel basé sur la zone du cadre guide (fallback / mode photo visage)
+  const cropWithGuide = (video, canvas) => {
+    const guide = guideRef.current;
+    const container = containerRef.current;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const containerRect = container.getBoundingClientRect();
+    const guideRect = guide.getBoundingClientRect();
+    const displayW = containerRect.width;
+    const displayH = containerRect.height;
+    const scale = Math.max(vw / displayW, vh / displayH);
+    const renderedW = vw / scale;
+    const renderedH = vh / scale;
+    const offsetX = (displayW - renderedW) / 2;
+    const offsetY = (displayH - renderedH) / 2;
+    const gLeft = (guideRect.left - containerRect.left - offsetX) * scale;
+    const gTop = (guideRect.top - containerRect.top - offsetY) * scale;
+    const gW = guideRect.width * scale;
+    const gH = guideRect.height * scale;
+    canvas.width = Math.round(gW);
+    canvas.height = Math.round(gH);
+    canvas.getContext("2d").drawImage(video, Math.round(gLeft), Math.round(gTop), Math.round(gW), Math.round(gH), 0, 0, canvas.width, canvas.height);
+  };
+
   const takePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -47,42 +102,36 @@ export default function DocumentScanner({
     const container = containerRef.current;
     if (!video || !canvas || !guide || !container) return;
 
-    // Dimensions réelles du video stream
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
+    let usedAutoDetect = false;
 
-    // Dimensions affichées dans le DOM
-    const containerRect = container.getBoundingClientRect();
-    const guideRect = guide.getBoundingClientRect();
+    // Mode document : détection automatique des bords + correction de perspective via OpenCV (jscanify)
+    if (isDocumentMode && cvReady) {
+      try {
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        const fullCanvas = document.createElement("canvas");
+        fullCanvas.width = vw;
+        fullCanvas.height = vh;
+        fullCanvas.getContext("2d").drawImage(video, 0, 0, vw, vh);
 
-    // Ratio entre pixels vidéo et pixels CSS (object-cover)
-    // La vidéo est en object-cover dans le container
-    const displayW = containerRect.width;
-    const displayH = containerRect.height;
+        const resultWidth = 1000;
+        const resultHeight = Math.round(resultWidth / guideRatio);
+        const scanner = new jscanify();
+        const resultCanvas = scanner.extractPaper(fullCanvas, resultWidth, resultHeight);
+        if (resultCanvas) {
+          canvas.width = resultWidth;
+          canvas.height = resultHeight;
+          canvas.getContext("2d").drawImage(resultCanvas, 0, 0);
+          usedAutoDetect = true;
+        }
+      } catch (err) {
+        usedAutoDetect = false;
+      }
+    }
 
-    // Facteur de mise à l'échelle object-cover
-    const scaleX = vw / displayW;
-    const scaleY = vh / displayH;
-    // object-cover garde le ratio en coupant, on prend le plus grand facteur
-    const scale = Math.max(scaleX, scaleY);
-
-    // Offset de la vidéo centrée en object-cover
-    const renderedW = vw / scale;
-    const renderedH = vh / scale;
-    const offsetX = (displayW - renderedW) / 2;
-    const offsetY = (displayH - renderedH) / 2;
-
-    // Position du cadre guide dans les coordonnées vidéo
-    const gLeft = (guideRect.left - containerRect.left - offsetX) * scale;
-    const gTop = (guideRect.top - containerRect.top - offsetY) * scale;
-    const gW = guideRect.width * scale;
-    const gH = guideRect.height * scale;
-
-    // Dessine uniquement la zone du document
-    canvas.width = Math.round(gW);
-    canvas.height = Math.round(gH);
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, Math.round(gLeft), Math.round(gTop), Math.round(gW), Math.round(gH), 0, 0, canvas.width, canvas.height);
+    if (!usedAutoDetect) {
+      cropWithGuide(video, canvas);
+    }
 
     canvas.toBlob((blob) => {
       const file = new File([blob], "document.jpg", { type: "image/jpeg" });
@@ -107,7 +156,10 @@ export default function DocumentScanner({
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-black/80">
-        <span className="text-white text-sm font-medium">Scanner le document</span>
+        <span className="text-white text-sm font-medium flex items-center gap-2">
+          Scanner le document
+          {isDocumentMode && !cvReady && <Loader2 className="w-3.5 h-3.5 animate-spin text-white/70" />}
+        </span>
         <button onClick={() => { stopCamera(); onClose(); }} className="text-white p-1">
           <X className="w-5 h-5" />
         </button>
