@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Plus, Search, Receipt, Pencil, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import ExpenseValidationPanel from "@/components/expenses/ExpenseValidationPanel";
 
 const typeLabels = { carburant: "Carburant", peage: "Péage", rations: "Rations", contravention: "Contravention", transport: "Transport", autre: "Autre" };
 const typeLabelsForm = { peage: "Péage", rations: "Rations", contravention: "Contravention", transport: "Transport", autre: "Autre" };
@@ -121,56 +120,56 @@ export default function ExpensesPage() {
       {/* Frais à valider */}
       <div>
         <h2 className="text-base font-semibold mb-3">En attente / Rejetés <span className="text-muted-foreground font-normal text-sm">({pendingExpenses.length} · {totalPending.toLocaleString("fr-FR")} FCFA)</span></h2>
-        <div className="grid gap-4">
-          {pendingExpenses.length === 0 ? (
-            <div className="bg-card rounded-xl border border-border p-10 text-center text-muted-foreground">
-              <Receipt className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Aucun frais en attente de validation</p>
-            </div>
-          ) : (
-            pendingExpenses.map(e => (
-              <div key={e.id} className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-md transition-shadow">
-                <div className="p-4 border-b border-border">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-0.5">Date</p>
-                        <p className="font-medium">{e.date_frais}</p>
+        {pendingExpenses.length === 0 ? (
+          <div className="bg-card rounded-xl border border-border p-10 text-center text-muted-foreground">
+            <Receipt className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">Aucun frais en attente de validation</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto border rounded-lg">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 border-b">
+                <tr>
+                  <th className="px-4 py-2.5 text-left font-semibold">Date</th>
+                  <th className="px-4 py-2.5 text-left font-semibold">Type</th>
+                  <th className="px-4 py-2.5 text-left font-semibold">Véhicule</th>
+                  <th className="px-4 py-2.5 text-left font-semibold">Chauffeur</th>
+                  <th className="px-4 py-2.5 text-left font-semibold">Statut</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Montant</th>
+                  <th className="px-4 py-2.5 text-center font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingExpenses.map(e => (
+                  <tr key={e.id} className="border-b hover:bg-muted/30">
+                    <td className="px-4 py-2.5">{e.date_frais}</td>
+                    <td className="px-4 py-2.5"><Badge className={cn("text-[10px]", typeColors[e.type_frais])}>{typeLabels[e.type_frais]}</Badge></td>
+                    <td className="px-4 py-2.5">{vehicleMap[e.vehicle_id] || "-"}</td>
+                    <td className="px-4 py-2.5">{driverMap[e.driver_id] || "-"}</td>
+                    <td className="px-4 py-2.5"><Badge className={cn("text-[10px]", statutColors[e.statut])}>{statutLabels[e.statut]}</Badge></td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-secondary">{(e.montant || 0).toLocaleString("fr-FR")} FCFA</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex gap-1 justify-center">
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-emerald-600 hover:bg-emerald-50" onClick={() => handleValidate(e.id)} disabled={updateMutation.isPending}>
+                          <CheckCircle className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-destructive hover:bg-destructive/10" onClick={() => handleReject(e.id)} disabled={updateMutation.isPending}>
+                          <XCircle className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => openEdit(e)}>
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-destructive hover:bg-destructive/10" onClick={() => { if (confirm("Supprimer ce frais ?")) deleteMutation.mutate(e.id); }} disabled={deleteMutation.isPending}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-0.5">Type</p>
-                        <Badge className={cn("text-[10px]", typeColors[e.type_frais])}>{typeLabels[e.type_frais]}</Badge>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-0.5">Véhicule</p>
-                        <p className="font-medium">{vehicleMap[e.vehicle_id] || "-"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-0.5">Chauffeur</p>
-                        <p className="font-medium">{driverMap[e.driver_id] || "-"}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground mb-0.5">Montant</p>
-                      <p className="text-lg font-bold text-secondary">{(e.montant || 0).toLocaleString("fr-FR")} FCFA</p>
-                    </div>
-                  </div>
-                  {e.description && <p className="text-xs text-muted-foreground mt-2">Description: {e.description}</p>}
-                </div>
-                <div className="p-4 border-t border-border">
-                  <ExpenseValidationPanel
-                    expense={e}
-                    onValidate={handleValidate}
-                    onReject={handleReject}
-                    onEdit={openEdit}
-                    onDelete={(id) => { if (confirm("Supprimer ce frais ?")) deleteMutation.mutate(id); }}
-                    isPending={updateMutation.isPending || deleteMutation.isPending}
-                  />
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Frais validés */}
