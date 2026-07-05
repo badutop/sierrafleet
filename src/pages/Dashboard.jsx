@@ -168,11 +168,9 @@ export default function Dashboard() {
 
       {/* ── Row 2 : KPI opérationnels ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-        <StatCard title="Taux d'utilisation" value={`${fleetRate}%`}          subtitle="flotte active"        icon={Activity}   color="primary" />
         <StatCard title="Carburant (mois)"   value={formatCFA(totalFuelCost)} subtitle={`${fmt(Math.round(totalLitres))} L`} icon={Fuel} color="orange" trend={fuelTrend} className="col-span-2" />
-        <StatCard title="Rotations (mois)"   value={fmt(rotMonth.length)}     subtitle={`${fmt(Math.round(tonnageMonth))} t`} icon={TrendingUp} color="blue" trend={rotTrend} />
-        <StatCard title="Campagnes actives"  value={activeCampaigns}          subtitle={`${termineeCampaigns} terminée(s)`} icon={Package}   color="indigo" />
         <StatCard title="Maintenance (mois)" value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="red" className="col-span-2" />
+        <StatCard title="Total Dépenses (mois)" value={formatCFA(totalExp)} subtitle={`${expMonth.length} dépense(s)`} icon={BarChart3} color="indigo" className="col-span-2" />
       </div>
 
       {/* ── Row 3 : Flotte donut + Rotations trend + Fuel trend ── */}
