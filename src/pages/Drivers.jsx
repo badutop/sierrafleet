@@ -12,6 +12,7 @@ import { Plus, User, Phone, CreditCard, Route, Pencil, Trash2, Upload, ExternalL
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
+import DriverPhotoField from "@/components/drivers/DriverPhotoField";
 
 
 const statusLabels = { actif: "Actif", inactif: "Inactif", en_mission: "En mission" };
@@ -21,7 +22,7 @@ const emptyForm = {
   prenom: "", nom: "", telephone: "", numero_permis: "", categorie_permis: "",
   date_expiration_permis: "", date_embauche: "", contact_urgence_nom: "",
   contact_urgence_telephone: "", statut: "actif",
-  doc_permis_url: "", doc_cni_url: "",
+  doc_permis_url: "", doc_cni_url: "", photo_url: "",
 };
 
 function DocUploadField({ label, value, fieldKey, onUploaded }) {
@@ -192,8 +193,12 @@ export default function Drivers() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-5 h-5 text-primary" />
+                    <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                      {d.photo_url ? (
+                        <img src={d.photo_url} alt={`${d.prenom} ${d.nom}`} className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-5 h-5 text-primary" />
+                      )}
                     </div>
                     <div>
                       <CardTitle className="text-base">{d.prenom} {d.nom}</CardTitle>
@@ -243,6 +248,7 @@ export default function Drivers() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingDriver ? "Modifier le chauffeur" : "Nouveau chauffeur"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3 mt-2">
+            <DriverPhotoField value={form.photo_url} onUploaded={(url) => setForm(f => ({ ...f, photo_url: url }))} />
             {[["prenom","Prénom"],["nom","Nom"],["telephone","Téléphone"],["numero_permis","N° Permis"],["categorie_permis","Catégorie permis"]].map(([k, l]) => (
               <div key={k}><Label className="text-xs">{l}</Label><Input className="mt-1" value={form[k] || ""} onChange={e => setForm({ ...form, [k]: e.target.value })} /></div>
             ))}

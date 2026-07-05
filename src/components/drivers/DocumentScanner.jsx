@@ -4,7 +4,14 @@ import { Camera, X, RotateCcw } from "lucide-react";
 
 const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
 
-export default function DocumentScanner({ onCapture, onClose }) {
+export default function DocumentScanner({
+  onCapture,
+  onClose,
+  guideRatio = GUIDE_RATIO,
+  guideShape = "rect", // "rect" | "circle"
+  guideWidthPercent = 85,
+  instructionText = "Alignez le document dans le cadre",
+}) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const guideRef = useRef(null);
@@ -119,19 +126,19 @@ export default function DocumentScanner({ onCapture, onClose }) {
                   ref={guideRef}
                   className="absolute"
                   style={{
-                    left: "7.5%",
-                    right: "7.5%",
+                    left: `${(100 - guideWidthPercent) / 2}%`,
+                    right: `${(100 - guideWidthPercent) / 2}%`,
                     top: "50%",
                     transform: "translateY(-50%)",
-                    aspectRatio: `${GUIDE_RATIO} / 1`,
+                    aspectRatio: `${guideRatio} / 1`,
                     boxShadow: "0 0 0 9999px rgba(0,0,0,0.60)",
                     border: "2px solid rgba(255,255,255,0.85)",
-                    borderRadius: "8px",
+                    borderRadius: guideShape === "circle" ? "50%" : "8px",
                     zIndex: 10,
                   }}
                 >
-                  {/* Coins de guidage */}
-                  {[
+                  {/* Coins de guidage (uniquement pour un cadre rectangulaire) */}
+                  {guideShape !== "circle" && [
                     ["top-0 left-0", "border-t-2 border-l-2 rounded-tl"],
                     ["top-0 right-0", "border-t-2 border-r-2 rounded-tr"],
                     ["bottom-0 left-0", "border-b-2 border-l-2 rounded-bl"],
@@ -139,8 +146,8 @@ export default function DocumentScanner({ onCapture, onClose }) {
                   ].map(([pos, cls], i) => (
                     <div key={i} className={`absolute ${pos} w-7 h-7 border-secondary ${cls}`} />
                   ))}
-                  <p className="absolute bottom-2 left-0 right-0 text-center text-white/80 text-xs">
-                    Alignez le document dans le cadre
+                  <p className="absolute -bottom-7 left-0 right-0 text-center text-white/80 text-xs">
+                    {instructionText}
                   </p>
                 </div>
               </div>
