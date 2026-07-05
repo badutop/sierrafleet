@@ -28,6 +28,10 @@
     "consommation_estimee_litres": {
       "type": "number"
     },
+    "tarif_par_tonne": {
+      "type": "number",
+      "description": "Tarif appliqu\u00e9 par tonne transport\u00e9e (FCFA)"
+    },
     "actif": {
       "type": "boolean",
       "default": true

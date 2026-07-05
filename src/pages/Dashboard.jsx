@@ -65,6 +65,7 @@ export default function Dashboard() {
   const { data: fuelEntries = [] } = useQuery({ queryKey: ["fuel"],         queryFn: () => base44.entities.FuelEntry.list("-date", 200),           enabled: seeded || vehicles.length > 0 });
   const { data: maintenances = [] }= useQuery({ queryKey: ["maintenances"], queryFn: () => base44.entities.Maintenance.list("-date_entretien", 100), enabled: seeded || vehicles.length > 0 });
   const { data: campaigns = [] }   = useQuery({ queryKey: ["campaigns"],    queryFn: () => base44.entities.Campaign.list("-created_date", 20) });
+  const { data: clients = [] }     = useQuery({ queryKey: ["clients"],      queryFn: () => base44.entities.Client.list() });
   const { data: rotations = [] }   = useQuery({ queryKey: ["rotations"],    queryFn: () => base44.entities.Rotation.list("-date_rotation", 200),   enabled: campaigns.length > 0 });
   const { data: expenses = [] }    = useQuery({ queryKey: ["expenses"],     queryFn: () => base44.entities.Expense.list("-date_frais", 200) });
 
@@ -127,6 +128,19 @@ export default function Dashboard() {
   const expMonth = expenses.filter(e => isThisMonth(e.date_frais));
   const totalExp = expMonth.reduce((s, e) => s + (e.montant || 0), 0);
 
+  // Recettes projetées (mois) — tonnage transporté x tarif client par tonne
+  const clientById = Object.fromEntries(clients.map(c => [c.id, c]));
+  const campaignById = Object.fromEntries(campaigns.map(c => [c.id, c]));
+  const totalRecettes = rotMonth.reduce((s, r) => {
+    const campaign = campaignById[r.campaign_id];
+    const client = campaign ? clientById[campaign.client_id] : null;
+    return s + (r.poids_charge_tonnes || 0) * (client?.tarif_par_tonne || 0);
+  }, 0);
+
+  // Résultat = recettes - (carburant + maintenance + autres dépenses)
+  const totalDepenses = totalFuelCost + maintCostMonth + totalExp;
+  const resultat = totalRecettes - totalDepenses;
+
   // Alerts
   const alerts = [];
   vehicles.forEach(v => {
@@ -171,6 +185,7 @@ export default function Dashboard() {
         <StatCard title="Carburant (mois)"   value={formatCFA(totalFuelCost)} subtitle={`${fmt(Math.round(totalLitres))} L`} icon={Fuel} color="orange" trend={fuelTrend} className="col-span-2" />
         <StatCard title="Maintenance (mois)" value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="red" className="col-span-2" />
         <StatCard title="Total Dépenses (mois)" value={formatCFA(totalExp)} subtitle={`${expMonth.length} dépense(s)`} icon={BarChart3} color="indigo" className="col-span-2" />
+        <StatCard title="Résultat (mois)" value={formatCFA(resultat)} subtitle={`Recettes ${formatCFA(totalRecettes)}`} icon={TrendingUp} color={resultat >= 0 ? "green" : "red"} className="col-span-2" />
       </div>
 
       {/* ── Row 3 : Flotte donut + Rotations trend + Fuel trend ── */}
