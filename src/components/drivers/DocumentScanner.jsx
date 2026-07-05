@@ -1,107 +1,8 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, X, RotateCcw, Loader2 } from "lucide-react";
+import { Camera, X, RotateCcw } from "lucide-react";
 
 const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
-const OPENCV_URL = "https://docs.opencv.org/4.8.0/opencv.js";
-
-let opencvLoadPromise = null;
-function loadOpenCv() {
-  if (window.cv && window.cv.Mat) return Promise.resolve();
-  if (opencvLoadPromise) return opencvLoadPromise;
-  opencvLoadPromise = new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${OPENCV_URL}"]`);
-    const onLoad = () => {
-      if (window.cv?.onRuntimeInitialized !== undefined) {
-        window.cv.onRuntimeInitialized = resolve;
-      } else {
-        resolve();
-      }
-    };
-    if (existing) { onLoad(); return; }
-    const script = document.createElement("script");
-    script.src = OPENCV_URL;
-    script.async = true;
-    script.onload = onLoad;
-    script.onerror = reject;
-    document.body.appendChild(script);
-  });
-  return opencvLoadPromise;
-}
-
-// Détecte le plus grand contour à 4 côtés dans l'image et applique une correction de perspective
-function extractDocument(sourceCanvas, resultWidth, resultHeight) {
-  const cv = window.cv;
-  const src = cv.imread(sourceCanvas);
-  const gray = new cv.Mat();
-  const blurred = new cv.Mat();
-  const edged = new cv.Mat();
-  const dilated = new cv.Mat();
-  const contours = new cv.MatVector();
-  const hierarchy = new cv.Mat();
-  let resultCanvas = null;
-
-  try {
-    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-    cv.Canny(blurred, edged, 50, 150);
-    cv.dilate(edged, dilated, cv.Mat.ones(3, 3, cv.CV_8U));
-    cv.findContours(dilated, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-    let bestQuad = null;
-    let bestArea = 0;
-    const minArea = src.rows * src.cols * 0.15;
-
-    for (let i = 0; i < contours.size(); i++) {
-      const contour = contours.get(i);
-      const peri = cv.arcLength(contour, true);
-      const approx = new cv.Mat();
-      cv.approxPolyDP(contour, approx, 0.02 * peri, true);
-      const area = cv.contourArea(approx);
-      if (approx.rows === 4 && area > minArea && area > bestArea) {
-        bestArea = area;
-        if (bestQuad) bestQuad.delete();
-        bestQuad = approx;
-      } else {
-        approx.delete();
-      }
-      contour.delete();
-    }
-
-    if (bestQuad) {
-      const pts = [];
-      for (let i = 0; i < 4; i++) {
-        pts.push({ x: bestQuad.data32S[i * 2], y: bestQuad.data32S[i * 2 + 1] });
-      }
-      bestQuad.delete();
-
-      // Ordonne les points : haut-gauche, haut-droit, bas-droit, bas-gauche
-      pts.sort((a, b) => a.y - b.y);
-      const top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
-      const bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
-      const [tl, tr] = top;
-      const [bl, br] = bottom;
-
-      const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y]);
-      const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, resultWidth, 0, resultWidth, resultHeight, 0, resultHeight]);
-      const M = cv.getPerspectiveTransform(srcTri, dstTri);
-      const dst = new cv.Mat();
-      cv.warpPerspective(src, dst, M, new cv.Size(resultWidth, resultHeight));
-
-      resultCanvas = document.createElement("canvas");
-      resultCanvas.width = resultWidth;
-      resultCanvas.height = resultHeight;
-      cv.imshow(resultCanvas, dst);
-
-      srcTri.delete(); dstTri.delete(); M.delete(); dst.delete();
-    }
-  } finally {
-    src.delete(); gray.delete(); blurred.delete(); edged.delete();
-    dilated.delete(); contours.delete(); hierarchy.delete();
-  }
-
-  return resultCanvas;
-}
 
 export default function DocumentScanner({
   onCapture,
@@ -118,14 +19,9 @@ export default function DocumentScanner({
   const streamRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [captured, setCaptured] = useState(null);
-  const [cvReady, setCvReady] = useState(false);
-  const isDocumentMode = guideShape !== "circle";
 
   useEffect(() => {
     startCamera();
-    if (isDocumentMode) {
-      loadOpenCv().then(() => setCvReady(true)).catch(() => setCvReady(false));
-    }
     return () => stopCamera();
   }, []);
 
@@ -144,30 +40,6 @@ export default function DocumentScanner({
     streamRef.current?.getTracks().forEach(t => t.stop());
   };
 
-  // Recadrage manuel basé sur la zone du cadre guide (fallback / mode photo visage)
-  const cropWithGuide = (video, canvas) => {
-    const guide = guideRef.current;
-    const container = containerRef.current;
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
-    const containerRect = container.getBoundingClientRect();
-    const guideRect = guide.getBoundingClientRect();
-    const displayW = containerRect.width;
-    const displayH = containerRect.height;
-    const scale = Math.max(vw / displayW, vh / displayH);
-    const renderedW = vw / scale;
-    const renderedH = vh / scale;
-    const offsetX = (displayW - renderedW) / 2;
-    const offsetY = (displayH - renderedH) / 2;
-    const gLeft = (guideRect.left - containerRect.left - offsetX) * scale;
-    const gTop = (guideRect.top - containerRect.top - offsetY) * scale;
-    const gW = guideRect.width * scale;
-    const gH = guideRect.height * scale;
-    canvas.width = Math.round(gW);
-    canvas.height = Math.round(gH);
-    canvas.getContext("2d").drawImage(video, Math.round(gLeft), Math.round(gTop), Math.round(gW), Math.round(gH), 0, 0, canvas.width, canvas.height);
-  };
-
   const takePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -175,35 +47,42 @@ export default function DocumentScanner({
     const container = containerRef.current;
     if (!video || !canvas || !guide || !container) return;
 
-    let usedAutoDetect = false;
+    // Dimensions réelles du video stream
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
 
-    // Mode document : détection automatique des bords + correction de perspective via OpenCV (jscanify)
-    if (isDocumentMode && cvReady) {
-      try {
-        const vw = video.videoWidth;
-        const vh = video.videoHeight;
-        const fullCanvas = document.createElement("canvas");
-        fullCanvas.width = vw;
-        fullCanvas.height = vh;
-        fullCanvas.getContext("2d").drawImage(video, 0, 0, vw, vh);
+    // Dimensions affichées dans le DOM
+    const containerRect = container.getBoundingClientRect();
+    const guideRect = guide.getBoundingClientRect();
 
-        const resultWidth = 1000;
-        const resultHeight = Math.round(resultWidth / guideRatio);
-        const resultCanvas = extractDocument(fullCanvas, resultWidth, resultHeight);
-        if (resultCanvas) {
-          canvas.width = resultWidth;
-          canvas.height = resultHeight;
-          canvas.getContext("2d").drawImage(resultCanvas, 0, 0);
-          usedAutoDetect = true;
-        }
-      } catch (err) {
-        usedAutoDetect = false;
-      }
-    }
+    // Ratio entre pixels vidéo et pixels CSS (object-cover)
+    // La vidéo est en object-cover dans le container
+    const displayW = containerRect.width;
+    const displayH = containerRect.height;
 
-    if (!usedAutoDetect) {
-      cropWithGuide(video, canvas);
-    }
+    // Facteur de mise à l'échelle object-cover
+    const scaleX = vw / displayW;
+    const scaleY = vh / displayH;
+    // object-cover garde le ratio en coupant, on prend le plus grand facteur
+    const scale = Math.max(scaleX, scaleY);
+
+    // Offset de la vidéo centrée en object-cover
+    const renderedW = vw / scale;
+    const renderedH = vh / scale;
+    const offsetX = (displayW - renderedW) / 2;
+    const offsetY = (displayH - renderedH) / 2;
+
+    // Position du cadre guide dans les coordonnées vidéo
+    const gLeft = (guideRect.left - containerRect.left - offsetX) * scale;
+    const gTop = (guideRect.top - containerRect.top - offsetY) * scale;
+    const gW = guideRect.width * scale;
+    const gH = guideRect.height * scale;
+
+    // Dessine uniquement la zone du document
+    canvas.width = Math.round(gW);
+    canvas.height = Math.round(gH);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, Math.round(gLeft), Math.round(gTop), Math.round(gW), Math.round(gH), 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob((blob) => {
       const file = new File([blob], "document.jpg", { type: "image/jpeg" });
@@ -228,10 +107,7 @@ export default function DocumentScanner({
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-black/80">
-        <span className="text-white text-sm font-medium flex items-center gap-2">
-          Scanner le document
-          {isDocumentMode && !cvReady && <Loader2 className="w-3.5 h-3.5 animate-spin text-white/70" />}
-        </span>
+        <span className="text-white text-sm font-medium">Scanner le document</span>
         <button onClick={() => { stopCamera(); onClose(); }} className="text-white p-1">
           <X className="w-5 h-5" />
         </button>
