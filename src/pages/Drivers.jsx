@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, User, Phone, CreditCard, Route, Pencil, Trash2, Upload, ExternalLink, Loader2, Truck, X, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -180,69 +181,83 @@ export default function Drivers() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {drivers.map(d => {
-          const stats = driverStats[d.id] || { km: 0, missions: 0 };
-          const now = new Date();
-          const permisExpiry = d.date_expiration_permis ? new Date(d.date_expiration_permis) : null;
-          const daysLeft = permisExpiry ? Math.floor((permisExpiry - now) / 86400000) : null;
-          const assignedVehicles = driverVehicles[d.id] || [];
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Chauffeur</TableHead>
+                <TableHead>Téléphone</TableHead>
+                <TableHead>Permis</TableHead>
+                <TableHead>Km total</TableHead>
+                <TableHead>Missions</TableHead>
+                <TableHead>Véhicules</TableHead>
+                <TableHead>Documents</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {drivers.map(d => {
+                const stats = driverStats[d.id] || { km: 0, missions: 0 };
+                const now = new Date();
+                const permisExpiry = d.date_expiration_permis ? new Date(d.date_expiration_permis) : null;
+                const daysLeft = permisExpiry ? Math.floor((permisExpiry - now) / 86400000) : null;
+                const assignedVehicles = driverVehicles[d.id] || [];
 
-          return (
-            <Card key={d.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                      {d.photo_url ? (
-                        <img src={d.photo_url} alt={`${d.prenom} ${d.nom}`} className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="w-5 h-5 text-primary" />
-                      )}
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">{d.prenom} {d.nom}</CardTitle>
-                      <p className="text-xs text-muted-foreground">Permis {d.categorie_permis || "-"}</p>
-                    </div>
-                  </div>
-                  <Badge className={cn("text-[10px]", statusColors[d.statut])}>{statusLabels[d.statut]}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-xs">
-                <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" />{d.telephone || "-"}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><CreditCard className="w-3 h-3" />Permis</span><span className={cn("font-medium", daysLeft !== null && daysLeft < 60 && "text-destructive")}>{d.date_expiration_permis || "-"}{daysLeft !== null && daysLeft < 60 ? ` (${daysLeft}j)` : ""}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Route className="w-3 h-3" />Km total</span><span className="font-medium">{stats.km.toLocaleString("fr-FR")} km</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Missions</span><span className="font-medium">{stats.missions}</span></div>
-
-                {/* Véhicules affectés */}
-                {assignedVehicles.length > 0 && (
-                  <div className="flex items-center gap-1 flex-wrap pt-1">
-                    <Truck className="w-3 h-3 text-muted-foreground" />
-                    {assignedVehicles.map(v => (
-                      <Badge key={v.id} variant="outline" className="text-[10px] font-mono">{v.code_camion || v.immatriculation}</Badge>
-                    ))}
-                  </div>
-                )}
-
-                {/* Documents */}
-                <div className="flex gap-2 pt-1">
-                  {d.doc_permis_url && <a href={d.doc_permis_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 underline flex items-center gap-0.5"><ExternalLink className="w-3 h-3" />Permis</a>}
-                  {d.doc_cni_url && <a href={d.doc_cni_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 underline flex items-center gap-0.5"><ExternalLink className="w-3 h-3" />CNI</a>}
-                </div>
-
-                <div className="flex gap-2 pt-2 border-t border-border">
-                  <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => openEdit(d)}>
-                    <Pencil className="w-3 h-3 mr-1" /> Modifier
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(d)} disabled={deleteMutation.isPending}>
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                return (
+                  <TableRow key={d.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+                          {d.photo_url ? (
+                            <img src={d.photo_url} alt={`${d.prenom} ${d.nom}`} className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-4 h-4 text-primary" />
+                          )}
+                        </div>
+                        <span className="font-medium text-sm">{d.prenom} {d.nom}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs flex items-center gap-1"><Phone className="w-3 h-3 text-muted-foreground" />{d.telephone || "-"}</TableCell>
+                    <TableCell className="text-xs">
+                      <span className={cn(daysLeft !== null && daysLeft < 60 && "text-destructive font-medium")}>
+                        {d.categorie_permis || "-"} — {d.date_expiration_permis || "-"}{daysLeft !== null && daysLeft < 60 ? ` (${daysLeft}j)` : ""}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs font-medium">{stats.km.toLocaleString("fr-FR")} km</TableCell>
+                    <TableCell className="text-xs font-medium">{stats.missions}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {assignedVehicles.map(v => (
+                          <Badge key={v.id} variant="outline" className="text-[10px] font-mono">{v.code_camion || v.immatriculation}</Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {d.doc_permis_url && <a href={d.doc_permis_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 underline flex items-center gap-0.5"><ExternalLink className="w-3 h-3" />Permis</a>}
+                        {d.doc_cni_url && <a href={d.doc_cni_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 underline flex items-center gap-0.5"><ExternalLink className="w-3 h-3" />CNI</a>}
+                      </div>
+                    </TableCell>
+                    <TableCell><Badge className={cn("text-[10px]", statusColors[d.statut])}>{statusLabels[d.statut]}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-2 justify-end">
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(d)}>
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(d)} disabled={deleteMutation.isPending}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
