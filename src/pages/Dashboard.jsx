@@ -23,7 +23,7 @@ import GpsLiveWidget         from "@/components/dashboard/GpsLiveWidget";
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 const fmt = (n) => n.toLocaleString("fr-FR");
 
-function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel }) {
+function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, className }) {
   const colorMap = {
     green:   { bg: "bg-emerald-500/10", card: "bg-emerald-50",  text: "text-emerald-600", bar: "bg-emerald-500" },
     blue:    { bg: "bg-blue-500/10",    card: "bg-blue-50",     text: "text-blue-600",    bar: "bg-blue-500" },
@@ -35,7 +35,7 @@ function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel
   const c = colorMap[color] || colorMap.primary;
 
   return (
-    <div className={`${c.card} rounded-xl border border-border p-5 hover:shadow-md transition-shadow group`}>
+    <div className={`${c.card} rounded-xl border border-border p-5 hover:shadow-md transition-shadow group ${className || ""}`}>
       <div className="flex items-start justify-between mb-3">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${c.bg}`}>
           <Icon className={`w-5 h-5 ${c.text}`} />
@@ -175,12 +175,12 @@ export default function Dashboard() {
       </div>
 
       {/* ── Row 2 : KPI opérationnels ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
         <StatCard title="Taux d'utilisation" value={`${fleetRate}%`}          subtitle="flotte active"        icon={Activity}   color="primary" />
-        <StatCard title="Carburant (mois)"   value={formatCFA(totalFuelCost)} subtitle={`${fmt(Math.round(totalLitres))} L`} icon={Fuel} color="orange" trend={fuelTrend} />
+        <StatCard title="Carburant (mois)"   value={formatCFA(totalFuelCost)} subtitle={`${fmt(Math.round(totalLitres))} L`} icon={Fuel} color="orange" trend={fuelTrend} className="col-span-2" />
         <StatCard title="Rotations (mois)"   value={fmt(rotMonth.length)}     subtitle={`${fmt(Math.round(tonnageMonth))} t`} icon={TrendingUp} color="blue" trend={rotTrend} />
         <StatCard title="Campagnes actives"  value={activeCampaigns}          subtitle={`${termineeCampaigns} terminée(s)`} icon={Package}   color="indigo" />
-        <StatCard title="Maintenance (mois)" value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="red" />
+        <StatCard title="Maintenance (mois)" value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="red" className="col-span-2" />
         <StatCard title="Chauffeurs actifs"  value={drivers.filter(d => d.statut === "actif").length} subtitle={`${drivers.length} total`} icon={Users} color="green" />
       </div>
 
