@@ -59,7 +59,7 @@ export default function Dashboard() {
   const [seeded, setSeeded] = useState(false);
   const [quickTripOpen, setQuickTripOpen] = useState(false);
 
-  const { data: vehicles = [], refetch: refetchV } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: vehicles = [], refetch: refetchV, isLoading: vehiclesLoading } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
   const { data: drivers = [], refetch: refetchD }  = useQuery({ queryKey: ["drivers"],  queryFn: () => base44.entities.Driver.list() });
   const { data: trips = [] }       = useQuery({ queryKey: ["trips"],        queryFn: () => base44.entities.TripLog.list("-date_depart", 100),      enabled: seeded || vehicles.length > 0 });
   const { data: fuelEntries = [] } = useQuery({ queryKey: ["fuel"],         queryFn: () => base44.entities.FuelEntry.list("-date", 200),           enabled: seeded || vehicles.length > 0 });
@@ -72,7 +72,7 @@ export default function Dashboard() {
   // Demo seed
   useEffect(() => {
     async function seed() {
-      if (vehicles.length === 0 && !seeded) {
+      if (!vehiclesLoading && vehicles.length === 0 && !seeded) {
         const cv = await base44.entities.Vehicle.bulkCreate(demoVehicles);
         const cd = await base44.entities.Driver.bulkCreate(demoDrivers);
         await base44.entities.TripLog.bulkCreate(generateDemoTrips(cv.map(v => v.id), cd.map(d => d.id)));
@@ -83,7 +83,7 @@ export default function Dashboard() {
       }
     }
     seed();
-  }, [vehicles.length]);
+  }, [vehicles.length, vehiclesLoading]);
 
   // ── KPIs ──────────────────────────────────────────────────────────────
   const now       = new Date();
