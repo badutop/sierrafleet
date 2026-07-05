@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Truck, BookOpen, Fuel, Wrench, 
   Users, BarChart3, Settings, ChevronLeft, ChevronRight,
-  Package, Receipt, UserCog, Ship, Building2, Factory, Navigation, Zap, LogOut, AlertTriangle
+  Package, Receipt, UserCog, Ship, Building2, Factory, Navigation, Zap, LogOut, AlertTriangle, ScrollText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
@@ -25,6 +25,7 @@ const navItems = [
   { path: "/reports",     label: "Rapports",                 icon: BarChart3,       module: "reports" },
   { path: "/gps",         label: "GPS Tracking",             icon: Navigation,      module: "gps" },
   { path: "/users",       label: "Utilisateurs",             icon: UserCog,         module: "users" },
+  { path: "/audit-log",   label: "Journal d'Audit",          icon: ScrollText,      module: "audit-log" },
   { path: "/settings",    label: "Paramètres",               icon: Settings,        module: "settings" },
 ];
 

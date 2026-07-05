@@ -1,0 +1,68 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "entity_name": {
+      "type": "string",
+      "description": "Nom de l'entit\u00e9 concern\u00e9e (ex: Driver, Vehicle, Expense)"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID de l'enregistrement concern\u00e9"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "default": "update"
+    },
+    "changed_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Champs modifi\u00e9s (pour une mise \u00e0 jour)"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Utilisateur \u00e0 l'origine de l'action"
+    },
+    "summary": {
+      "type": "string",
+      "description": "R\u00e9sum\u00e9 lisible de l'action"
+    },
+    "old_data": {
+      "type": "string",
+      "description": "Donn\u00e9es avant modification (JSON)"
+    },
+    "new_data": {
+      "type": "string",
+      "description": "Donn\u00e9es apr\u00e8s modification (JSON)"
+    }
+  },
+  "required": [
+    "entity_name",
+    "action"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

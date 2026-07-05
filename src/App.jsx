@@ -32,6 +32,7 @@ import RotationsCalendar from '@/pages/campaigns/RotationsCalendar';
 import MigrationPage from '@/pages/MigrationPage';
 import GpsTracking from '@/pages/GpsTracking';
 import DriverRefuelPage from '@/pages/DriverRefuelPage';
+import AuditLogPage from '@/pages/AuditLogPage';
 
 const AuthenticatedApp = () => {
   // Render the main app without any authentication gating
@@ -59,6 +60,7 @@ const AuthenticatedApp = () => {
         <Route path="/migration" element={<MigrationPage />} />
         <Route path="/gps" element={<GpsTracking />} />
         <Route path="/refuel" element={<DriverRefuelPage />} />
+        <Route path="/audit-log" element={<AuditLogPage />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
