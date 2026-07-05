@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, User, Phone, CreditCard, Route, Pencil, Trash2, Upload, ExternalLink, Loader2, Truck, X, Camera } from "lucide-react";
+import { Plus, User, Pencil, Trash2, Upload, ExternalLink, Loader2, X, Camera, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
@@ -113,6 +113,7 @@ export default function Drivers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
 
   const { data: drivers = [] } = useQuery({ queryKey: ["drivers"], queryFn: () => base44.entities.Driver.list() });
@@ -151,23 +152,11 @@ export default function Drivers() {
     setForm(f => ({ ...f, [fieldKey]: url }));
   };
 
-  const driverStats = {};
-  trips.forEach(t => {
-    if (!driverStats[t.driver_id]) driverStats[t.driver_id] = { km: 0, missions: 0 };
-    driverStats[t.driver_id].km += t.km_parcourus || 0;
-    driverStats[t.driver_id].missions += 1;
-  });
-
-  // Map driver -> vehicles assigned
-  const driverVehicles = {};
-  vehicles.forEach(v => {
-    if (v.driver_id) {
-      if (!driverVehicles[v.driver_id]) driverVehicles[v.driver_id] = [];
-      driverVehicles[v.driver_id].push(v);
-    }
-  });
-
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  const filteredDrivers = drivers.filter(d =>
+    `${d.prenom} ${d.nom}`.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -181,29 +170,33 @@ export default function Drivers() {
         </Button>
       </div>
 
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Rechercher un chauffeur..."
+          className="pl-9"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Chauffeur</TableHead>
-                <TableHead>Téléphone</TableHead>
-                <TableHead>Permis</TableHead>
-                <TableHead>Km total</TableHead>
-                <TableHead>Missions</TableHead>
-                <TableHead>Véhicules</TableHead>
-                <TableHead>Documents</TableHead>
+                <TableHead>Date d'embauche</TableHead>
+                <TableHead>Expiration permis</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {drivers.map(d => {
-                const stats = driverStats[d.id] || { km: 0, missions: 0 };
+              {filteredDrivers.map(d => {
                 const now = new Date();
                 const permisExpiry = d.date_expiration_permis ? new Date(d.date_expiration_permis) : null;
                 const daysLeft = permisExpiry ? Math.floor((permisExpiry - now) / 86400000) : null;
-                const assignedVehicles = driverVehicles[d.id] || [];
 
                 return (
                   <TableRow key={d.id}>
@@ -219,26 +212,11 @@ export default function Drivers() {
                         <span className="font-medium text-sm">{d.prenom} {d.nom}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs flex items-center gap-1"><Phone className="w-3 h-3 text-muted-foreground" />{d.telephone || "-"}</TableCell>
+                    <TableCell className="text-xs">{d.date_embauche || "-"}</TableCell>
                     <TableCell className="text-xs">
                       <span className={cn(daysLeft !== null && daysLeft < 60 && "text-destructive font-medium")}>
-                        {d.categorie_permis || "-"} — {d.date_expiration_permis || "-"}{daysLeft !== null && daysLeft < 60 ? ` (${daysLeft}j)` : ""}
+                        {daysLeft !== null ? `${daysLeft} j` : "-"}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-xs font-medium">{stats.km.toLocaleString("fr-FR")} km</TableCell>
-                    <TableCell className="text-xs font-medium">{stats.missions}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {assignedVehicles.map(v => (
-                          <Badge key={v.id} variant="outline" className="text-[10px] font-mono">{v.code_camion || v.immatriculation}</Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {d.doc_permis_url && <a href={d.doc_permis_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 underline flex items-center gap-0.5"><ExternalLink className="w-3 h-3" />Permis</a>}
-                        {d.doc_cni_url && <a href={d.doc_cni_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 underline flex items-center gap-0.5"><ExternalLink className="w-3 h-3" />CNI</a>}
-                      </div>
                     </TableCell>
                     <TableCell><Badge className={cn("text-[10px]", statusColors[d.statut])}>{statusLabels[d.statut]}</Badge></TableCell>
                     <TableCell className="text-right">
