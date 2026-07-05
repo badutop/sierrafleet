@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Truck, Gauge, Calendar, Pencil, Trash2, FileText, User } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Search, Truck, Pencil, Trash2, FileText, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import VehicleDocuments from "@/components/vehicles/VehicleDocuments";
@@ -115,50 +116,65 @@ export default function Vehicles() {
       {isLoading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(v => (
-            <Card key={v.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Truck className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">{v.immatriculation}</CardTitle>
-                      <p className="text-xs text-muted-foreground">{v.code_camion && <span className="font-mono font-bold text-secondary mr-1">{v.code_camion}</span>}{v.marque} {v.modele}</p>
-                    </div>
-                  </div>
-                  <Badge className={cn("text-[10px]", statusColors[v.statut])}>{statusLabels[v.statut]}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-xs">
-                <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Gauge className="w-3 h-3" /> Kilométrage</span><span className="font-medium">{(v.km_actuel || 0).toLocaleString("fr-FR")} km</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Type</span><span className="font-medium">{typeLabels[v.type_vehicule] || v.type_vehicule}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Charge</span><span className="font-medium">{v.capacite_charge_tonnes || "-"} T</span></div>
-                {v.date_assurance && <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Assurance</span><span className="font-medium">{v.date_assurance}</span></div>}
-                {v.driver_id && (() => { const d = drivers.find(d => d.id === v.driver_id); return d ? <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><User className="w-3 h-3" /> Chauffeur</span><span className="font-medium">{d.prenom} {d.nom}</span></div> : null; })()}
-                <div className="flex gap-2 pt-2 border-t border-border">
-                  <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => openEdit(v)}>
-                    <Pencil className="w-3 h-3 mr-1" /> Modifier
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className={cn("h-7 text-xs", (v.doc_carte_grise_url || v.doc_assurance_url || v.doc_visite_technique_url) ? "text-blue-600 border-blue-200 hover:bg-blue-50" : "")}
-                    onClick={() => setDocsVehicle(v)}
-                    title="Documents"
-                  >
-                    <FileText className="w-3 h-3" />
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(v)} disabled={deleteMutation.isPending}>
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Véhicule</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Chauffeur</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(v => {
+                  const d = drivers.find(dr => dr.id === v.driver_id);
+                  return (
+                    <TableRow key={v.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <Truck className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{v.immatriculation}</p>
+                            <p className="text-[11px] text-muted-foreground">{v.code_camion && <span className="font-mono font-bold text-secondary mr-1">{v.code_camion}</span>}{v.marque} {v.modele}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs">{typeLabels[v.type_vehicule] || v.type_vehicule}</TableCell>
+                      <TableCell className="text-xs">
+                        {d ? <span className="flex items-center gap-1"><User className="w-3 h-3 text-muted-foreground" /> {d.prenom} {d.nom}</span> : "-"}
+                      </TableCell>
+                      <TableCell><Badge className={cn("text-[10px]", statusColors[v.statut])}>{statusLabels[v.statut]}</Badge></TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(v)}>
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={cn("h-7 text-xs", (v.doc_carte_grise_url || v.doc_assurance_url || v.doc_visite_technique_url) ? "text-blue-600 border-blue-200 hover:bg-blue-50" : "")}
+                            onClick={() => setDocsVehicle(v)}
+                            title="Documents"
+                          >
+                            <FileText className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(v)} disabled={deleteMutation.isPending}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       <VehicleDocuments
