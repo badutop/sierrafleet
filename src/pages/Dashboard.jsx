@@ -16,7 +16,7 @@ import CampaignProgressChart from "@/components/dashboard/CampaignProgressChart"
 import MaintenanceCostChart  from "@/components/dashboard/MaintenanceCostChart";
 import RotationsTrendChart   from "@/components/dashboard/RotationsTrendChart";
 import ExpenseBreakdownChart from "@/components/dashboard/ExpenseBreakdownChart";
-import TopDriversCard        from "@/components/dashboard/TopDriversCard";
+import TruckPerformanceCard  from "@/components/dashboard/TruckPerformanceCard";
 import DashboardAlerts       from "@/components/dashboard/DashboardAlerts";
 import GpsLiveWidget         from "@/components/dashboard/GpsLiveWidget";
 
@@ -204,7 +204,7 @@ export default function Dashboard() {
       {/* ── Row 5 : Dépenses breakdown + Top drivers + Alertes ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <ExpenseBreakdownChart expenses={expenses} />
-        <TopDriversCard        drivers={drivers} rotations={rotations} campaigns={campaigns} />
+        <TruckPerformanceCard  vehicles={vehicles} rotations={rotations} fuelEntries={fuelEntries} />
         <DashboardAlerts       alerts={alerts} />
       </div>
 
