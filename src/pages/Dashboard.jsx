@@ -166,14 +166,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Row 1 : KPI principale flotte ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard title="Véhicules disponibles"  value={disponible}  subtitle={`${vehicles.length} total`} icon={Truck}         color="green"  />
-        <StatCard title="En mission"             value={enMission}   subtitle="actifs"                    icon={Route}          color="blue"   />
-        <StatCard title="En maintenance"         value={enMaint}     subtitle="immobilisés"               icon={Wrench}         color="orange" />
-        <StatCard title="Hors service"           value={horsService} subtitle="indisponibles"             icon={AlertTriangle}  color="red"    />
-      </div>
-
       {/* ── Row 2 : KPI opérationnels ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
         <StatCard title="Taux d'utilisation" value={`${fleetRate}%`}          subtitle="flotte active"        icon={Activity}   color="primary" />
@@ -181,7 +173,6 @@ export default function Dashboard() {
         <StatCard title="Rotations (mois)"   value={fmt(rotMonth.length)}     subtitle={`${fmt(Math.round(tonnageMonth))} t`} icon={TrendingUp} color="blue" trend={rotTrend} />
         <StatCard title="Campagnes actives"  value={activeCampaigns}          subtitle={`${termineeCampaigns} terminée(s)`} icon={Package}   color="indigo" />
         <StatCard title="Maintenance (mois)" value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="red" className="col-span-2" />
-        <StatCard title="Chauffeurs actifs"  value={drivers.filter(d => d.statut === "actif").length} subtitle={`${drivers.length} total`} icon={Users} color="green" />
       </div>
 
       {/* ── Row 3 : Flotte donut + Rotations trend + Fuel trend ── */}
