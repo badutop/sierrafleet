@@ -66,7 +66,7 @@ const PRINT_STYLES = `
 
 export default function CampaignInvoice({ campaign, client, rotations, onClose }) {
   const [sharing, setSharing] = useState(false);
-  const prixTonne = getPrixTonne();
+  const prixTonne = Number(client?.tarif_par_tonne || 0);
   const tvaPct = getTvaPct();
 
   const rotationsDone = rotations.filter(r => r.statut !== "annulee");
@@ -85,8 +85,7 @@ export default function CampaignInvoice({ campaign, client, rotations, onClose }
           <div className="text-4xl">⚠️</div>
           <h2 className="font-bold text-lg">Prix à la tonne non configuré</h2>
           <p className="text-sm text-muted-foreground">
-            Veuillez d'abord définir le prix par tonne dans les <strong>Paramètres → Facturation campagnes</strong>.
-            Ce paramètre n'est saisi qu'une seule fois.
+            Veuillez d'abord définir le <strong>tarif par tonne</strong> pour ce client dans la page <strong>Clients</strong>.
           </p>
           <Button variant="outline" onClick={onClose}>Fermer</Button>
         </div>
