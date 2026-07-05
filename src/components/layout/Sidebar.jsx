@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Truck, BookOpen, Fuel, Wrench, 
   Users, BarChart3, Settings, ChevronLeft, ChevronRight,
-  Package, Receipt, UserCog, Ship, Building2, Factory, Navigation, Zap, LogOut
+  Package, Receipt, UserCog, Ship, Building2, Factory, Navigation, Zap, LogOut, AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
@@ -16,7 +16,8 @@ const navItems = [
   { path: "/clients",     label: "Clients",                  icon: Building2,       module: "campaigns" },
   { path: "/fuel",        label: "Carburant",                icon: Fuel,            module: "fuel" },
   { path: "/refuel",      label: "Rechargement Auto",        icon: Zap,             module: "refuel" },
-  { path: "/maintenance", label: "Maintenance & Réparations",icon: Wrench,          module: "maintenance" },
+  { path: "/maintenance", label: "Maintenance",              icon: Wrench,          module: "maintenance" },
+  { path: "/repairs",     label: "Réparations",              icon: AlertTriangle,   module: "repairs" },
   { path: "/expenses",    label: "Frais",                    icon: Receipt,         module: "expenses" },
   { path: "/spare-parts", label: "Pièces Détachées",         icon: Package,         module: "spare-parts" },
   { path: "/suppliers",   label: "Fournisseurs",             icon: Factory,         module: "suppliers" },

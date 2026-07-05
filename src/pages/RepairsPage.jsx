@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Wrench, List, Calendar, Truck, Plus } from "lucide-react";
+import { AlertTriangle, List, Calendar, Truck, Plus } from "lucide-react";
 import { toast } from "sonner";
 import MaintenanceKpiStrip from "@/components/maintenance/MaintenanceKpiStrip";
 import MaintenanceListTab from "@/components/maintenance/MaintenanceListTab";
@@ -11,7 +11,7 @@ import MaintenancePlanningTab from "@/components/maintenance/MaintenancePlanning
 import MaintenanceVehicleTab from "@/components/maintenance/MaintenanceVehicleTab";
 import MaintenanceDialog from "@/components/maintenance/MaintenanceDialog";
 
-export default function MaintenancePage() {
+export default function RepairsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
   const [activeTab, setActiveTab] = useState("liste");
@@ -30,7 +30,7 @@ export default function MaintenancePage() {
     queryFn: () => base44.entities.Rotation.list("-date_rotation", 1000),
   });
 
-  const maintenances = allMaintenances.filter(m => m.categorie !== "corrective");
+  const maintenances = allMaintenances.filter(m => m.categorie === "corrective");
 
   const saveMutation = useMutation({
     mutationFn: (data) => {
@@ -41,7 +41,7 @@ export default function MaintenancePage() {
       queryClient.invalidateQueries({ queryKey: ["maintenances"] });
       setDialogOpen(false);
       setEditEntry(null);
-      toast.success("Intervention enregistrée");
+      toast.success("Réparation enregistrée");
     },
   });
 
@@ -49,7 +49,7 @@ export default function MaintenancePage() {
     mutationFn: (id) => base44.entities.Maintenance.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["maintenances"] });
-      toast.success("Intervention supprimée");
+      toast.success("Réparation supprimée");
     },
   });
 
@@ -59,7 +59,7 @@ export default function MaintenancePage() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["maintenances"] });
       const labels = { en_cours: "démarrée ▶", realise: "validée ✔" };
-      toast.success(`Intervention ${labels[vars.statut] || "mise à jour"}`);
+      toast.success(`Réparation ${labels[vars.statut] || "mise à jour"}`);
     },
   });
 
@@ -79,15 +79,15 @@ export default function MaintenancePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Wrench className="w-6 h-6 text-secondary" />
-            Maintenance
+            <AlertTriangle className="w-6 h-6 text-secondary" />
+            Réparations
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {maintenances.length} interventions · {enCoursCount} en cours · {planifieeCount} planifiées
           </p>
         </div>
         <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleNew}>
-          <Plus className="w-4 h-4 mr-2" /> Nouvelle intervention
+          <Plus className="w-4 h-4 mr-2" /> Nouvelle réparation
         </Button>
       </div>
 
@@ -152,7 +152,7 @@ export default function MaintenancePage() {
         entry={editEntry}
         onSave={(data) => saveMutation.mutate(data)}
         isPending={saveMutation.isPending}
-        defaultCategorie="preventive"
+        defaultCategorie="corrective"
       />
     </div>
   );

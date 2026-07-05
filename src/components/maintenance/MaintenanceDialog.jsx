@@ -29,7 +29,7 @@ const emptyForm = {
   statut: "planifie", gravite: "moyenne", observations: "",
 };
 
-export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry, onSave, isPending }) {
+export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry, onSave, isPending, defaultCategorie }) {
   const [form, setForm] = useState(emptyForm);
   const [selectedPart, setSelectedPart] = useState("");
   const [selectedParts, setSelectedParts] = useState([]);
@@ -61,10 +61,10 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
 
   useEffect(() => {
     if (entry) setForm({ ...emptyForm, ...entry });
-    else setForm(emptyForm);
+    else setForm({ ...emptyForm, categorie: defaultCategorie || emptyForm.categorie });
     setSelectedParts([]);
     setSelectedPart("");
-  }, [entry, open]);
+  }, [entry, open, defaultCategorie]);
 
   const set = (k, v) => { if (!isReadOnly) setForm(f => ({ ...f, [k]: v })); };
 
@@ -109,20 +109,6 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
             </Select>
             {!form.vehicle_id && <p className="text-[11px] text-destructive mt-1">Véhicule requis pour enregistrer</p>}
           </div>
-
-          {/* Catégorie */}
-          <div>
-            <Label className="text-xs">Catégorie *</Label>
-            <Select value={form.categorie} onValueChange={v => set("categorie", v)}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="preventive">🔧 Préventive (planifiée)</SelectItem>
-                <SelectItem value="corrective">🚨 Corrective (panne/réparation)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-
 
           {/* Type */}
           <div>
