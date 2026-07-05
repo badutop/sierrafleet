@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, X, RotateCcw, Loader2 } from "lucide-react";
-import jscanify from "jscanify";
 
 const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
 const OPENCV_URL = "https://docs.opencv.org/4.8.0/opencv.js";
@@ -28,6 +27,80 @@ function loadOpenCv() {
     document.body.appendChild(script);
   });
   return opencvLoadPromise;
+}
+
+// Détecte le plus grand contour à 4 côtés dans l'image et applique une correction de perspective
+function extractDocument(sourceCanvas, resultWidth, resultHeight) {
+  const cv = window.cv;
+  const src = cv.imread(sourceCanvas);
+  const gray = new cv.Mat();
+  const blurred = new cv.Mat();
+  const edged = new cv.Mat();
+  const dilated = new cv.Mat();
+  const contours = new cv.MatVector();
+  const hierarchy = new cv.Mat();
+  let resultCanvas = null;
+
+  try {
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+    cv.Canny(blurred, edged, 50, 150);
+    cv.dilate(edged, dilated, cv.Mat.ones(3, 3, cv.CV_8U));
+    cv.findContours(dilated, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+    let bestQuad = null;
+    let bestArea = 0;
+    const minArea = src.rows * src.cols * 0.15;
+
+    for (let i = 0; i < contours.size(); i++) {
+      const contour = contours.get(i);
+      const peri = cv.arcLength(contour, true);
+      const approx = new cv.Mat();
+      cv.approxPolyDP(contour, approx, 0.02 * peri, true);
+      const area = cv.contourArea(approx);
+      if (approx.rows === 4 && area > minArea && area > bestArea) {
+        bestArea = area;
+        if (bestQuad) bestQuad.delete();
+        bestQuad = approx;
+      } else {
+        approx.delete();
+      }
+      contour.delete();
+    }
+
+    if (bestQuad) {
+      const pts = [];
+      for (let i = 0; i < 4; i++) {
+        pts.push({ x: bestQuad.data32S[i * 2], y: bestQuad.data32S[i * 2 + 1] });
+      }
+      bestQuad.delete();
+
+      // Ordonne les points : haut-gauche, haut-droit, bas-droit, bas-gauche
+      pts.sort((a, b) => a.y - b.y);
+      const top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
+      const bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
+      const [tl, tr] = top;
+      const [bl, br] = bottom;
+
+      const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y]);
+      const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, resultWidth, 0, resultWidth, resultHeight, 0, resultHeight]);
+      const M = cv.getPerspectiveTransform(srcTri, dstTri);
+      const dst = new cv.Mat();
+      cv.warpPerspective(src, dst, M, new cv.Size(resultWidth, resultHeight));
+
+      resultCanvas = document.createElement("canvas");
+      resultCanvas.width = resultWidth;
+      resultCanvas.height = resultHeight;
+      cv.imshow(resultCanvas, dst);
+
+      srcTri.delete(); dstTri.delete(); M.delete(); dst.delete();
+    }
+  } finally {
+    src.delete(); gray.delete(); blurred.delete(); edged.delete();
+    dilated.delete(); contours.delete(); hierarchy.delete();
+  }
+
+  return resultCanvas;
 }
 
 export default function DocumentScanner({
@@ -116,8 +189,7 @@ export default function DocumentScanner({
 
         const resultWidth = 1000;
         const resultHeight = Math.round(resultWidth / guideRatio);
-        const scanner = new jscanify();
-        const resultCanvas = scanner.extractPaper(fullCanvas, resultWidth, resultHeight);
+        const resultCanvas = extractDocument(fullCanvas, resultWidth, resultHeight);
         if (resultCanvas) {
           canvas.width = resultWidth;
           canvas.height = resultHeight;
