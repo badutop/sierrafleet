@@ -133,6 +133,7 @@ export default function ClientsPage() {
             <CardContent className="space-y-2 text-xs">
               {c.contact_nom && <div className="flex justify-between"><span className="text-muted-foreground">Contact</span><span>{c.contact_nom}</span></div>}
               {c.contact_telephone && <div className="flex gap-2 text-muted-foreground"><Phone className="w-3 h-3 mt-0.5" /><span>{c.contact_telephone}</span></div>}
+              {c.tarif_par_tonne ? <div className="flex justify-between"><span className="text-muted-foreground">Tarif/tonne</span><span>{new Intl.NumberFormat("fr-FR").format(c.tarif_par_tonne)} FCFA</span></div> : null}
               {/* Dépôts */}
               {(() => { const clientDepots = allDepots.filter(d => d.client_id === c.id); return clientDepots.length > 0 ? (
                 <div className="pt-1 border-t border-border space-y-1">
@@ -185,6 +186,7 @@ export default function ClientsPage() {
               </div>
               <div><Label className="text-xs">Nom contact</Label><Input className="mt-1" value={form.contact_nom || ""} onChange={e => setForm({ ...form, contact_nom: e.target.value })} /></div>
               <div><Label className="text-xs">Téléphone contact</Label><Input className="mt-1" value={form.contact_telephone || ""} onChange={e => setForm({ ...form, contact_telephone: e.target.value })} /></div>
+              <div><Label className="text-xs">Tarif / tonne (FCFA)</Label><Input type="number" className="mt-1" value={form.tarif_par_tonne || ""} onChange={e => setForm({ ...form, tarif_par_tonne: e.target.value ? Number(e.target.value) : undefined })} /></div>
             </div>
 
             {/* Séparateur dépôts */}
