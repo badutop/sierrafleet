@@ -25,17 +25,17 @@ const fmt = (n) => n.toLocaleString("fr-FR");
 
 function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel }) {
   const colorMap = {
-    green:   { bg: "bg-emerald-500/10", text: "text-emerald-600", bar: "bg-emerald-500" },
-    blue:    { bg: "bg-blue-500/10",    text: "text-blue-600",    bar: "bg-blue-500" },
-    orange:  { bg: "bg-amber-500/10",   text: "text-amber-600",   bar: "bg-amber-500" },
-    red:     { bg: "bg-red-500/10",     text: "text-red-600",     bar: "bg-red-500" },
-    indigo:  { bg: "bg-indigo-500/10",  text: "text-indigo-600",  bar: "bg-indigo-500" },
-    primary: { bg: "bg-primary/10",     text: "text-primary",     bar: "bg-primary" },
+    green:   { bg: "bg-emerald-500/10", card: "bg-emerald-50",  text: "text-emerald-600", bar: "bg-emerald-500" },
+    blue:    { bg: "bg-blue-500/10",    card: "bg-blue-50",     text: "text-blue-600",    bar: "bg-blue-500" },
+    orange:  { bg: "bg-amber-500/10",   card: "bg-amber-50",    text: "text-amber-600",   bar: "bg-amber-500" },
+    red:     { bg: "bg-red-500/10",     card: "bg-red-50",      text: "text-red-600",     bar: "bg-red-500" },
+    indigo:  { bg: "bg-indigo-500/10",  card: "bg-indigo-50",   text: "text-indigo-600",  bar: "bg-indigo-500" },
+    primary: { bg: "bg-primary/10",     card: "bg-slate-50",    text: "text-primary",     bar: "bg-primary" },
   };
   const c = colorMap[color] || colorMap.primary;
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow group">
+    <div className={`${c.card} rounded-xl border border-border p-5 hover:shadow-md transition-shadow group`}>
       <div className="flex items-start justify-between mb-3">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${c.bg}`}>
           <Icon className={`w-5 h-5 ${c.text}`} />
@@ -47,7 +47,7 @@ function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel
           </div>
         )}
       </div>
-      <p className="text-2xl font-bold text-card-foreground">{value}</p>
+      <p className="text-lg font-semibold text-card-foreground truncate">{value}</p>
       <p className="text-xs text-muted-foreground mt-0.5">{title}</p>
       {subtitle && <p className="text-[11px] text-muted-foreground/70 mt-0.5">{subtitle}</p>}
       {trendLabel && <p className="text-[10px] text-muted-foreground/60 mt-1">{trendLabel}</p>}
