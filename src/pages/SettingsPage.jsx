@@ -9,6 +9,7 @@ import { getPrixTonne, getTvaPct, INVOICE_PRICE_KEY, INVOICE_TVA_KEY } from "@/c
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { demoVehicles, demoDrivers, generateDemoTrips, generateDemoFuel, generateDemoMaintenance } from "@/lib/demoData";
+import { confirm } from "@/lib/confirm";
 
 export const FUEL_PRICE_KEY = "sierra_fuel_price_per_litre";
 export function getFuelPricePerLitre() {
@@ -73,7 +74,7 @@ export default function SettingsPage() {
   };
 
   const resetDemo = async () => {
-    if (!confirm("Ceci va supprimer toutes les données et recharger les données de démonstration. Continuer ?")) return;
+    if (!(await confirm("Ceci va supprimer toutes les données et recharger les données de démonstration. Continuer ?"))) return;
     setLoading(true);
     const [vehicles, drivers, trips, fuel, maint] = await Promise.all([
       base44.entities.Vehicle.list(), base44.entities.Driver.list(),

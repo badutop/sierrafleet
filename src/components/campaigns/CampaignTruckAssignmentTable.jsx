@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Truck, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { confirm } from "@/lib/confirm";
 
 const statutVehicule = {
   disponible: { label: "Disponible", color: "bg-emerald-500/10 text-emerald-600" },
@@ -167,8 +168,8 @@ export default function CampaignTruckAssignmentTable({ campaignId }) {
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       <button
-                        onClick={() => {
-                          if (window.confirm(`Retirer ${v.immatriculation} de cette campagne ?`)) {
+                        onClick={async () => {
+                          if (await confirm(`Retirer ${v.immatriculation} de cette campagne ?`)) {
                             removeMutation.mutate(rotation.id);
                           }
                         }}

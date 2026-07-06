@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search, Building2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { confirm } from "@/lib/confirm";
 
 const emptyForm = { nom: "", telephone: "", email: "", adresse: "", actif: true };
 
@@ -50,8 +51,8 @@ export default function Suppliers() {
     else createMutation.mutate(form);
   };
 
-  const handleDelete = (s) => {
-    if (confirm(`Supprimer le fournisseur "${s.nom}" ?`)) deleteMutation.mutate(s.id);
+  const handleDelete = async (s) => {
+    if (await confirm(`Supprimer le fournisseur "${s.nom}" ?`)) deleteMutation.mutate(s.id);
   };
 
   const filtered = suppliers.filter(s =>

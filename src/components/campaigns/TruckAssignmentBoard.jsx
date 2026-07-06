@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Truck, GripVertical, Ship, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { confirm } from "@/lib/confirm";
 
 const statutColors = {
   planifiee: "bg-blue-500/10 text-blue-600",
@@ -233,7 +234,7 @@ export default function TruckAssignmentBoard({ campaigns }) {
                                   <p className="text-muted-foreground truncate">{vehicle.code_camion && `${vehicle.code_camion} · `}{vehicle.marque} {vehicle.modele}</p>
                                 </div>
                                 <button
-                                  onClick={() => { if (confirm(`Retirer ${vehicle.immatriculation} de cette campagne ?`)) removeMutation.mutate(rotation.id); }}
+                                  onClick={async () => { if (await confirm(`Retirer ${vehicle.immatriculation} de cette campagne ?`)) removeMutation.mutate(rotation.id); }}
                                   className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
                                 >
                                   <X className="w-3.5 h-3.5" />

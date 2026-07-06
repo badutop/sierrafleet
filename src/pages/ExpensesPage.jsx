@@ -11,6 +11,7 @@ import { Plus, Search, Receipt, Pencil, Trash2, CheckCircle, XCircle } from "luc
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ExpenseValidationPanel from "@/components/expenses/ExpenseValidationPanel";
+import { confirm } from "@/lib/confirm";
 
 const typeLabels = { carburant: "Carburant", peage: "Péage", rations: "Rations", contravention: "Contravention", transport: "Transport", autre: "Autre" };
 const typeLabelsForm = { peage: "Péage", rations: "Rations", contravention: "Contravention", transport: "Transport", autre: "Autre" };
@@ -69,6 +70,10 @@ export default function ExpensesPage() {
   const handleReject = (id) => {
     updateMutation.mutate({ id, data: { statut: "rejete" } });
     toast.error("Frais rejeté");
+  };
+
+  const handleDeleteExpense = async (id) => {
+    if (await confirm("Supprimer ce frais ?")) deleteMutation.mutate(id);
   };
 
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v.immatriculation]));
@@ -163,7 +168,7 @@ export default function ExpensesPage() {
                     onValidate={handleValidate}
                     onReject={handleReject}
                     onEdit={openEdit}
-                    onDelete={(id) => { if (confirm("Supprimer ce frais ?")) deleteMutation.mutate(id); }}
+                    onDelete={handleDeleteExpense}
                     isPending={updateMutation.isPending || deleteMutation.isPending}
                   />
                 </div>

@@ -13,6 +13,7 @@ import { Plus, Building2, Search, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import DepotsEditor from "@/components/clients/DepotsEditor";
+import { confirm } from "@/lib/confirm";
 
 const zoneLabels = { zone1: "Zone 1", zone2: "Zone 2", zone3: "Zone 3", zone4: "Zone 4" };
 const zoneColors = { zone1: "bg-green-500/10 text-green-600", zone2: "bg-blue-500/10 text-blue-600", zone3: "bg-amber-500/10 text-amber-600", zone4: "bg-red-500/10 text-red-600" };
@@ -96,6 +97,10 @@ export default function ClientsPage() {
     else createMutation.mutate(data);
   };
 
+  const handleDelete = async (c) => {
+    if (await confirm(`Supprimer ${c.nom} ?`)) deleteMutation.mutate(c.id);
+  };
+
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   const filteredClients = clients.filter(c =>
@@ -162,7 +167,7 @@ export default function ClientsPage() {
                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(c)}>
                             <Pencil className="w-3 h-3" />
                           </Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => { if (confirm(`Supprimer ${c.nom} ?`)) deleteMutation.mutate(c.id); }}>
+                          <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(c)}>
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>

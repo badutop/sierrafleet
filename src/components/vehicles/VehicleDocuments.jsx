@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { FileText, Upload, ExternalLink, Trash2, Loader2, FileImage, FileBadge, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { confirm } from "@/lib/confirm";
 
 const DOCS = [
   {
@@ -140,7 +141,7 @@ export default function VehicleDocuments({ vehicle, open, onClose }) {
   };
 
   const handleDelete = async (key) => {
-    if (!confirm("Supprimer ce document ?")) return;
+    if (!(await confirm("Supprimer ce document ?"))) return;
     await updateMutation.mutateAsync({ [key]: null });
     toast.success("Document supprimé");
   };

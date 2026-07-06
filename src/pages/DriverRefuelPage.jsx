@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
 import { toast } from "sonner";
+import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
 
 /**
  * Page dédiée aux chauffeurs — accès unique au module Rechargement Auto.
@@ -198,6 +199,7 @@ export default function DriverRefuelPage() {
           }}
         />
       )}
+      <ConfirmDialogHost />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { base44 } from "@/api/base44Client";
+import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
 
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -50,6 +51,7 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <ConfirmDialogHost />
     </div>
   );
 }

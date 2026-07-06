@@ -14,6 +14,7 @@ import { Link as RouterLink } from "react-router-dom";
 import TruckAssignmentBoard from "@/components/campaigns/TruckAssignmentBoard";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { confirm } from "@/lib/confirm";
 
 const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturee: "Clôturée" };
 const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturee: "bg-muted text-muted-foreground" };
@@ -88,6 +89,10 @@ export default function CampaignsList() {
     const data = { ...form, tonnage_total_prevu: Number(form.tonnage_total_prevu || 0), nombre_rotations_prevues: Number(form.nombre_rotations_prevues || 0) };
     if (editingCampaign) updateMutation.mutate({ id: editingCampaign.id, data });
     else createMutation.mutate(data);
+  };
+
+  const handleDelete = async (c) => {
+    if (await confirm("Supprimer cette campagne ?")) deleteMutation.mutate(c.id);
   };
 
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c]));
@@ -186,7 +191,7 @@ export default function CampaignsList() {
                       </Button>
                     </Link>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(c)}><Pencil className="w-3 h-3" /></Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => { if(confirm("Supprimer cette campagne ?")) deleteMutation.mutate(c.id); }}><Trash2 className="w-3 h-3" /></Button>
+                    <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(c)}><Trash2 className="w-3 h-3" /></Button>
                   </div>
                 </CardContent>
               </Card>

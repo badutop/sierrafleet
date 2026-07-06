@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import DriverPhotoField from "@/components/drivers/DriverPhotoField";
+import { confirm } from "@/lib/confirm";
 
 
 const statusLabels = { actif: "Actif", inactif: "Inactif", en_mission: "En mission" };
@@ -142,8 +143,8 @@ export default function Drivers() {
     else createMutation.mutate(form);
   };
 
-  const handleDelete = (d) => {
-    if (confirm(`Supprimer le chauffeur ${d.prenom} ${d.nom} ?`)) deleteMutation.mutate(d.id);
+  const handleDelete = async (d) => {
+    if (await confirm(`Supprimer le chauffeur ${d.prenom} ${d.nom} ?`)) deleteMutation.mutate(d.id);
   };
 
   const handleDocUploaded = (fieldKey, url) => {

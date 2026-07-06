@@ -13,6 +13,7 @@ import { Plus, Search, Truck, Pencil, Trash2, FileText, User } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import VehicleDocuments from "@/components/vehicles/VehicleDocuments";
+import { confirm } from "@/lib/confirm";
 
 const statusLabels = { disponible: "Disponible", en_mission: "En mission", en_maintenance: "Maintenance", hors_service: "Hors service" };
 const statusColors = { disponible: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", en_mission: "bg-blue-500/10 text-blue-600 border-blue-500/20", en_maintenance: "bg-amber-500/10 text-amber-600 border-amber-500/20", hors_service: "bg-destructive/10 text-destructive border-destructive/20" };
@@ -67,8 +68,8 @@ export default function Vehicles() {
     else createMutation.mutate(data);
   };
 
-  const handleDelete = (v) => {
-    if (confirm(`Supprimer le véhicule ${v.immatriculation} ?`)) deleteMutation.mutate(v.id);
+  const handleDelete = async (v) => {
+    if (await confirm(`Supprimer le véhicule ${v.immatriculation} ?`)) deleteMutation.mutate(v.id);
   };
 
   const filtered = vehicles.filter(v => {

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Search, Package, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { confirm } from "@/lib/confirm";
 
 const categorieLabels = { moteur: "Moteur", freinage: "Freinage", suspension: "Suspension", transmission: "Transmission", electricite: "Électricité", carrosserie: "Carrosserie", filtres: "Filtres", pneumatiques: "Pneumatiques", autre: "Autre" };
 const categorieColors = { moteur: "bg-red-500/10 text-red-600", freinage: "bg-orange-500/10 text-orange-600", suspension: "bg-yellow-500/10 text-yellow-700", transmission: "bg-blue-500/10 text-blue-600", electricite: "bg-purple-500/10 text-purple-600", carrosserie: "bg-slate-500/10 text-slate-600", filtres: "bg-green-500/10 text-green-600", pneumatiques: "bg-cyan-500/10 text-cyan-600", autre: "bg-muted text-muted-foreground" };
@@ -63,8 +64,8 @@ export default function SpareParts() {
     else createMutation.mutate(data);
   };
 
-  const handleDelete = (p) => {
-    if (confirm(`Supprimer la pièce "${p.designation}" ?`)) deleteMutation.mutate(p.id);
+  const handleDelete = async (p) => {
+    if (await confirm(`Supprimer la pièce "${p.designation}" ?`)) deleteMutation.mutate(p.id);
   };
 
   const filtered = parts.filter(p => {

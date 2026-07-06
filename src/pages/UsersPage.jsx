@@ -12,6 +12,7 @@ import { UserCog, Mail, Pencil, Trash2, UserPlus, LayoutGrid, Truck } from "luci
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ModuleSelector, { ALL_MODULES } from "@/components/users/ModuleSelector";
+import { confirm } from "@/lib/confirm";
 
 const roleLabels = {
   admin: "Administrateur",
@@ -116,8 +117,8 @@ export default function UsersPage() {
     }
   };
 
-  const handleDelete = (u) => {
-    if (confirm(`Supprimer l'utilisateur ${u.full_name || u.email} ?`)) deleteMutation.mutate(u.id);
+  const handleDelete = async (u) => {
+    if (await confirm(`Supprimer l'utilisateur ${u.full_name || u.email} ?`)) deleteMutation.mutate(u.id);
   };
 
   const handleSaveEdit = () => {

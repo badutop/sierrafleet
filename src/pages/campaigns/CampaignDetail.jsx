@@ -16,6 +16,7 @@ import FillEfficiencyBar from "@/components/campaigns/FillEfficiencyBar";
 import CampaignTruckAssignmentTable from "@/components/campaigns/CampaignTruckAssignmentTable";
 import CampaignReport from "@/components/campaigns/CampaignReport";
 import CampaignInvoice from "@/components/campaigns/CampaignInvoice";
+import { confirm } from "@/lib/confirm";
 
 const statutColors = { planifiee: "bg-blue-500/10 text-blue-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-muted text-muted-foreground", suspendue: "bg-amber-500/10 text-amber-600" };
 const statutLabels = { planifiee: "Planifiée", en_cours: "En cours", terminee: "Terminée", suspendue: "Suspendue" };
@@ -83,7 +84,7 @@ export default function CampaignDetail() {
             </Button>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-md shadow-red-200"
-              onClick={() => { if (window.confirm("Clôturer définitivement cette campagne ?\n\nCela marquera la campagne comme terminée et générera le rapport de clôture.")) closeCampaign.mutate(); }}
+              onClick={async () => { if (await confirm("Clôturer définitivement cette campagne ? Cela marquera la campagne comme terminée et générera le rapport de clôture.")) closeCampaign.mutate(); }}
               disabled={closeCampaign.isPending}
             >
               <Lock className="w-4 h-4 mr-2" /> Clôturer la campagne
