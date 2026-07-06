@@ -236,9 +236,6 @@ export default function FuelManagementV2() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" className="border-secondary text-secondary hover:bg-secondary/10" onClick={() => setAutoRefuelOpen(true)}>
-            <Zap className="w-4 h-4 mr-2" /> Rechargement Auto
-          </Button>
           <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleNew}>
             <Plus className="w-4 h-4 mr-2" /> Nouvel approvisionnement
           </Button>
@@ -319,6 +316,9 @@ export default function FuelManagementV2() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="rechargement" className="flex items-center gap-1.5 text-xs">
+            <Zap className="w-3.5 h-3.5" /> Rechargement Auto
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="approvisionnements" className="mt-4">
@@ -387,6 +387,23 @@ export default function FuelManagementV2() {
             vMap={vMap}
             onEdit={handleEdit}
           />
+        </TabsContent>
+
+        <TabsContent value="rechargement" className="mt-4">
+          <Card>
+            <CardContent className="pt-8 pb-8 flex flex-col items-center text-center gap-3">
+              <div className="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center">
+                <Zap className="w-7 h-7 text-secondary" />
+              </div>
+              <h3 className="font-bold text-base">Rechargement Automatique</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                Lancez un rechargement carburant en scannant les bons et la pompe pour un chauffeur et un véhicule.
+              </p>
+              <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground mt-2" onClick={() => setAutoRefuelOpen(true)}>
+                <Zap className="w-4 h-4 mr-2" /> Démarrer un rechargement
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

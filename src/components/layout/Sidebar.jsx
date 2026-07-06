@@ -17,7 +17,7 @@ const navItems = [
   { path: "/spare-parts", label: "Pièces Détachées",         icon: Package,         module: "spare-parts" },
   { path: "/campaigns",   label: "Campagnes",                icon: Ship,            module: "campaigns" },
   { path: "/fuel",        label: "Carburant",                icon: Fuel,            module: "fuel" },
-  { path: "/refuel",      label: "  Rechargement Auto",      icon: Zap,             module: "refuel" },
+  { path: "/refuel",      label: "Rechargement Auto",        icon: Zap,             module: "refuel" },
   { path: "/maintenance", label: "Maintenance",              icon: Wrench,          module: "maintenance" },
   { path: "/repairs",     label: "Réparations",              icon: AlertTriangle,   module: "repairs" },
   { path: "/expenses",    label: "Frais",                    icon: Receipt,         module: "expenses" },
