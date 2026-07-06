@@ -93,8 +93,8 @@ export default function DriverRefuelPage() {
             <p className="text-sm text-muted-foreground mt-1">Module chauffeur</p>
           </div>
 
-          {/* Sélection manuelle pour admin, infos fixes pour chauffeur */}
-          {currentUser?.role === 'admin' ? (
+          {/* Sélection manuelle si pas de chauffeur lié au compte, sinon infos fixes */}
+          {!driver ? (
             <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Chauffeur</p>
@@ -132,7 +132,7 @@ export default function DriverRefuelPage() {
                 </div>
               )}
             </div>
-          ) : driver ? (
+          ) : (
             <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -162,14 +162,6 @@ export default function DriverRefuelPage() {
                   Aucun véhicule assigné à ce chauffeur
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-center space-y-2">
-              <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
-              <p className="font-semibold text-amber-800">Compte non lié à un chauffeur</p>
-              <p className="text-xs text-amber-700">
-                Demandez à votre administrateur de lier ce compte à votre profil chauffeur.
-              </p>
             </div>
           )}
 
