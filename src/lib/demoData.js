@@ -63,7 +63,7 @@ export function generateDemoFuel(vehicleIds) {
   const entries = [];
   const now = new Date();
 
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 20; i++) {
     const daysAgo = Math.floor(Math.random() * 90);
     const date = new Date(now);
     date.setDate(date.getDate() - daysAgo);

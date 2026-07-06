@@ -35,6 +35,8 @@ const graviteColors = {
   critique: "bg-destructive/15 text-destructive",
 };
 
+const MAX_ROWS = 20;
+
 export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEdit, onDelete, onStatusChange, isPending }) {
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
@@ -119,7 +121,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
               <TableRow><TableCell colSpan={9} className="text-center py-8"><div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" /></TableCell></TableRow>
             ) : filtered.length === 0 ? (
               <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground text-sm">Aucune intervention trouvée</TableCell></TableRow>
-            ) : filtered.slice(0, 100).map(m => {
+            ) : filtered.slice(0, MAX_ROWS).map(m => {
               const vehicle = vMap[m.vehicle_id];
               return (
                 <TableRow key={m.id} className={cn("hover:bg-muted/30", m.categorie === "corrective" && m.gravite === "critique" && "bg-destructive/5")}>

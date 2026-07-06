@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -58,6 +58,7 @@ function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel
 export default function Dashboard() {
   const [seeded, setSeeded] = useState(false);
   const [quickTripOpen, setQuickTripOpen] = useState(false);
+  const seedingRef = useRef(false);
 
   const { data: vehicles = [], refetch: refetchV, isLoading: vehiclesLoading } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
   const { data: drivers = [], refetch: refetchD }  = useQuery({ queryKey: ["drivers"],  queryFn: () => base44.entities.Driver.list() });
@@ -72,7 +73,8 @@ export default function Dashboard() {
   // Demo seed
   useEffect(() => {
     async function seed() {
-      if (!vehiclesLoading && vehicles.length === 0 && !seeded) {
+      if (!vehiclesLoading && vehicles.length === 0 && !seeded && !seedingRef.current) {
+        seedingRef.current = true;
         const cv = await base44.entities.Vehicle.bulkCreate(demoVehicles);
         const cd = await base44.entities.Driver.bulkCreate(demoDrivers);
         await base44.entities.TripLog.bulkCreate(generateDemoTrips(cv.map(v => v.id), cd.map(d => d.id)));

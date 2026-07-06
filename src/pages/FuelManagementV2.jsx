@@ -323,7 +323,7 @@ export default function FuelManagementV2() {
 
         <TabsContent value="approvisionnements" className="mt-4">
           <FuelSupplyTable
-            entries={[...entries].sort((a, b) => new Date(b.date || b.created_date) - new Date(a.date || a.created_date))}
+            entries={[...entries].sort((a, b) => new Date(b.date || b.created_date) - new Date(a.date || a.created_date)).slice(0, 20)}
             isLoading={loadingEntries}
             vMap={vMap}
             campaignMap={campaignMap}
