@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search, Package, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -104,56 +105,67 @@ export default function SpareParts() {
       {isLoading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(p => {
-            const isLow = (p.quantite_stock || 0) <= (p.quantite_min || 1);
-            return (
-              <Card key={p.id} className={cn("hover:shadow-lg transition-shadow", isLow && "border-amber-400/50")}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Package className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <CardTitle className="text-sm truncate">{p.designation}</CardTitle>
-                        {p.reference && <p className="text-xs text-muted-foreground">Réf: {p.reference}</p>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {isLow && <AlertTriangle className="w-4 h-4 text-amber-500" />}
-                      <Badge className={cn("text-[10px]", categorieColors[p.categorie])}>{categorieLabels[p.categorie]}</Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Stock</span>
-                    <span className={cn("font-semibold", isLow ? "text-amber-600" : "text-emerald-600")}>{p.quantite_stock || 0} unité(s)</span>
-                  </div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Seuil min.</span><span className="font-medium">{p.quantite_min || 1}</span></div>
-                  {p.prix_unitaire > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Prix unitaire</span><span className="font-medium">{p.prix_unitaire?.toLocaleString("fr-FR")} FCFA</span></div>}
-                  {p.etat && <div className="flex items-center justify-between"><span className="text-muted-foreground">État</span><Badge className={cn("text-[10px]", etatColors[p.etat])}>{etatLabels[p.etat]}</Badge></div>}
-                  {p.supplier_id && <div className="flex justify-between"><span className="text-muted-foreground">Fournisseur</span><span className="font-medium truncate ml-2">{suppliers.find(s => s.id === p.supplier_id)?.nom || "—"}</span></div>}
-                  <div className="flex gap-2 pt-2 border-t border-border">
-                    <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => openEdit(p)}>
-                      <Pencil className="w-3 h-3 mr-1" /> Modifier
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(p)} disabled={deleteMutation.isPending}>
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div className="col-span-3 text-center py-16 text-muted-foreground">
-              <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>Aucune pièce trouvée</p>
-            </div>
-          )}
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Pièce</TableHead>
+                  <TableHead>Catégorie</TableHead>
+                  <TableHead>État</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Prix unitaire</TableHead>
+                  <TableHead>Fournisseur</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(p => {
+                  const isLow = (p.quantite_stock || 0) <= (p.quantite_min || 1);
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <Package className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-medium text-sm truncate">{p.designation}</div>
+                            {p.reference && <div className="text-xs text-muted-foreground">Réf: {p.reference}</div>}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell><Badge className={cn("text-[10px]", categorieColors[p.categorie])}>{categorieLabels[p.categorie]}</Badge></TableCell>
+                      <TableCell>{p.etat && <Badge className={cn("text-[10px]", etatColors[p.etat])}>{etatLabels[p.etat]}</Badge>}</TableCell>
+                      <TableCell>
+                        <span className={cn("text-xs font-semibold", isLow ? "text-amber-600" : "text-emerald-600")}>{p.quantite_stock || 0} unité(s)</span>
+                        {isLow && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 inline ml-1" />}
+                      </TableCell>
+                      <TableCell className="text-xs">{p.prix_unitaire > 0 ? `${p.prix_unitaire?.toLocaleString("fr-FR")} FCFA` : "-"}</TableCell>
+                      <TableCell className="text-xs">{suppliers.find(s => s.id === p.supplier_id)?.nom || "-"}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(p)}>
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(p)} disabled={deleteMutation.isPending}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            {filtered.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground">
+                <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>Aucune pièce trouvée</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
