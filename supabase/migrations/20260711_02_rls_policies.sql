@@ -1,6 +1,6 @@
 -- ============================================================================
--- Policies RLS Postgres — traduction des règles d'accès Base44
--- (blocs "rls" des fichiers base44/entities/*.jsonc)
+-- Policies RLS Postgres — traduction des règles d'accès de l'ancien backend
+-- (blocs "rls" des anciens fichiers de définition d'entités)
 --
 -- À exécuter manuellement dans le SQL Editor Supabase, après avoir vérifié
 -- que public.profiles existe déjà (cf. 20260711_create_missing_tables.sql).
@@ -58,12 +58,12 @@ $$;
 
 
 -- ============================================================================
--- PARTIE A — Tables avec un bloc "rls" explicite dans Base44
+-- PARTIE A — Tables avec un bloc "rls" explicite dans l'ancien backend
 --            (traduction fidèle des règles trouvées)
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- drivers  (Base44 Driver: create/update/delete=admin, read=ouvert)
+-- drivers  (ancien backend, entité Driver : create/update/delete=admin, read=ouvert)
 -- ----------------------------------------------------------------------------
 alter table public.drivers enable row level security;
 
@@ -85,7 +85,7 @@ create policy "drivers_delete_admin" on public.drivers
 
 
 -- ----------------------------------------------------------------------------
--- fuel_entries  (Base44 FuelEntry: create/read=ouvert, update/delete=créateur ou admin)
+-- fuel_entries  (ancien backend, entité FuelEntry : create/read=ouvert, update/delete=créateur ou admin)
 -- ----------------------------------------------------------------------------
 alter table public.fuel_entries enable row level security;
 
@@ -110,7 +110,7 @@ create policy "fuel_entries_delete_owner_or_admin" on public.fuel_entries
 
 
 -- ----------------------------------------------------------------------------
--- expenses  (Base44 Expense: create/read=ouvert, update/delete=créateur ou admin)
+-- expenses  (ancien backend, entité Expense : create/read=ouvert, update/delete=créateur ou admin)
 -- ----------------------------------------------------------------------------
 alter table public.expenses enable row level security;
 
@@ -135,7 +135,7 @@ create policy "expenses_delete_owner_or_admin" on public.expenses
 
 
 -- ----------------------------------------------------------------------------
--- campaigns  (Base44 Campaign: create/update=admin ou responsable_exploitation,
+-- campaigns  (ancien backend, entité Campaign : create/update=admin ou responsable_exploitation,
 --             read=ouvert, delete=admin)
 -- ----------------------------------------------------------------------------
 alter table public.campaigns enable row level security;
@@ -161,7 +161,7 @@ create policy "campaigns_delete_admin" on public.campaigns
 
 
 -- ----------------------------------------------------------------------------
--- daily_declarations  (Base44 DailyDeclaration: create/read=ouvert,
+-- daily_declarations  (ancien backend, entité DailyDeclaration : create/read=ouvert,
 --                      update=admin ou responsable_operations, delete=admin)
 -- ----------------------------------------------------------------------------
 alter table public.daily_declarations enable row level security;
@@ -186,7 +186,7 @@ create policy "daily_declarations_delete_admin" on public.daily_declarations
 
 
 -- ----------------------------------------------------------------------------
--- audit_logs  (Base44 AuditLog: create=ouvert, read/update/delete=admin)
+-- audit_logs  (ancien backend, entité AuditLog : create=ouvert, read/update/delete=admin)
 -- ----------------------------------------------------------------------------
 alter table public.audit_logs enable row level security;
 
@@ -208,8 +208,8 @@ create policy "audit_logs_delete_admin" on public.audit_logs
 
 
 -- ============================================================================
--- PARTIE B — ⚠️ Entités SANS bloc "rls" dans Base44 (ambigu, signalé
---            explicitement comme demandé). Base44 sans bloc "rls" = accès
+-- PARTIE B — ⚠️ Entités SANS bloc "rls" dans l'ancien backend (ambigu, signalé
+--            explicitement comme demandé). Absence de bloc "rls" = accès
 --            totalement ouvert à tout utilisateur authentifié, sans même
 --            de restriction "créateur uniquement". Les policies ci-dessous
 --            REPRODUISENT FIDÈLEMENT ce comportement (aucune régression
@@ -325,9 +325,9 @@ create policy "trip_logs_all_authenticated" on public.trip_logs
 
 -- ============================================================================
 -- PARTIE C — Nouvelles tables (profiles, app_settings, pending_user_configs)
---            Pas de bloc "rls" Base44 puisque ce sont des tables nouvelles /
+--            Pas de bloc "rls" de l'ancien backend puisque ce sont des tables nouvelles /
 --            liées à l'auth. Propositions motivées ci-dessous — PAS une
---            reproduction fidèle d'un comportement Base44 existant.
+--            reproduction fidèle d'un comportement existant de l'ancien backend.
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
@@ -393,7 +393,7 @@ create policy "app_settings_delete_admin" on public.app_settings
 -- pending_user_configs
 --   ⚠️ IMPORTANT — voir message d'accompagnement : contrairement à ce que
 --   fait AuthContext.jsx aujourd'hui (l'utilisateur invité met lui-même à
---   jour sa propre ligne via le SDK Base44), on N'AUTORISE PAS l'update
+--   jour sa propre ligne via le SDK de l'ancien backend), on N'AUTORISE PAS l'update
 --   client-side ici, car ça ouvrirait une escalade de privilège (un
 --   utilisateur pourrait changer son propre "role" avant de marquer la
 --   ligne comme appliquée). Seule la lecture de SA PROPRE invitation (par

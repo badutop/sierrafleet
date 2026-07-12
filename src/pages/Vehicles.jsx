@@ -79,7 +79,7 @@ export default function Vehicles() {
   const closeDialog = () => { setDialogOpen(false); setEditingVehicle(null); setForm(emptyForm); };
 
   const handleSave = () => {
-    // Postgres rejette "" pour les colonnes integer/numeric/date (Base44 l'acceptait) — on convertit en null.
+    // Postgres rejette "" pour les colonnes integer/numeric/date (l'ancien backend l'acceptait) — on convertit en null.
     const numFields = ["annee", "km_actuel", "capacite_charge_tonnes"];
     const dateFields = ["date_assurance", "date_visite_technique", "date_carte_grise"];
     const data = { ...form };

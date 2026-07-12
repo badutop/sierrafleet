@@ -1,13 +1,13 @@
 -- ============================================================================
--- Création des 4 tables manquantes pour sortir complètement de Base44 :
+-- Création des 4 tables manquantes pour sortir complètement de l'ancien backend :
 --   profiles (remplace l'entité "User"), app_settings, audit_logs,
 --   pending_user_configs
 --
 -- À exécuter manuellement dans le SQL Editor du dashboard Supabase.
 -- Ce script ne touche à aucune table existante (vehicles, drivers, ...).
 --
--- Convention suivie (identique aux tables existantes, voir
--- base44/functions/migrateToSupabase/entry.ts:SUPABASE_COLUMNS) :
+-- Convention suivie (identique aux tables existantes, héritée du script
+-- de migration d'origine) :
 --   - id en TEXT (pas UUID), sauf profiles.id qui DOIT être UUID car il
 --     référence auth.users(id) — voir note en bas de fichier.
 --   - created_date / updated_date / created_by (pas created_at/updated_at)
@@ -17,7 +17,7 @@
 --     imposer.
 --   - Aucune policy RLS n'est créée ici : les tables seront donc ouvertes
 --     via la clé anon tant que tu n'auras pas activé/écrit de policies.
---     Les blocs "rls" trouvés dans les .jsonc Base44 sont indiqués en
+--     Les blocs "rls" trouvés dans les anciens fichiers .jsonc de config sont indiqués en
 --     commentaire pour référence future — rien n'est appliqué.
 -- ============================================================================
 
@@ -35,7 +35,7 @@ create table if not exists public.app_settings (
   created_by    text
 );
 
-comment on table public.app_settings is 'Paramètres globaux de l''application (clé/valeur), ex-entité Base44 AppSetting.';
+comment on table public.app_settings is 'Paramètres globaux de l''application (clé/valeur), ex-entité AppSetting de l'ancien backend.';
 
 -- ----------------------------------------------------------------------------
 -- 2) audit_logs  (ex-entité AuditLog : journal des créations/modifs/suppressions)
@@ -58,9 +58,9 @@ create table if not exists public.audit_logs (
 create index if not exists idx_audit_logs_entity on public.audit_logs (entity_name, entity_id);
 create index if not exists idx_audit_logs_created_date on public.audit_logs (created_date desc);
 
-comment on table public.audit_logs is 'Journal d''audit (create/update/delete), ex-entité Base44 AuditLog.';
+comment on table public.audit_logs is 'Journal d''audit (create/update/delete), ex-entité AuditLog de l'ancien backend.';
 
--- Rappel des règles d'accès Base44 d'origine (NON appliquées ici) :
+-- Rappel des règles d'accès d'origine (ancien backend, NON appliquées ici) :
 --   create : ouvert à tous les utilisateurs authentifiés
 --   read / update / delete : réservé au rôle 'admin'
 -- => à traduire en policies RLS Postgres quand tu seras prêt (cf. profiles.role).
@@ -84,10 +84,10 @@ create table if not exists public.pending_user_configs (
 create index if not exists idx_pending_user_configs_email on public.pending_user_configs (lower(email));
 create index if not exists idx_pending_user_configs_applied on public.pending_user_configs (applied) where applied = false;
 
-comment on table public.pending_user_configs is 'Configuration (rôle/modules/chauffeur) en attente d''application au premier login, ex-entité Base44 PendingUserConfig.';
+comment on table public.pending_user_configs is 'Configuration (rôle/modules/chauffeur) en attente d''application au premier login, ex-entité PendingUserConfig de l'ancien backend.';
 
 -- ----------------------------------------------------------------------------
--- 4) profiles  (remplace l'entité "User" Base44 — voir note de conception
+-- 4) profiles  (remplace l'ancienne entité "User" — voir note de conception
 --    ci-dessous sur le lien avec supabase.auth.users)
 -- ----------------------------------------------------------------------------
 create table if not exists public.profiles (
@@ -112,6 +112,6 @@ create table if not exists public.profiles (
 
 create index if not exists idx_profiles_driver_id on public.profiles (driver_id) where driver_id is not null;
 
-comment on table public.profiles is 'Profil applicatif (rôle, modules, chauffeur lié) de chaque utilisateur Supabase Auth. id = auth.users.id. Remplace l''entité Base44 "User".';
+comment on table public.profiles is 'Profil applicatif (rôle, modules, chauffeur lié) de chaque utilisateur Supabase Auth. id = auth.users.id. Remplace l''ancienne entité "User".';
 
 -- Rappel : aucune policy RLS n'est créée par ce script (voir en-tête).

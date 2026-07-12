@@ -48,7 +48,7 @@ export default function ClientsPage() {
 
   // DepotsEditor ajoute un champ UI "_coords" qui n'existe pas en colonne —
   // à retirer avant tout insert/update Supabase (Postgrest rejette les
-  // colonnes inconnues, contrairement à Base44 qui les ignorait).
+  // colonnes inconnues, contrairement à l'ancien backend qui les ignorait).
   const toDepotPayload = (d, clientId) => {
     const { _coords, ...rest } = d;
     return {

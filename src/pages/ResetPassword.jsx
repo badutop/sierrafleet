@@ -12,7 +12,7 @@ export default function ResetPassword() {
 
   // Le lien reçu par email fait atterrir l'utilisateur ici avec une session
   // de récupération déjà établie par le client Supabase (pas de token manuel
-  // à lire dans l'URL, contrairement à l'ancien flux Base44).
+  // à lire dans l'URL, contrairement à l'ancien flux d'authentification).
   const [checkingSession, setCheckingSession] = useState(true);
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
 

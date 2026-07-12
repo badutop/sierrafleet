@@ -1,7 +1,7 @@
 // Edge Function: send-document-alerts
 //
-// Reconstruction de l'ancienne fonction Base44 sendDocumentAlerts
-// (base44/functions/sendDocumentAlerts/entry.ts, supprimée). Parcourt les
+// Reconstruction de l'ancienne fonction serveur sendDocumentAlerts de
+// l'ancien backend (supprimée). Parcourt les
 // véhicules et chauffeurs, construit la liste des documents proches de
 // l'expiration (vidange, assurance, visite technique, carte grise, permis),
 // et envoie un récapitulatif WhatsApp via une instance Evolution API

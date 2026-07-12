@@ -1,7 +1,7 @@
 // Edge Function: log-audit
 //
-// Reconstruction de l'ancienne fonction Base44 logAudit (base44/functions/
-// logAudit/entry.ts, supprimée). Insère une entrée dans public.audit_logs
+// Reconstruction de l'ancienne fonction serveur logAudit de l'ancien
+// backend (supprimée). Insère une entrée dans public.audit_logs
 // pour tracer une création/modification/suppression d'une entité métier.
 //
 // La policy RLS audit_logs_insert_authenticated permet déjà à n'importe

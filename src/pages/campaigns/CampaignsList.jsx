@@ -116,7 +116,7 @@ export default function CampaignsList() {
   };
 
   const handleSave = () => {
-    // Postgres rejette "" pour les colonnes date (Base44 l'acceptait) — on convertit en null.
+    // Postgres rejette "" pour les colonnes date (l'ancien backend l'acceptait) — on convertit en null.
     const data = { ...form, tonnage_total_prevu: Number(form.tonnage_total_prevu || 0), nombre_rotations_prevues: Number(form.nombre_rotations_prevues || 0) };
     if (data.date_debut === "") data.date_debut = null;
     if (data.date_fin_prevue === "") data.date_fin_prevue = null;

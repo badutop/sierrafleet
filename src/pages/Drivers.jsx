@@ -157,7 +157,7 @@ export default function Drivers() {
   const closeDialog = () => { setDialogOpen(false); setEditingDriver(null); setForm(emptyForm); };
 
   const handleSave = () => {
-    // Postgres rejette "" pour les colonnes date (Base44 l'acceptait) — on convertit en null.
+    // Postgres rejette "" pour les colonnes date (l'ancien backend l'acceptait) — on convertit en null.
     const dateFields = ["date_expiration_permis", "date_embauche"];
     const data = { ...form };
     dateFields.forEach(f => { if (data[f] === "") data[f] = null; });

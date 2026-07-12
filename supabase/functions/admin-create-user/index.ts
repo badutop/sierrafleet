@@ -1,8 +1,8 @@
 // Edge Function: admin-create-user
 //
 // Crée un compte utilisateur (auth.users + public.profiles) depuis
-// l'interface d'administration. Remplace l'ancienne fonction Base44
-// "inviteUser" (base44/functions/inviteUser/entry.ts) — mais ici il n'y a
+// l'interface d'administration. Remplace l'ancienne fonction serveur
+// "inviteUser" de l'ancien backend (supprimée) — mais ici il n'y a
 // pas d'email d'invitation : l'admin fixe directement l'email et le mot de
 // passe, le compte est utilisable immédiatement.
 //
