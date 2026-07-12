@@ -1,13 +1,12 @@
 // Edge Function: whatsapp-notify
 //
-// Relaie côté serveur l'appel à api.callmebot.com pour la notification
-// WhatsApp de confirmation de rechargement carburant. Remplace les appels
-// fetch() directs faits depuis le navigateur (PumpPhotoStep.jsx,
-// RotationSheetEntry.jsx), qui échouaient systématiquement : callmebot.com
-// ne renvoie pas d'en-tête Access-Control-Allow-Origin, donc un fetch()
-// depuis une page web est bloqué par CORS quel que soit le contenu de la
-// requête. Un appel serveur-à-serveur (Edge Function → callmebot.com) n'est
-// pas soumis à cette restriction.
+// Relaie côté serveur l'envoi WhatsApp de confirmation de rechargement
+// carburant, via une instance Evolution API auto-hébergée (voir
+// ../_shared/evolution.ts). Remplace les appels fetch() directs faits
+// depuis le navigateur (PumpPhotoStep.jsx, RotationSheetEntry.jsx), qui
+// échouaient systématiquement avec l'ancien fournisseur callmebot.com :
+// CORS bloquait tout fetch() direct depuis une page web. Un appel
+// serveur-à-serveur n'est pas soumis à cette restriction.
 //
 // N'importe quel utilisateur authentifié peut appeler cette fonction (pas
 // de vérification de rôle) : un chauffeur doit pouvoir déclencher la
@@ -18,12 +17,15 @@
 //
 // Prérequis : le projet doit être lié (`supabase link --project-ref <ref>`)
 // et tu dois être connecté (`supabase login`). SUPABASE_URL et
-// SUPABASE_ANON_KEY sont injectées automatiquement par la plateforme
-// Supabase Edge Functions, pas besoin de les configurer manuellement.
-// Pas besoin de SUPABASE_SERVICE_ROLE_KEY ici : app_settings est lisible
-// par tout utilisateur authentifié (policy app_settings_select_authenticated).
+// SUPABASE_ANON_KEY sont injectées automatiquement par la plateforme.
+// EVOLUTION_API_URL / EVOLUTION_API_KEY / EVOLUTION_INSTANCE_NAME doivent
+// être configurées manuellement (`supabase secrets set ...`) — voir
+// ../_shared/evolution.ts. Pas besoin de SUPABASE_SERVICE_ROLE_KEY ici :
+// app_settings est lisible par tout utilisateur authentifié (policy
+// app_settings_select_authenticated).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendWhatsAppMessage } from '../_shared/evolution.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -87,43 +89,35 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'message est requis' }, 400);
   }
 
-  // --- Paramètres WhatsApp : mêmes clés app_settings qu'aujourd'hui côté
-  // client. Le numéro peut être transmis dans le payload (le client le
-  // connaît déjà, il l'affiche) ; l'apikey n'est en revanche jamais acceptée
-  // depuis le client, elle est relue ici pour ne plus jamais transiter par
-  // le navigateur.
-  const { data: settings, error: settingsError } = await callerClient
-    .from('app_settings')
-    .select('key, value')
-    .in('key', ['wa_alert_phone', 'wa_alert_apikey']);
-
-  if (settingsError) {
-    console.error(`[whatsapp-notify] lecture app_settings échouée: ${settingsError.message}`);
-    return jsonResponse({ error: 'Paramètres WhatsApp indisponibles' }, 500);
-  }
-
-  const phone = body.phone || settings?.find((s) => s.key === 'wa_alert_phone')?.value;
-  const apikey = settings?.find((s) => s.key === 'wa_alert_apikey')?.value;
-
-  if (!phone || !apikey) {
-    console.log(`[whatsapp-notify] appelant=${callerData.user.id} — phone ou apikey non configuré, notification ignorée`);
-    return jsonResponse({ error: 'Notification WhatsApp non configurée (phone/apikey manquant)' }, 200);
-  }
-
-  // --- Appel serveur-à-serveur à callmebot.com ---
-  const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(message)}&apikey=${encodeURIComponent(apikey)}`;
-
-  try {
-    const res = await fetch(url);
-    const text = await res.text();
-    if (!res.ok) {
-      console.error(`[whatsapp-notify] appelant=${callerData.user.id} callmebot a répondu ${res.status}: ${text}`);
-      return jsonResponse({ success: false, error: `callmebot ${res.status}` }, 200);
+  // --- Numéro destinataire : transmis dans le payload (le client le
+  // connaît déjà, il l'affiche), sinon relu depuis app_settings.
+  // wa_alert_apikey n'existe plus : l'authentification Evolution API se
+  // fait au niveau de l'instance (EVOLUTION_API_KEY), pas par destinataire.
+  let phone = body.phone;
+  if (!phone) {
+    const { data: setting, error: settingsError } = await callerClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'wa_alert_phone')
+      .maybeSingle();
+    if (settingsError) {
+      console.error(`[whatsapp-notify] lecture app_settings échouée: ${settingsError.message}`);
+      return jsonResponse({ error: 'Paramètres WhatsApp indisponibles' }, 500);
     }
-    console.log(`[whatsapp-notify] appelant=${callerData.user.id} notification envoyée avec succès`);
-    return jsonResponse({ success: true });
-  } catch (err) {
-    console.error(`[whatsapp-notify] appelant=${callerData.user.id} appel callmebot en échec: ${err instanceof Error ? err.message : String(err)}`);
-    return jsonResponse({ success: false, error: 'Échec de l\'appel callmebot' }, 200);
+    phone = setting?.value;
   }
+
+  if (!phone) {
+    console.log(`[whatsapp-notify] appelant=${callerData.user.id} — numéro non configuré, notification ignorée`);
+    return jsonResponse({ error: 'Notification WhatsApp non configurée (wa_alert_phone manquant)' }, 200);
+  }
+
+  const result = await sendWhatsAppMessage(phone, message);
+  if (!result.success) {
+    console.error(`[whatsapp-notify] appelant=${callerData.user.id} échec: ${result.error}`);
+    return jsonResponse({ success: false, error: result.error }, 200);
+  }
+
+  console.log(`[whatsapp-notify] appelant=${callerData.user.id} notification envoyée avec succès`);
+  return jsonResponse({ success: true });
 });
