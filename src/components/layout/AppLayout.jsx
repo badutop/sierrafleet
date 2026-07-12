@@ -4,25 +4,22 @@ import Sidebar from "./Sidebar";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
 
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user: currentUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    base44.auth.me().then(user => {
-      setCurrentUser(user);
-      // Les chauffeurs ont leur propre page dédiée
-      if (user?.role === "chauffeur") {
-        navigate("/refuel", { replace: true });
-      }
-      // L'admin reste sur l'app principale mais peut accéder à /refuel via le menu carburant
-    }).catch(() => {});
-  }, []);
+    // Les chauffeurs ont leur propre page dédiée
+    if (currentUser?.role === "chauffeur") {
+      navigate("/refuel", { replace: true });
+    }
+    // L'admin reste sur l'app principale mais peut accéder à /refuel via le menu carburant
+  }, [currentUser]);
 
   return (
     <div className="min-h-screen bg-background">

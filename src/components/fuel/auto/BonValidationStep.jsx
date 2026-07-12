@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, XCircle, Loader2, ArrowLeft, ArrowRight, Edit3 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 
 // Affichage éditable du numéro OCR extrait
 function OcrNumberDisplay({ number, onEdit }) {
@@ -40,29 +39,6 @@ function ValidationBadge({ status, reason }) {
       {reason && <span className="text-[10px] text-destructive max-w-[110px] text-right leading-tight">{reason}</span>}
     </div>
   );
-}
-
-// Extraction OCR via LLM (composant invisible)
-function OcrRunner({ bon, index, onResult }) {
-  const ran = useRef(false);
-  useEffect(() => {
-    if (ran.current) return;
-    ran.current = true;
-    if (bon.ocrNumber && bon.ocrNumber !== "ILLISIBLE") {
-      onResult(index, bon.ocrNumber);
-      return;
-    }
-    base44.integrations.Core.InvokeLLM({
-      prompt: `Extrait UNIQUEMENT le numéro du bon/ticket visible dans cette image. 
-Retourne juste le numéro alphanumerique sans espace ni ponctuation.
-Si illisible, retourne exactement: ILLISIBLE`,
-      file_urls: [bon.previewUrl],
-      response_json_schema: { type: "object", properties: { numero: { type: "string" } } }
-    })
-      .then(res => onResult(index, res?.numero?.trim() || "ILLISIBLE"))
-      .catch(() => onResult(index, "ILLISIBLE"));
-  }, []);
-  return null;
 }
 
 const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse OCR et validation des numéros
@@ -131,11 +107,6 @@ export default function BonValidationStep({ bons: initialBons, driver, vehicle, 
 
   return (
     <div className="p-5 space-y-5">
-      {/* Runners OCR invisibles (désactivés en mode démo) */}
-      {!DEMO_MODE && initialBons.map((bon, i) => (
-        <OcrRunner key={i} bon={bon} index={i} onResult={handleOcrResult} />
-      ))}
-
       <div>
         <h2 className="font-bold text-base">Validation des bons</h2>
         <p className="text-xs text-muted-foreground">Extraction OCR et vérification automatique</p>

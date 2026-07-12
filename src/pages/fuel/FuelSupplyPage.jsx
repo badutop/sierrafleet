@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Fuel, TrendingUp, AlertTriangle, Truck, BarChart2, Plus } from "lucide-react";
@@ -23,30 +23,62 @@ export default function FuelSupplyPage() {
 
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["fuel"],
-    queryFn: () => base44.entities.FuelEntry.list("-date", 500),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("fuel_entries").select("*").order("date", { ascending: false }).limit(500);
+      if (error) throw error;
+      return data;
+    },
   });
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => base44.entities.Vehicle.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
   const { data: rotations = [] } = useQuery({
     queryKey: ["rotations"],
-    queryFn: () => base44.entities.Rotation.list("-date_rotation", 1000),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rotations").select("*").order("date_rotation", { ascending: false }).limit(1000);
+      if (error) throw error;
+      return data;
+    },
   });
   const { data: campaigns = [] } = useQuery({
     queryKey: ["campaigns"],
-    queryFn: () => base44.entities.Campaign.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaigns").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
-    queryFn: () => base44.entities.Client.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => {
-      const payload = { ...data, montant_total: (data.litres || 0) * (data.prix_litre || 0) };
-      if (data.id) return base44.entities.FuelEntry.update(data.id, payload);
-      return base44.entities.FuelEntry.create(payload);
+    mutationFn: async (data) => {
+      const { id, _montant, ...rest } = data;
+      const payload = {
+        ...rest,
+        litres: Number(rest.litres),
+        prix_litre: rest.prix_litre !== "" && rest.prix_litre != null ? Number(rest.prix_litre) : null,
+        km_compteur: rest.km_compteur !== "" && rest.km_compteur != null ? Number(rest.km_compteur) : null,
+        montant_total: (data.litres || 0) * (data.prix_litre || 0),
+      };
+      if (id) {
+        const { error } = await supabase.from("fuel_entries").update(payload).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("fuel_entries").insert({ id: crypto.randomUUID(), ...payload });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fuel"] });
@@ -57,7 +89,10 @@ export default function FuelSupplyPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.FuelEntry.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("fuel_entries").delete().eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fuel"] });
       toast.success("Enregistrement supprimé");

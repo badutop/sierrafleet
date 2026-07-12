@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, RotateCcw, Settings, Fuel, Save, FileText, MessageCircle } from "lucide-react";
+import { Download, Settings, Fuel, Save, FileText, MessageCircle } from "lucide-react";
 import { getPrixTonne, getTvaPct, INVOICE_PRICE_KEY, INVOICE_TVA_KEY } from "@/components/campaigns/CampaignInvoice";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
-import { demoVehicles, demoDrivers, generateDemoTrips, generateDemoFuel, generateDemoMaintenance } from "@/lib/demoData";
-import { confirm } from "@/lib/confirm";
 
 export const FUEL_PRICE_KEY = "sierra_fuel_price_per_litre";
 export function getFuelPricePerLitre() {
@@ -18,20 +15,15 @@ export function getFuelPricePerLitre() {
 
 // Sauvegarde/lecture d'un AppSetting en base
 async function readSetting(key) {
-  const list = await base44.entities.AppSetting.filter({ key });
-  return list[0]?.value || "";
+  const { data } = await supabase.from("app_settings").select("value").eq("key", key).maybeSingle();
+  return data?.value || "";
 }
 async function saveSetting(key, value) {
-  const list = await base44.entities.AppSetting.filter({ key });
-  if (list[0]) {
-    await base44.entities.AppSetting.update(list[0].id, { value });
-  } else {
-    await base44.entities.AppSetting.create({ key, value });
-  }
+  // app_settings.key est UNIQUE, upsert fait le create-ou-update en un aller-retour
+  await supabase.from("app_settings").upsert({ key, value }, { onConflict: "key" });
 }
 
 export default function SettingsPage() {
-  const [loading, setLoading] = useState(false);
   const [fuelPrice, setFuelPrice] = useState(() => getFuelPricePerLitre());
   const [fuelSaved, setFuelSaved] = useState(false);
   const [prixTonne, setPrixTonne] = useState(() => getPrixTonne());
@@ -40,7 +32,7 @@ export default function SettingsPage() {
   const [waPhone, setWaPhone] = useState("");
   const [waApiKey, setWaApiKey] = useState("");
   const [waSaved, setWaSaved] = useState(false);
-  const queryClient = useQueryClient();
+  const [exporting, setExporting] = useState(false);
 
   // Charge les settings WhatsApp depuis la base au montage
   useEffect(() => {
@@ -73,41 +65,25 @@ export default function SettingsPage() {
     toast.success("Prix du carburant mis à jour");
   };
 
-  const resetDemo = async () => {
-    if (!(await confirm("Ceci va supprimer toutes les données et recharger les données de démonstration. Continuer ?"))) return;
-    setLoading(true);
-    const [vehicles, drivers, trips, fuel, maint] = await Promise.all([
-      base44.entities.Vehicle.list(), base44.entities.Driver.list(),
-      base44.entities.TripLog.list("-created_date", 500), base44.entities.FuelEntry.list("-created_date", 500),
-      base44.entities.Maintenance.list("-created_date", 500),
-    ]);
-    await Promise.all([
-      ...vehicles.map(v => base44.entities.Vehicle.delete(v.id)),
-      ...drivers.map(d => base44.entities.Driver.delete(d.id)),
-      ...trips.map(t => base44.entities.TripLog.delete(t.id)),
-      ...fuel.map(f => base44.entities.FuelEntry.delete(f.id)),
-      ...maint.map(m => base44.entities.Maintenance.delete(m.id)),
-    ]);
-    const cv = await base44.entities.Vehicle.bulkCreate(demoVehicles);
-    const cd = await base44.entities.Driver.bulkCreate(demoDrivers);
-    await base44.entities.TripLog.bulkCreate(generateDemoTrips(cv.map(v => v.id), cd.map(d => d.id)));
-    await base44.entities.FuelEntry.bulkCreate(generateDemoFuel(cv.map(v => v.id)));
-    await base44.entities.Maintenance.bulkCreate(generateDemoMaintenance(cv.map(v => v.id)));
-    queryClient.invalidateQueries();
-    setLoading(false);
-    toast.success("Données de démonstration rechargées");
-  };
-
   const exportJSON = async () => {
-    const [vehicles, drivers, trips, fuel, maint] = await Promise.all([
-      base44.entities.Vehicle.list(), base44.entities.Driver.list(),
-      base44.entities.TripLog.list("-created_date", 500), base44.entities.FuelEntry.list("-created_date", 500),
-      base44.entities.Maintenance.list("-created_date", 500),
-    ]);
-    const data = { vehicles, drivers, trips, fuel, maintenances: maint, exportDate: new Date().toISOString() };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "sierra_fleet_export.json"; a.click();
-    toast.success("Export terminé");
+    setExporting(true);
+    try {
+      const [vehicles, drivers, trips, fuel, maint] = await Promise.all([
+        supabase.from("vehicles").select("*").then(r => { if (r.error) throw r.error; return r.data; }),
+        supabase.from("drivers").select("*").then(r => { if (r.error) throw r.error; return r.data; }),
+        supabase.from("trip_logs").select("*").order("date_depart", { ascending: false }).limit(500).then(r => { if (r.error) throw r.error; return r.data; }),
+        supabase.from("fuel_entries").select("*").order("date", { ascending: false }).limit(500).then(r => { if (r.error) throw r.error; return r.data; }),
+        supabase.from("maintenance").select("*").order("date_entretien", { ascending: false }).limit(500).then(r => { if (r.error) throw r.error; return r.data; }),
+      ]);
+      const data = { vehicles, drivers, trips, fuel, maintenances: maint, exportDate: new Date().toISOString() };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "sierra_fleet_export.json"; a.click();
+      toast.success("Export terminé");
+    } catch (err) {
+      toast.error("Erreur lors de l'export : " + err.message);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -209,12 +185,8 @@ export default function SettingsPage() {
             <CardTitle className="flex items-center gap-2 text-base"><Download className="w-4 h-4" />Données</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-start" onClick={exportJSON}>
-              <Download className="w-4 h-4 mr-2" /> Exporter toutes les données (JSON)
-            </Button>
-            <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive" onClick={resetDemo} disabled={loading}>
-              <RotateCcw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              {loading ? "Réinitialisation..." : "Réinitialiser avec données démo"}
+            <Button variant="outline" className="w-full justify-start" onClick={exportJSON} disabled={exporting}>
+              <Download className="w-4 h-4 mr-2" /> {exporting ? "Export en cours..." : "Exporter toutes les données (JSON)"}
             </Button>
           </CardContent>
         </Card>

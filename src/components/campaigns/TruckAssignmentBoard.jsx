@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,13 +12,17 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 
+// Aligné sur le vrai vocabulaire de statut (CampaignsList.jsx) — voir
+// CampaignDetail.jsx pour le contexte du fix.
 const statutColors = {
-  planifiee: "bg-blue-500/10 text-blue-600",
+  creee: "bg-blue-500/10 text-blue-600",
+  validee_responsable: "bg-purple-500/10 text-purple-600",
+  validee_operationnel: "bg-cyan-500/10 text-cyan-600",
   en_cours: "bg-emerald-500/10 text-emerald-600",
-  terminee: "bg-muted text-muted-foreground",
-  suspendue: "bg-amber-500/10 text-amber-600"
+  terminee: "bg-amber-500/10 text-amber-600",
+  clôturee: "bg-muted text-muted-foreground",
 };
-const statutLabels = { planifiee: "Planifiée", en_cours: "En cours", terminee: "Terminée", suspendue: "Suspendue" };
+const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturee: "Clôturée" };
 
 export default function TruckAssignmentBoard({ campaigns }) {
   const queryClient = useQueryClient();
@@ -28,16 +32,28 @@ export default function TruckAssignmentBoard({ campaigns }) {
 
   const { data: rotations = [] } = useQuery({
     queryKey: ["rotations-all"],
-    queryFn: () => base44.entities.Rotation.list()
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rotations").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => base44.entities.Vehicle.list()
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const { data: maintenances = [] } = useQuery({
     queryKey: ["maintenances"],
-    queryFn: () => base44.entities.Maintenance.list()
+    queryFn: async () => {
+      const { data, error } = await supabase.from("maintenance").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   // Immatriculations bloquées : statut en_maintenance/hors_service OU maintenance active
@@ -60,8 +76,10 @@ export default function TruckAssignmentBoard({ campaigns }) {
 
   // Move truck: update existing rotation to new campaign
   const moveMutation = useMutation({
-    mutationFn: ({ rotationId, newCampaignId }) =>
-      base44.entities.Rotation.update(rotationId, { campaign_id: newCampaignId }),
+    mutationFn: async ({ rotationId, newCampaignId }) => {
+      const { error } = await supabase.from("rotations").update({ campaign_id: newCampaignId }).eq("id", rotationId);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rotations-all"] });
       toast.success("Camion réaffecté avec succès");
@@ -70,13 +88,16 @@ export default function TruckAssignmentBoard({ campaigns }) {
 
   // Assign new truck to campaign: create a rotation entry
   const assignMutation = useMutation({
-    mutationFn: ({ vehicle_id, campaign_id }) =>
-      base44.entities.Rotation.create({
+    mutationFn: async ({ vehicle_id, campaign_id }) => {
+      const { error } = await supabase.from("rotations").insert({
+        id: crypto.randomUUID(),
         campaign_id,
         vehicle_id,
         date_rotation: new Date().toISOString(),
         statut: "en_cours",
-      }),
+      });
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rotations-all"] });
       toast.success("Camion affecté à la campagne");
@@ -85,7 +106,10 @@ export default function TruckAssignmentBoard({ campaigns }) {
 
   // Remove truck from campaign: delete the rotation
   const removeMutation = useMutation({
-    mutationFn: (rotationId) => base44.entities.Rotation.delete(rotationId),
+    mutationFn: async (rotationId) => {
+      const { error } = await supabase.from("rotations").delete().eq("id", rotationId);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rotations-all"] });
       toast.success("Camion retiré de la campagne");

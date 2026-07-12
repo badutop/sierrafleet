@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -319,10 +319,11 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ve
       for (const row of validRows) {
         rotCount += 1;
         const refuelDeclenche = rotCount % 3 === 0;
-        await base44.entities.Rotation.create({
+        const { error: rotError } = await supabase.from("rotations").insert({
+          id: crypto.randomUUID(),
           campaign_id: campaign.id,
           vehicle_id: row.vehicle_id,
-          driver_id: row.driver_id || "",
+          driver_id: row.driver_id || null,
           numero_rotation: rotCount,
           numero_bon_client: row.bl || "",
           date_rotation: new Date(date + "T12:00:00").toISOString(),
@@ -332,24 +333,30 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ve
           bon_physique_recu: false,
           statut: "livree",
         });
+        if (rotError) throw rotError;
         totalPoidsAdded += Number(row.poids_kg);
         if (refuelDeclenche) {
           refuels.push({ vehicle_id: row.vehicle_id });
-          await base44.entities.FuelEntry.create({
+          const { error: fuelError } = await supabase.from("fuel_entries").insert({
+            id: crypto.randomUUID(),
             vehicle_id: row.vehicle_id,
             date,
             litres: consoParRotation * 3,
             montant_total: consoParRotation * 3 * 650,
             km_compteur: 0,
             station: `Refuel auto — Rotation #${rotCount} (${campaign.nom_campagne})`,
+            statut: "en_attente",
           });
+          if (fuelError) throw fuelError;
         }
       }
 
-      await base44.entities.Campaign.update(campaign.id, {
+      // Campaign migré sur Supabase — recouplé proprement (n'est plus best-effort).
+      const { error: campaignError } = await supabase.from("campaigns").update({
         nombre_rotations_realisees: (campaign.nombre_rotations_realisees || 0) + validRows.length,
         tonnage_realise: (campaign.tonnage_realise || 0) + totalPoidsAdded,
-      });
+      }).eq("id", campaign.id);
+      if (campaignError) throw campaignError;
 
       return { count: validRows.length, refuels };
     },

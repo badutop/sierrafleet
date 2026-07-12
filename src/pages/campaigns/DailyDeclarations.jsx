@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,11 +23,13 @@ export default function DailyDeclarations({ campaignId, declarations, vehicles, 
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
 
   const createMutation = useMutation({
-    mutationFn: (data) => {
+    mutationFn: async (data) => {
       const ecart = Number(data.bons_systeme || 0) - Number(data.bons_physiques || 0);
-      return base44.entities.DailyDeclaration.create({
+      const { error } = await supabase.from("daily_declarations").insert({
+        id: crypto.randomUUID(),
         ...data,
         campaign_id: campaignId,
+        vehicle_id: data.vehicle_id || null,
         nombre_rotations_jour: Number(data.nombre_rotations_jour || 0),
         tonnage_total_jour: Number(data.tonnage_total_jour || 0),
         bons_systeme: Number(data.bons_systeme || 0),
@@ -36,6 +38,7 @@ export default function DailyDeclarations({ campaignId, declarations, vehicles, 
         ecart_bons: ecart,
         statut_validation: ecart !== 0 ? "ecart_detecte" : "soumis",
       });
+      if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["declarations", campaignId] }); setDialogOpen(false); toast.success("Déclaration enregistrée"); },
   });

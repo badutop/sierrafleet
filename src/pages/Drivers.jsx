@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
+import { uploadFile } from "@/lib/storage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +45,7 @@ function DocUploadField({ label, value, fieldKey, onUploaded }) {
     if (!file) return;
     setUploading(true);
     const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await uploadFile(file, "driver-docs");
     onUploaded(fieldKey, file_url);
     if (previewUrl) setPreview(previewUrl);
     setUploading(false);
@@ -55,7 +56,7 @@ function DocUploadField({ label, value, fieldKey, onUploaded }) {
   const handleScanned = async (file, previewUrl) => {
     setUploading(true);
     setPreview(previewUrl);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await uploadFile(file, "driver-docs");
     onUploaded(fieldKey, file_url);
     setUploading(false);
     toast.success(`${label} uploadé`);
@@ -117,20 +118,37 @@ export default function Drivers() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: drivers = [] } = useQuery({ queryKey: ["drivers"], queryFn: () => base44.entities.Driver.list() });
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Driver.create(data),
+    mutationFn: async (data) => {
+      const { data: row, error } = await supabase.from("drivers").insert({ id: crypto.randomUUID(), ...data }).select().single();
+      if (error) throw error;
+      return row;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["drivers"] }); closeDialog(); toast.success("Chauffeur ajouté"); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Driver.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const { error } = await supabase.from("drivers").update(data).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["drivers"] }); closeDialog(); toast.success("Chauffeur modifié"); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Driver.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("drivers").delete().eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["drivers"] }); toast.success("Chauffeur supprimé"); },
   });
 
@@ -139,8 +157,12 @@ export default function Drivers() {
   const closeDialog = () => { setDialogOpen(false); setEditingDriver(null); setForm(emptyForm); };
 
   const handleSave = () => {
-    if (editingDriver) updateMutation.mutate({ id: editingDriver.id, data: form });
-    else createMutation.mutate(form);
+    // Postgres rejette "" pour les colonnes date (Base44 l'acceptait) — on convertit en null.
+    const dateFields = ["date_expiration_permis", "date_embauche"];
+    const data = { ...form };
+    dateFields.forEach(f => { if (data[f] === "") data[f] = null; });
+    if (editingDriver) updateMutation.mutate({ id: editingDriver.id, data });
+    else createMutation.mutate(data);
   };
 
   const handleDelete = async (d) => {

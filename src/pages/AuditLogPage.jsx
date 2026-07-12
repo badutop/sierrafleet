@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +38,15 @@ export default function AuditLogPage() {
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ["audit-logs"],
-    queryFn: () => base44.entities.AuditLog.list("-created_date", 500),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("audit_logs")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data;
+    },
   });
 
   const entities = useMemo(() => [...new Set(logs.map(l => l.entity_name).filter(Boolean))].sort(), [logs]);

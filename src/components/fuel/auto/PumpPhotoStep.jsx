@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Camera, ArrowLeft, CheckCircle2, Loader2, MapPin } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
+import { uploadFile } from "@/lib/storage";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 
@@ -50,15 +51,17 @@ export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone })
       // Upload photo pompe (ou URL démo)
       let pumpUrl = DEMO_PUMP_URL;
       if (!DEMO_MODE && pumpPhoto) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: pumpPhoto.file });
+        const { file_url } = await uploadFile(pumpPhoto.file, "pump-photos");
         pumpUrl = file_url;
       } else if (pumpPhoto) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: pumpPhoto.file });
+        const { file_url } = await uploadFile(pumpPhoto.file, "pump-photos");
         pumpUrl = file_url;
       }
 
       // Crée l'entrée FuelEntry (préfixe "Refuel auto — " pour identification)
-      const fuelEntry = await base44.entities.FuelEntry.create({
+      const fuelEntry = { id: crypto.randomUUID() };
+      const { error: fuelError } = await supabase.from("fuel_entries").insert({
+        id: fuelEntry.id,
         vehicle_id: vehicle.id,
         date: new Date().toISOString().split("T")[0],
         station: `Refuel auto — ${station}`,
@@ -67,12 +70,14 @@ export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone })
         statut: "valide",
         recu_url: pumpUrl,
       });
+      if (fuelError) throw fuelError;
 
       // Marque les bons comme utilisés
       await Promise.all(
-        bons.filter(b => b.rotation?.id).map(b =>
-          base44.entities.Rotation.update(b.rotation.id, { bon_physique_recu: true })
-        )
+        bons.filter(b => b.rotation?.id).map(async (b) => {
+          const { error } = await supabase.from("rotations").update({ bon_physique_recu: true }).eq("id", b.rotation.id);
+          if (error) throw error;
+        })
       );
 
       // Envoie la notification WhatsApp (fire & forget)
@@ -98,17 +103,8 @@ export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone })
 
   const sendWhatsAppConfirmation = async ({ driver, vehicle, bons, station, litres, gps, fuelEntry }) => {
     try {
-      // Récupère les paramètres WA
-      const [phoneSettings, apikeySettings] = await Promise.all([
-        base44.entities.AppSetting.filter({ key: "wa_alert_phone" }),
-        base44.entities.AppSetting.filter({ key: "wa_alert_apikey" }),
-      ]);
-      const phone = phoneSettings[0]?.value;
-      const apikey = apikeySettings[0]?.value;
-      if (!phone || !apikey) return;
-
       const now = new Date();
-      const msg = encodeURIComponent(
+      const message =
         `✅ *Rechargement Effectué*\n\n` +
         `👤 Chauffeur : ${driver.prenom} ${driver.nom}\n` +
         `🚛 Véhicule : ${vehicle.immatriculation}\n` +
@@ -117,11 +113,15 @@ export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone })
         `📋 Bons : ${bons.map(b => b.ocrNumber).join(", ")}\n` +
         `🕐 Heure : ${now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}\n` +
         (gps ? `📍 GPS : ${gps.lat}, ${gps.lng}\n` : "") +
-        `🆔 Tx : ${fuelEntry.id?.slice(0, 8)}`
-      );
+        `🆔 Tx : ${fuelEntry.id?.slice(0, 8)}`;
 
-      await fetch(`https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${msg}&apikey=${apikey}`);
-    } catch {}
+      // Relayé côté serveur (whatsapp-notify) — un fetch() direct depuis le
+      // navigateur vers api.callmebot.com est bloqué par CORS.
+      const { error } = await supabase.functions.invoke("whatsapp-notify", { body: { message } });
+      if (error) console.error("[whatsapp-notify]", error);
+    } catch (err) {
+      console.error("[whatsapp-notify]", err);
+    }
   };
 
   return (

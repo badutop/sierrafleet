@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import React, { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import {
   Truck, Route, Fuel, Wrench, Users, TrendingUp, Activity,
@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuickTripDialog from "@/components/triplog/QuickTripDialog";
-import { demoVehicles, demoDrivers, generateDemoTrips, generateDemoFuel, generateDemoMaintenance } from "@/lib/demoData";
 
 // Dashboard components
 import FleetStatusDonut      from "@/components/dashboard/FleetStatusDonut";
@@ -18,7 +17,6 @@ import RotationsTrendChart   from "@/components/dashboard/RotationsTrendChart";
 import ExpenseBreakdownChart from "@/components/dashboard/ExpenseBreakdownChart";
 import TruckPerformanceCard  from "@/components/dashboard/TruckPerformanceCard";
 import DashboardAlerts       from "@/components/dashboard/DashboardAlerts";
-import GpsLiveWidget         from "@/components/dashboard/GpsLiveWidget";
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 const fmt = (n) => n.toLocaleString("fr-FR");
@@ -56,36 +54,83 @@ function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel
 }
 
 export default function Dashboard() {
-  const [seeded, setSeeded] = useState(false);
   const [quickTripOpen, setQuickTripOpen] = useState(false);
-  const seedingRef = useRef(false);
 
-  const { data: vehicles = [], refetch: refetchV, isLoading: vehiclesLoading } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
-  const { data: drivers = [], refetch: refetchD }  = useQuery({ queryKey: ["drivers"],  queryFn: () => base44.entities.Driver.list() });
-  const { data: trips = [] }       = useQuery({ queryKey: ["trips"],        queryFn: () => base44.entities.TripLog.list("-date_depart", 100),      enabled: seeded || vehicles.length > 0 });
-  const { data: fuelEntries = [] } = useQuery({ queryKey: ["fuel"],         queryFn: () => base44.entities.FuelEntry.list("-date", 200),           enabled: seeded || vehicles.length > 0 });
-  const { data: maintenances = [] }= useQuery({ queryKey: ["maintenances"], queryFn: () => base44.entities.Maintenance.list("-date_entretien", 100), enabled: seeded || vehicles.length > 0 });
-  const { data: campaigns = [] }   = useQuery({ queryKey: ["campaigns"],    queryFn: () => base44.entities.Campaign.list("-created_date", 20) });
-  const { data: clients = [] }     = useQuery({ queryKey: ["clients"],      queryFn: () => base44.entities.Client.list() });
-  const { data: rotations = [] }   = useQuery({ queryKey: ["rotations"],    queryFn: () => base44.entities.Rotation.list("-date_rotation", 200),   enabled: campaigns.length > 0 });
-  const { data: expenses = [] }    = useQuery({ queryKey: ["expenses"],     queryFn: () => base44.entities.Expense.list("-date_frais", 200) });
-
-  // Demo seed
-  useEffect(() => {
-    async function seed() {
-      if (!vehiclesLoading && vehicles.length === 0 && !seeded && !seedingRef.current) {
-        seedingRef.current = true;
-        const cv = await base44.entities.Vehicle.bulkCreate(demoVehicles);
-        const cd = await base44.entities.Driver.bulkCreate(demoDrivers);
-        await base44.entities.TripLog.bulkCreate(generateDemoTrips(cv.map(v => v.id), cd.map(d => d.id)));
-        await base44.entities.FuelEntry.bulkCreate(generateDemoFuel(cv.map(v => v.id)));
-        await base44.entities.Maintenance.bulkCreate(generateDemoMaintenance(cv.map(v => v.id)));
-        setSeeded(true);
-        refetchV(); refetchD();
-      }
-    }
-    seed();
-  }, [vehicles.length, vehiclesLoading]);
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: trips = [] } = useQuery({
+    queryKey: ["trips"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("trip_logs").select("*").order("date_depart", { ascending: false }).limit(100);
+      if (error) throw error;
+      return data;
+    },
+    enabled: vehicles.length > 0,
+  });
+  const { data: fuelEntries = [] } = useQuery({
+    queryKey: ["fuel"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("fuel_entries").select("*").order("date", { ascending: false }).limit(200);
+      if (error) throw error;
+      return data;
+    },
+    enabled: vehicles.length > 0,
+  });
+  const { data: maintenances = [] } = useQuery({
+    queryKey: ["maintenances"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("maintenance").select("*").order("date_entretien", { ascending: false }).limit(100);
+      if (error) throw error;
+      return data;
+    },
+    enabled: vehicles.length > 0,
+  });
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ["campaigns"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaigns").select("*").order("created_date", { ascending: false }).limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: rotations = [] } = useQuery({
+    queryKey: ["rotations"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rotations").select("*").order("date_rotation", { ascending: false }).limit(200);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: expenses = [] } = useQuery({
+    queryKey: ["expenses"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("expenses").select("*").order("date_frais", { ascending: false }).limit(200);
+      if (error) throw error;
+      return data;
+    },
+  });
 
   // ── KPIs ──────────────────────────────────────────────────────────────
   const now       = new Date();
@@ -208,11 +253,6 @@ export default function Dashboard() {
         <ExpenseBreakdownChart expenses={expenses} />
         <TruckPerformanceCard  vehicles={vehicles} rotations={rotations} fuelEntries={fuelEntries} />
         <DashboardAlerts       alerts={alerts} />
-      </div>
-
-      {/* ── Row 6 : GPS Live Widget ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <GpsLiveWidget />
       </div>
 
       <QuickTripDialog open={quickTripOpen} onClose={() => setQuickTripOpen(false)} />

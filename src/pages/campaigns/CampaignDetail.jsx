@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +18,11 @@ import CampaignReport from "@/components/campaigns/CampaignReport";
 import CampaignInvoice from "@/components/campaigns/CampaignInvoice";
 import { confirm } from "@/lib/confirm";
 
-const statutColors = { planifiee: "bg-blue-500/10 text-blue-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-muted text-muted-foreground", suspendue: "bg-amber-500/10 text-amber-600" };
-const statutLabels = { planifiee: "Planifiée", en_cours: "En cours", terminee: "Terminée", suspendue: "Suspendue" };
+// Aligné sur le vrai vocabulaire de statut (CampaignsList.jsx) — l'ancien
+// vocabulaire (planifiee/suspendue) n'était jamais assigné nulle part, il
+// rendait le bouton "Démarrer" inatteignable.
+const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturee: "bg-muted text-muted-foreground" };
+const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturee: "Clôturée" };
 
 export default function CampaignDetail() {
   const { id } = useParams();
@@ -28,20 +31,69 @@ export default function CampaignDetail() {
   const [reportOpen, setReportOpen] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
 
-  const { data: campaign } = useQuery({ queryKey: ["campaign", id], queryFn: () => base44.entities.Campaign.filter({ id }).then(r => r[0]) });
-  const { data: client } = useQuery({ queryKey: ["client", campaign?.client_id], queryFn: () => base44.entities.Client.filter({ id: campaign.client_id }).then(r => r[0]), enabled: !!campaign?.client_id });
-  const { data: rotations = [] } = useQuery({ queryKey: ["rotations", id], queryFn: () => base44.entities.Rotation.filter({ campaign_id: id }, "numero_rotation") });
-  const { data: declarations = [] } = useQuery({ queryKey: ["declarations", id], queryFn: () => base44.entities.DailyDeclaration.filter({ campaign_id: id }, "-date_declaration") });
-  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
-  const { data: drivers = [] } = useQuery({ queryKey: ["drivers"], queryFn: () => base44.entities.Driver.list() });
+  const { data: campaign } = useQuery({
+    queryKey: ["campaign", id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaigns").select("*").eq("id", id).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: client } = useQuery({
+    queryKey: ["client", campaign?.client_id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("*").eq("id", campaign.client_id).single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!campaign?.client_id,
+  });
+  const { data: rotations = [] } = useQuery({
+    queryKey: ["rotations", id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rotations").select("*").eq("campaign_id", id).order("numero_rotation", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: declarations = [] } = useQuery({
+    queryKey: ["declarations", id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("daily_declarations").select("*").eq("campaign_id", id).order("date_declaration", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const startCampaign = useMutation({
-    mutationFn: () => base44.entities.Campaign.update(id, { statut: "en_cours" }),
+    mutationFn: async () => {
+      const { error } = await supabase.from("campaigns").update({ statut: "en_cours" }).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaign", id] }); toast.success("Campagne démarrée"); },
   });
 
   const closeCampaign = useMutation({
-    mutationFn: () => base44.entities.Campaign.update(id, { statut: "terminee" }),
+    mutationFn: async () => {
+      const { error } = await supabase.from("campaigns").update({ statut: "terminee" }).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaign", id] });
       toast.success("Campagne clôturée");
@@ -73,7 +125,7 @@ export default function CampaignDetail() {
           <p className="text-sm text-muted-foreground">{client?.nom || "—"} · {campaign.type_marchandise}{campaign.bl_navire ? ` · BL: ${campaign.bl_navire}` : ""}</p>
         </div>
         <div className="flex gap-2">
-          {campaign.statut === "planifiee" && (
+          {campaign.statut === "creee" && (
             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => startCampaign.mutate()} disabled={startCampaign.isPending}>
               <Play className="w-4 h-4 mr-2" /> Démarrer
             </Button>

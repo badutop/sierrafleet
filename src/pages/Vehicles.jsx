@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,26 +33,44 @@ export default function Vehicles() {
 
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => base44.entities.Vehicle.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const { data: drivers = [] } = useQuery({
     queryKey: ["drivers"],
-    queryFn: () => base44.entities.Driver.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Vehicle.create(data),
+    mutationFn: async (data) => {
+      const { data: row, error } = await supabase.from("vehicles").insert({ id: crypto.randomUUID(), ...data }).select().single();
+      if (error) throw error;
+      return row;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); closeDialog(); toast.success("Véhicule ajouté"); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Vehicle.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const { error } = await supabase.from("vehicles").update(data).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); closeDialog(); toast.success("Véhicule modifié"); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Vehicle.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("vehicles").delete().eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); toast.success("Véhicule supprimé"); },
   });
 
@@ -61,9 +79,13 @@ export default function Vehicles() {
   const closeDialog = () => { setDialogOpen(false); setEditingVehicle(null); setForm(emptyForm); };
 
   const handleSave = () => {
+    // Postgres rejette "" pour les colonnes integer/numeric/date (Base44 l'acceptait) — on convertit en null.
     const numFields = ["annee", "km_actuel", "capacite_charge_tonnes"];
+    const dateFields = ["date_assurance", "date_visite_technique", "date_carte_grise"];
     const data = { ...form };
-    numFields.forEach(f => { if (data[f] !== "" && data[f] !== undefined) data[f] = Number(data[f]); });
+    numFields.forEach(f => { data[f] = (data[f] === "" || data[f] === undefined) ? null : Number(data[f]); });
+    dateFields.forEach(f => { if (data[f] === "") data[f] = null; });
+    if (data.driver_id === "") data.driver_id = null;
     if (editingVehicle) updateMutation.mutate({ id: editingVehicle.id, data });
     else createMutation.mutate(data);
   };

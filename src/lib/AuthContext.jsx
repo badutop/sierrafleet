@@ -1,166 +1,89 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import { supabase } from '@/lib/supabaseClient';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null); // profil applicatif : { id, email, full_name, role, modules, driver_id }
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
+
+  // Charge le profil applicatif (rôle/modules/driver_id) depuis public.profiles.
+  // Un utilisateur Supabase Auth sans ligne profiles correspondante n'est pas
+  // considéré comme enregistré dans l'app (seul admin-create-user crée les deux).
+  const loadProfile = async (sessionUser) => {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', sessionUser.id)
+      .single();
+
+    if (error || !profile) {
+      setUser(null);
+      setIsAuthenticated(false);
+      setAuthError({ type: 'user_not_registered', message: "Ce compte n'est pas enregistré dans l'application" });
+      return;
+    }
+
+    setUser({ ...profile, email: profile.email || sessionUser.email });
+    setIsAuthenticated(true);
+    setAuthError(null);
+  };
 
   useEffect(() => {
-    checkAppState();
+    let active = true;
+
+    // onAuthStateChange émet un événement INITIAL_SESSION dès l'abonnement
+    // (avec la session courante ou null), donc un appel séparé à
+    // supabase.auth.getSession() est redondant. On l'a retiré : sur une
+    // version ancienne du SDK il pouvait rester bloqué indéfiniment après un
+    // rechargement complet de page (contention sur le verrou navigator.locks
+    // interne), gelant l'app derrière le spinner de chargement — corrigé
+    // aussi par la mise à jour de @supabase/supabase-js.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!active) return;
+      if (session?.user) {
+        await loadProfile(session.user);
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError(null);
+      }
+      setIsLoadingAuth(false);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const checkAppState = async () => {
-    try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      
-      // First, check app public settings (with token if available)
-      // This will tell us if auth is required, user not registered, etc.
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token, // Include token if available
-        interceptResponses: true
-      });
-      
-      try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
-        setAppPublicSettings(publicSettings);
-        
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-          setAuthChecked(true);
-          setAuthError({ type: 'auth_required', message: 'Authentication required' });
-        }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-        
-        // Handle app-level errors
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
-          }
-        } else {
-          setAuthError({
-            type: 'unknown',
-            message: appError.message || 'Failed to load app'
-          });
-        }
-        setIsLoadingPublicSettings(false);
-        setIsLoadingAuth(false);
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
-      setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-    }
-  };
-
-  const applyPendingConfig = async (currentUser) => {
-    try {
-      // Fetch all non-applied pending configs and compare email case-insensitively
-      const allPending = await base44.entities.PendingUserConfig.filter({ applied: false });
-      const userEmail = currentUser.email.toLowerCase();
-      const config = allPending?.find(p => p.email?.toLowerCase() === userEmail);
-      if (config) {
-        const updateData = { role: config.role, modules: config.modules };
-        if (config.driver_id) updateData.driver_id = config.driver_id;
-        await base44.auth.updateMe(updateData);
-        await base44.entities.PendingUserConfig.update(config.id, { applied: true });
-        console.log(`Applied pending config for ${userEmail}: role=${config.role}`);
-      }
-    } catch (e) {
-      console.error('applyPendingConfig error:', e);
-    }
-  };
-
-  const checkUserAuth = async () => {
-    try {
-      // Now check if the user is authenticated
-      setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
-      // Appliquer la config en attente si l'utilisateur vient d'accepter l'invitation
-      await applyPendingConfig(currentUser);
-      const refreshedUser = await base44.auth.me();
-      setUser(refreshedUser);
-      setIsAuthenticated(true);
-      setIsLoadingAuth(false);
-      setAuthChecked(true);
-    } catch (error) {
-      console.error('User auth check failed:', error);
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      setAuthChecked(true);
-      
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
-      }
-    }
-  };
-
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setIsAuthenticated(false);
-    setAuthError({ type: 'auth_required', message: 'Authentication required' });
-    base44.auth.logout();
+    setAuthError(null);
   };
 
-  const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+  // Utile après une modification du profil courant (ex: SettingsPage) pour
+  // rafraîchir role/modules sans forcer une déconnexion/reconnexion.
+  // getUser() plutôt que getSession() : ce dernier peut rester bloqué (voir
+  // commentaire plus haut), getUser() interroge directement l'API sans
+  // passer par le même verrou interne.
+  const refreshProfile = async () => {
+    const { data: { user: sessionUser } } = await supabase.auth.getUser();
+    if (sessionUser) await loadProfile(sessionUser);
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated,
       isLoadingAuth,
-      isLoadingPublicSettings,
       authError,
-      appPublicSettings,
-      authChecked,
       logout,
-      navigateToLogin,
-      checkUserAuth,
-      checkAppState
+      refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

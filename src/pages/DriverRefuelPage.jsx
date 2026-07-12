@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
 import { Zap, Truck, User, LogOut, AlertCircle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,11 +10,11 @@ import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
 
 /**
  * Page dédiée aux chauffeurs — accès unique au module Rechargement Auto.
- * Le chauffeur est identifié via son compte (driver_id stocké sur l'User),
- * son véhicule est récupéré depuis l'entité Vehicle (driver_id).
+ * Le chauffeur est identifié via son compte (driver_id stocké sur le profil),
+ * son véhicule est récupéré depuis la table vehicles (driver_id).
  */
 export default function DriverRefuelPage() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user: currentUser, logout } = useAuth();
   const [driver, setDriver] = useState(null);
   const [vehicle, setVehicle] = useState(null);
   const [allDrivers, setAllDrivers] = useState([]);
@@ -24,24 +25,29 @@ export default function DriverRefuelPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentUser]);
 
   const loadData = async () => {
     try {
-      const [user, drivers, vehicles, rotations] = await Promise.all([
-        base44.auth.me(),
-        base44.entities.Driver.list(),
-        base44.entities.Vehicle.list(),
-        base44.entities.Rotation.list("-date_rotation", 500),
+      const [
+        { data: drivers, error: driversError },
+        { data: vehicles, error: vehiclesError },
+        { data: rotations, error: rotationsError },
+      ] = await Promise.all([
+        supabase.from("drivers").select("*"),
+        supabase.from("vehicles").select("*"),
+        supabase.from("rotations").select("*").order("date_rotation", { ascending: false }).limit(500),
       ]);
-      setCurrentUser(user);
+      if (driversError) throw driversError;
+      if (vehiclesError) throw vehiclesError;
+      if (rotationsError) throw rotationsError;
       setAllDrivers(drivers);
       setAllVehicles(vehicles);
       setAllRotations(rotations);
 
       // Trouver le driver lié à cet utilisateur (chauffeur normal)
-      if (user.driver_id) {
-        const d = drivers.find(d => d.id === user.driver_id);
+      if (currentUser?.driver_id) {
+        const d = drivers.find(d => d.id === currentUser.driver_id);
         setDriver(d || null);
         if (d) {
           const v = vehicles.find(v => v.driver_id === d.id);
@@ -56,7 +62,7 @@ export default function DriverRefuelPage() {
     }
   };
 
-  const handleLogout = () => base44.auth.logout();
+  const handleLogout = () => logout();
 
   if (loading) {
     return (
@@ -72,7 +78,7 @@ export default function DriverRefuelPage() {
       <header className="h-14 bg-primary flex items-center justify-between px-4 flex-shrink-0">
         <div className="flex items-center gap-2">
           <img
-            src="https://media.base44.com/images/public/69f9299ed58f49c27c655c94/f179a6017_sierra-logistics-logo-ptit.png"
+            src="/assets/sierra-logistics-logo.png"
             alt="Sierra Logistics"
             className="h-8 object-contain bg-white rounded-lg px-1"
           />

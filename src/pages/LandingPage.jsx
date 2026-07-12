@@ -1,8 +1,8 @@
 import React from "react";
-import { base44 } from "@/api/base44Client";
+import { useNavigate } from "react-router-dom";
 import { Truck, Shield, BarChart2, Clock, ArrowRight, Package, Users } from "lucide-react";
 
-const TRUCK_BG = "https://media.base44.com/images/public/69f9299ed58f49c27c655c94/798922e26_generated_image.png";
+const TRUCK_BG = "/assets/landing-truck-bg.png";
 
 const features = [
   { icon: Truck,      label: "Flotte",      desc: "Suivi temps réel" },
@@ -14,8 +14,9 @@ const features = [
 ];
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const handleLogin = () => {
-    base44.auth.redirectToLogin(window.location.origin + "/");
+    navigate("/login");
   };
 
   return (

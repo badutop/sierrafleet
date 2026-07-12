@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Wrench, AlertTriangle, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 
 const typeLabels = {
@@ -36,7 +36,11 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
 
   const { data: spareParts = [] } = useQuery({
     queryKey: ["spare-parts"],
-    queryFn: () => base44.entities.SparePart.list("designation"),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("spare_parts").select("*").order("designation");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const addPart = (partId) => {
@@ -74,11 +78,15 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
 
   const handleSave = () => {
     const numericFields = ["cout","cout_pieces","cout_main_oeuvre","km_entretien","prochain_km","prochain_nb_rotations","duree_immobilisation_jours"];
+    const dateFields = ["date_fin_intervention", "prochaine_date"];
     const payload = { ...form, cout: coutTotal || Number(form.cout) || 0 };
     numericFields.forEach(k => {
       const v = payload[k];
       if (v === "" || v === null || v === undefined) delete payload[k];
       else payload[k] = Number(v) || 0;
+    });
+    dateFields.forEach(k => {
+      if (payload[k] === "") delete payload[k];
     });
     onSave(payload);
   };

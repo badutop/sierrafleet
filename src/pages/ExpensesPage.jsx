@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,22 +29,52 @@ export default function ExpensesPage() {
   const [form, setForm] = useState(emptyForm);
   const queryClient = useQueryClient();
 
-  const { data: expenses = [], isLoading } = useQuery({ queryKey: ["expenses"], queryFn: () => base44.entities.Expense.list("-date_frais", 200) });
-  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
-  const { data: drivers = [] } = useQuery({ queryKey: ["drivers"], queryFn: () => base44.entities.Driver.list() });
+  const { data: expenses = [], isLoading } = useQuery({
+    queryKey: ["expenses"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("expenses").select("*").order("date_frais", { ascending: false }).limit(200);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Expense.create(data),
+    mutationFn: async (data) => {
+      const { error } = await supabase.from("expenses").insert({ id: crypto.randomUUID(), ...data });
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); closeDialog(); toast.success("Frais ajouté"); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Expense.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const { error } = await supabase.from("expenses").update(data).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); closeDialog(); toast.success("Frais modifié"); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Expense.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("expenses").delete().eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); toast.success("Frais supprimé"); },
   });
 

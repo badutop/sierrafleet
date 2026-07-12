@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,20 +43,50 @@ export default function CampaignsList() {
   const [form, setForm] = useState(emptyForm);
   const queryClient = useQueryClient();
 
-  const { data: campaigns = [], isLoading } = useQuery({ queryKey: ["campaigns"], queryFn: () => base44.entities.Campaign.list("-date_debut") });
-  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
-  const { data: depots = [] } = useQuery({ queryKey: ["depots"], queryFn: () => base44.entities.Depot.list() });
+  const { data: campaigns = [], isLoading } = useQuery({
+    queryKey: ["campaigns"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaigns").select("*").order("date_debut", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: depots = [] } = useQuery({
+    queryKey: ["depots"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("depots").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Campaign.create(data),
+    mutationFn: async (data) => {
+      const { error } = await supabase.from("campaigns").insert({ id: crypto.randomUUID(), ...data });
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaigns"] }); closeDialog(); toast.success("Campagne créée"); },
   });
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Campaign.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const { error } = await supabase.from("campaigns").update(data).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaigns"] }); closeDialog(); toast.success("Campagne modifiée"); },
   });
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Campaign.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("campaigns").delete().eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaigns"] }); toast.success("Campagne supprimée"); },
   });
 
@@ -86,7 +116,10 @@ export default function CampaignsList() {
   };
 
   const handleSave = () => {
+    // Postgres rejette "" pour les colonnes date (Base44 l'acceptait) — on convertit en null.
     const data = { ...form, tonnage_total_prevu: Number(form.tonnage_total_prevu || 0), nombre_rotations_prevues: Number(form.nombre_rotations_prevues || 0) };
+    if (data.date_debut === "") data.date_debut = null;
+    if (data.date_fin_prevue === "") data.date_fin_prevue = null;
     if (editingCampaign) updateMutation.mutate({ id: editingCampaign.id, data });
     else createMutation.mutate(data);
   };

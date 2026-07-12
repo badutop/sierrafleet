@@ -1,5 +1,5 @@
 import React from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,10 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
   const driverMap = Object.fromEntries(drivers.map(d => [d.id, `${d.prenom} ${d.nom}`]));
 
   const updateBon = useMutation({
-    mutationFn: ({ rotId, received }) => base44.entities.Rotation.update(rotId, { bon_physique_recu: received }),
+    mutationFn: async ({ rotId, received }) => {
+      const { error } = await supabase.from("rotations").update({ bon_physique_recu: received }).eq("id", rotId);
+      if (error) throw error;
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["rotations", campaignId] }),
   });
 

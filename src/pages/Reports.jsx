@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Download, BarChart3, TrendingUp, Fuel, Wrench, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,38 @@ const defaultFilter = { mode: "all", month: now.getMonth() + 1, year: now.getFul
 export default function Reports() {
   const [filter, setFilter] = useState(defaultFilter);
 
-  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
-  const { data: trips = [] } = useQuery({ queryKey: ["trips"], queryFn: () => base44.entities.TripLog.list("-date_depart", 500) });
-  const { data: fuel = [] } = useQuery({ queryKey: ["fuel"], queryFn: () => base44.entities.FuelEntry.list("-date", 500) });
-  const { data: maintenances = [] } = useQuery({ queryKey: ["maintenances"], queryFn: () => base44.entities.Maintenance.list("-date_entretien", 500) });
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: trips = [] } = useQuery({
+    queryKey: ["trips"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("trip_logs").select("*").order("date_depart", { ascending: false }).limit(500);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: fuel = [] } = useQuery({
+    queryKey: ["fuel"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("fuel_entries").select("*").order("date", { ascending: false }).limit(500);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: maintenances = [] } = useQuery({
+    queryKey: ["maintenances"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("maintenance").select("*").order("date_entretien", { ascending: false }).limit(500);
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
 

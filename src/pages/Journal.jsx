@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -28,11 +28,19 @@ export default function Journal() {
 
   const { data: expenses = [], isLoading: loadingExp } = useQuery({
     queryKey: ["expenses"],
-    queryFn: () => base44.entities.Expense.list("-date_frais", 2000),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("expenses").select("*").order("date_frais", { ascending: false }).limit(2000);
+      if (error) throw error;
+      return data;
+    },
   });
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => base44.entities.Vehicle.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const vMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);

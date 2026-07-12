@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { uploadFile } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Camera, Upload, User, X, Loader2 } from "lucide-react";
@@ -22,7 +22,7 @@ export default function DriverPhotoField({ value, onUploaded }) {
     if (!file) return;
     setUploading(true);
     const previewUrl = URL.createObjectURL(file);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await uploadFile(file, "driver-photos");
     onUploaded(file_url);
     setPreview(previewUrl);
     setUploading(false);
@@ -32,7 +32,7 @@ export default function DriverPhotoField({ value, onUploaded }) {
   const handleScanned = async (file, previewUrl) => {
     setUploading(true);
     setPreview(previewUrl);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await uploadFile(file, "driver-photos");
     onUploaded(file_url);
     setUploading(false);
     toast.success("Photo uploadée");

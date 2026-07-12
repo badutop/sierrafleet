@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,21 +23,34 @@ export default function Suppliers() {
 
   const { data: suppliers = [], isLoading } = useQuery({
     queryKey: ["suppliers"],
-    queryFn: () => base44.entities.Supplier.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("suppliers").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Supplier.create(data),
+    mutationFn: async (data) => {
+      const { error } = await supabase.from("suppliers").insert({ id: crypto.randomUUID(), ...data });
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["suppliers"] }); closeDialog(); toast.success("Fournisseur ajouté"); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Supplier.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const { error } = await supabase.from("suppliers").update(data).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["suppliers"] }); closeDialog(); toast.success("Fournisseur modifié"); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Supplier.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("suppliers").delete().eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["suppliers"] }); toast.success("Fournisseur supprimé"); },
   });
 

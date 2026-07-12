@@ -1,11 +1,15 @@
 import React from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
+// Aligné sur le vrai vocabulaire de statut (CampaignsList.jsx) — voir
+// CampaignDetail.jsx pour le contexte du fix.
 const STATUS_COLORS = {
-  planifiee: "#6366f1",
-  en_cours:  "#3b82f6",
-  terminee:  "#10b981",
-  suspendue: "#f59e0b",
+  creee: "#6366f1",
+  validee_responsable: "#a855f7",
+  validee_operationnel: "#06b6d4",
+  en_cours: "#3b82f6",
+  terminee: "#10b981",
+  clôturee: "#94a3b8",
 };
 
 export default function CampaignProgressChart({ campaigns }) {
@@ -52,7 +56,7 @@ export default function CampaignProgressChart({ campaigns }) {
       </ResponsiveContainer>
       {/* Legend */}
       <div className="flex flex-wrap gap-3 mt-3">
-        {Object.entries({ "En cours": "#3b82f6", "Planifiée": "#6366f1", "Terminée": "#10b981", "Suspendue": "#f59e0b" }).map(([k, c]) => (
+        {Object.entries({ "Créée": "#6366f1", "Validée (Resp.)": "#a855f7", "Validée (Opér.)": "#06b6d4", "En cours": "#3b82f6", "Terminée": "#10b981", "Clôturée": "#94a3b8" }).map(([k, c]) => (
           <div key={k} className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-sm" style={{ background: c }} />
             <span className="text-[10px] text-muted-foreground">{k}</span>

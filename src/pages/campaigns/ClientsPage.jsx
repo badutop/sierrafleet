@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,18 +29,49 @@ export default function ClientsPage() {
   const [depots, setDepots] = useState([]);
   const queryClient = useQueryClient();
 
-  const { data: clients = [], isLoading } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
-  const { data: allDepots = [] } = useQuery({ queryKey: ["depots"], queryFn: () => base44.entities.Depot.list() });
+  const { data: clients = [], isLoading } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: allDepots = [] } = useQuery({
+    queryKey: ["depots"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("depots").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // DepotsEditor ajoute un champ UI "_coords" qui n'existe pas en colonne —
+  // à retirer avant tout insert/update Supabase (Postgrest rejette les
+  // colonnes inconnues, contrairement à Base44 qui les ignorait).
+  const toDepotPayload = (d, clientId) => {
+    const { _coords, ...rest } = d;
+    return {
+      ...rest,
+      client_id: clientId,
+      latitude: d.latitude !== "" ? parseFloat(d.latitude) : null,
+      longitude: d.longitude !== "" ? parseFloat(d.longitude) : null,
+    };
+  };
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Client.create(data),
+    mutationFn: async (data) => {
+      const { data: client, error } = await supabase.from("clients").insert({ id: crypto.randomUUID(), ...data }).select().single();
+      if (error) throw error;
+      return client;
+    },
     onSuccess: async (client) => {
-      await Promise.all(depots.map(d => base44.entities.Depot.create({
-        ...d,
-        client_id: client.id,
-        latitude: d.latitude !== "" ? parseFloat(d.latitude) : undefined,
-        longitude: d.longitude !== "" ? parseFloat(d.longitude) : undefined,
-      })));
+      if (depots.length > 0) {
+        const { error } = await supabase.from("depots").insert(
+          depots.map(d => ({ id: crypto.randomUUID(), ...toDepotPayload(d, client.id) }))
+        );
+        if (error) throw error;
+      }
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["depots"] });
       closeDialog();
@@ -48,16 +79,22 @@ export default function ClientsPage() {
     },
   });
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Client.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const { error } = await supabase.from("clients").update(data).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: async (_, { id }) => {
       const existing = allDepots.filter(d => d.client_id === id);
-      await Promise.all(existing.map(d => base44.entities.Depot.delete(d.id)));
-      await Promise.all(depots.map(d => base44.entities.Depot.create({
-        ...d,
-        client_id: id,
-        latitude: d.latitude !== "" ? parseFloat(d.latitude) : undefined,
-        longitude: d.longitude !== "" ? parseFloat(d.longitude) : undefined,
-      })));
+      if (existing.length > 0) {
+        const { error: delError } = await supabase.from("depots").delete().in("id", existing.map(d => d.id));
+        if (delError) throw delError;
+      }
+      if (depots.length > 0) {
+        const { error: insError } = await supabase.from("depots").insert(
+          depots.map(d => ({ id: crypto.randomUUID(), ...toDepotPayload(d, id) }))
+        );
+        if (insError) throw insError;
+      }
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["depots"] });
       closeDialog();
@@ -67,8 +104,12 @@ export default function ClientsPage() {
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
       const existing = allDepots.filter(d => d.client_id === id);
-      await Promise.all(existing.map(d => base44.entities.Depot.delete(d.id)));
-      return base44.entities.Client.delete(id);
+      if (existing.length > 0) {
+        const { error: delError } = await supabase.from("depots").delete().in("id", existing.map(d => d.id));
+        if (delError) throw delError;
+      }
+      const { error } = await supabase.from("clients").delete().eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });

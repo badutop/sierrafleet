@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,26 +31,43 @@ export default function SpareParts() {
 
   const { data: parts = [], isLoading } = useQuery({
     queryKey: ["spareParts"],
-    queryFn: () => base44.entities.SparePart.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("spare_parts").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const { data: suppliers = [] } = useQuery({
     queryKey: ["suppliers"],
-    queryFn: () => base44.entities.Supplier.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("suppliers").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.SparePart.create(data),
+    mutationFn: async (data) => {
+      const { error } = await supabase.from("spare_parts").insert({ id: crypto.randomUUID(), ...data });
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["spareParts"] }); closeDialog(); toast.success("Pièce ajoutée"); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.SparePart.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const { error } = await supabase.from("spare_parts").update(data).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["spareParts"] }); closeDialog(); toast.success("Pièce modifiée"); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.SparePart.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("spare_parts").delete().eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["spareParts"] }); toast.success("Pièce supprimée"); },
   });
 

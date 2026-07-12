@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -34,11 +34,19 @@ export default function QuickTripDialog({ open, onClose }) {
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => base44.entities.Vehicle.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
   const { data: drivers = [] } = useQuery({
     queryKey: ["drivers"],
-    queryFn: () => base44.entities.Driver.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const vehicleOptions = useMemo(() =>
@@ -57,7 +65,11 @@ export default function QuickTripDialog({ open, onClose }) {
     })), [drivers]);
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.TripLog.create(data),
+    mutationFn: async (data) => {
+      const { data: row, error } = await supabase.from("trip_logs").insert({ id: crypto.randomUUID(), ...data }).select().single();
+      if (error) throw error;
+      return row;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["triplogs"] });
       toast.success("Trajet enregistré !");

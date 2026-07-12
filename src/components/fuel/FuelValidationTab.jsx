@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +24,10 @@ export default function FuelValidationTab({ entries, vMap, onEdit }) {
   const queryClient = useQueryClient();
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, statut }) => base44.entities.FuelEntry.update(id, { statut }),
+    mutationFn: async ({ id, statut }) => {
+      const { error } = await supabase.from("fuel_entries").update({ statut }).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fuel"] });
       toast.success("Statut mis à jour");

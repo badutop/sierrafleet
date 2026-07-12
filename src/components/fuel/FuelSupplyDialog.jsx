@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Fuel, Camera, X, Image } from "lucide-react";
 import { getFuelPricePerLitre } from "@/pages/SettingsPage";
-import { base44 } from "@/api/base44Client";
+import { uploadFile } from "@/lib/storage";
 
 const stations = [
   { label: "Star Oil - Pompier", value: "Star Oil - Pompier" },
@@ -62,7 +62,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
     setUploadingPhoto(true);
     const previewUrl = URL.createObjectURL(file);
     setPhotoPreview(previewUrl);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await uploadFile(file, "fuel-receipts");
     set("recu_url", file_url);
     setUploadingPhoto(false);
   };

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import React, { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,16 +36,14 @@ const roleColors = {
 const DEFAULT_MODULES = ALL_MODULES.map(m => m.key);
 
 export default function UsersPage() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user: currentUser } = useAuth();
   const [inviteOpen, setInviteOpen] = useState(false);
-
-  useEffect(() => {
-    base44.auth.me().then(setCurrentUser).catch(() => {});
-  }, []);
   const [editOpen, setEditOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
+  const [inviteFullName, setInviteFullName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePassword, setInvitePassword] = useState("");
   const [inviteRole, setInviteRole] = useState("collecteur_bons");
   const [inviteModules, setInviteModules] = useState(DEFAULT_MODULES);
   const [inviteDriverId, setInviteDriverId] = useState("");
@@ -58,31 +57,72 @@ export default function UsersPage() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users"],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: async () => {
+      // Alias created_date:created_at pour garder la même forme que le reste des entités de l'app
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, email, full_name, role, modules, driver_id, created_date:created_at");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const { data: drivers = [] } = useQuery({
     queryKey: ["drivers"],
-    queryFn: () => base44.entities.Driver.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const { data: allVehiclesForDisplay = [] } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => base44.entities.Vehicle.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const { error } = await supabase.from("profiles").update(data).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setEditOpen(false);
       toast.success("Utilisateur mis à jour");
     },
+    onError: (err) => toast.error(`Erreur : ${err.message}`),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.User.delete(id),
+    // Passe par l'Edge Function admin-delete-user (service_role) pour
+    // supprimer à la fois public.profiles ET le compte auth.users — un
+    // delete direct côté client ne peut retirer que la ligne profiles.
+    mutationFn: async (id) => {
+      const { error } = await supabase.functions.invoke("admin-delete-user", { body: { id } });
+      if (error) {
+        // functions.invoke() ne parse pas automatiquement le corps JSON
+        // d'une réponse d'erreur (ex: le message du garde-fou anti-auto-
+        // suppression) — on va le chercher dans error.context pour un
+        // message clair côté toast plutôt qu'une erreur HTTP générique.
+        let message = error.message;
+        if (error.context) {
+          try {
+            const body = await error.context.json();
+            if (body?.error) message = body.error;
+          } catch {
+            // le corps n'était pas du JSON exploitable, on garde error.message
+          }
+        }
+        throw new Error(message);
+      }
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["users"] }); toast.success("Utilisateur supprimé"); },
+    onError: (err) => toast.error(`Erreur : ${err.message}`),
   });
 
   const openEdit = (u) => {
@@ -93,18 +133,41 @@ export default function UsersPage() {
     setEditOpen(true);
   };
 
-  const handleInvite = async () => {
-    if (!inviteEmail) return;
+  const handleCreateUser = async () => {
+    if (!inviteEmail || invitePassword.length < 8) return;
     setInviting(true);
     try {
-      await base44.functions.invoke("inviteUser", {
-        email: inviteEmail,
-        role: inviteRole,
-        modules: inviteModules,
-        driver_id: inviteDriverId || null,
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
+        body: {
+          email: inviteEmail,
+          password: invitePassword,
+          role: inviteRole,
+          modules: inviteModules,
+          driver_id: inviteRole === "chauffeur" ? (inviteDriverId || null) : null,
+          full_name: inviteFullName || undefined,
+        },
       });
-      toast.success(`Invitation envoyée à ${inviteEmail}`);
+      if (error) {
+        // functions.invoke() ne parse pas automatiquement le corps JSON
+        // d'une réponse d'erreur — voir le même commentaire dans
+        // handleDelete ci-dessus pour le contexte.
+        let message = error.message;
+        if (error.context) {
+          try {
+            const body = await error.context.json();
+            if (body?.error) message = body.error;
+          } catch {
+            // le corps n'était pas du JSON exploitable, on garde error.message
+          }
+        }
+        throw new Error(message);
+      }
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`Utilisateur ${inviteEmail} créé`);
+      setInviteFullName("");
       setInviteEmail("");
+      setInvitePassword("");
       setInviteRole("collecteur_bons");
       setInviteModules(DEFAULT_MODULES);
       setInviteDriverId("");
@@ -135,7 +198,7 @@ export default function UsersPage() {
           <p className="text-sm text-muted-foreground">{users.length} utilisateurs enregistrés</p>
         </div>
         <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={() => setInviteOpen(true)}>
-          <UserPlus className="w-4 h-4 mr-2" /> Inviter un utilisateur
+          <UserPlus className="w-4 h-4 mr-2" /> Créer un utilisateur
         </Button>
       </div>
 
@@ -204,14 +267,22 @@ export default function UsersPage() {
         })}
       </div>
 
-      {/* Invite Dialog */}
+      {/* Create User Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Inviter un utilisateur</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Créer un utilisateur</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
+            <div>
+              <Label className="text-xs">Nom complet</Label>
+              <Input className="mt-1" placeholder="Ex: Amadou Diop" value={inviteFullName} onChange={e => setInviteFullName(e.target.value)} />
+            </div>
             <div>
               <Label className="text-xs">Adresse email *</Label>
               <Input type="email" className="mt-1" placeholder="utilisateur@exemple.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Mot de passe * (8 caractères min.)</Label>
+              <Input type="password" className="mt-1" placeholder="Mot de passe" value={invitePassword} onChange={e => setInvitePassword(e.target.value)} />
             </div>
             <div>
               <Label className="text-xs">Rôle</Label>
@@ -244,8 +315,8 @@ export default function UsersPage() {
           </div>
           <div className="flex gap-2 mt-4">
             <Button variant="outline" className="flex-1" onClick={() => setInviteOpen(false)}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleInvite} disabled={inviting || !inviteEmail}>
-              {inviting ? "Envoi..." : "Envoyer l'invitation"}
+            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleCreateUser} disabled={inviting || !inviteEmail || invitePassword.length < 8}>
+              {inviting ? "Création..." : "Créer l'utilisateur"}
             </Button>
           </div>
         </DialogContent>

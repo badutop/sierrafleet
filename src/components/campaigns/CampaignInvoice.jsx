@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { X, Share2, Download } from "lucide-react";
 import { jsPDF } from "jspdf";
 
-const LOGO_URL = "https://media.base44.com/images/public/69f9299ed58f49c27c655c94/f179a6017_sierra-logistics-logo-ptit.png";
+const LOGO_URL = "/assets/sierra-logistics-logo.png";
 const SIERRA_NAVY = "#1e3a5f";
 const SIERRA_ORANGE = "#f97316";
 

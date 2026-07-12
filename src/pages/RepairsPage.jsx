@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -19,23 +19,41 @@ export default function RepairsPage() {
 
   const { data: allMaintenances = [], isLoading } = useQuery({
     queryKey: ["maintenances"],
-    queryFn: () => base44.entities.Maintenance.list("-date_entretien", 500),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("maintenance").select("*").order("date_entretien", { ascending: false }).limit(500);
+      if (error) throw error;
+      return data;
+    },
   });
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => base44.entities.Vehicle.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
   const { data: rotations = [] } = useQuery({
     queryKey: ["rotations"],
-    queryFn: () => base44.entities.Rotation.list("-date_rotation", 1000),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rotations").select("*").order("date_rotation", { ascending: false }).limit(1000);
+      if (error) throw error;
+      return data;
+    },
   });
 
   const maintenances = allMaintenances.filter(m => m.categorie === "corrective");
 
   const saveMutation = useMutation({
-    mutationFn: (data) => {
-      if (data.id) return base44.entities.Maintenance.update(data.id, data);
-      return base44.entities.Maintenance.create(data);
+    mutationFn: async (data) => {
+      if (data.id) {
+        const { id, ...rest } = data;
+        const { error } = await supabase.from("maintenance").update(rest).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("maintenance").insert({ id: crypto.randomUUID(), ...data });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["maintenances"] });
@@ -46,7 +64,10 @@ export default function RepairsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Maintenance.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("maintenance").delete().eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["maintenances"] });
       toast.success("Réparation supprimée");
@@ -54,8 +75,10 @@ export default function RepairsPage() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, statut, observations }) =>
-      base44.entities.Maintenance.update(id, { statut, ...(observations ? { observations } : {}) }),
+    mutationFn: async ({ id, statut, observations }) => {
+      const { error } = await supabase.from("maintenance").update({ statut, ...(observations ? { observations } : {}) }).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["maintenances"] });
       const labels = { en_cours: "démarrée ▶", realise: "validée ✔" };

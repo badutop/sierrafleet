@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,21 @@ export default function CampaignTruckAssignment({ campaignId }) {
 
   const { data: allVehicles = [] } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => base44.entities.Vehicle.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
 
   // Fetch assignments for this campaign (rotations with unique vehicles)
   const { data: rotations = [], isLoading } = useQuery({
     queryKey: ["rotations", campaignId],
-    queryFn: () => base44.entities.Rotation.filter({ campaign_id: campaignId }),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rotations").select("*").eq("campaign_id", campaignId);
+      if (error) throw error;
+      return data;
+    },
   });
 
   // Deduplicate: one record per vehicle (latest rotation)
@@ -45,13 +53,16 @@ export default function CampaignTruckAssignment({ campaignId }) {
   const availableVehicles = allVehicles.filter(v => !assignedVehicleIds.has(v.id));
 
   const assignMutation = useMutation({
-    mutationFn: (vehicleId) =>
-      base44.entities.Rotation.create({
+    mutationFn: async (vehicleId) => {
+      const { error } = await supabase.from("rotations").insert({
+        id: crypto.randomUUID(),
         campaign_id: campaignId,
         vehicle_id: vehicleId,
         date_rotation: new Date().toISOString(),
         statut: "en_cours",
-      }),
+      });
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rotations", campaignId] });
       queryClient.invalidateQueries({ queryKey: ["rotations-all"] });
@@ -61,7 +72,10 @@ export default function CampaignTruckAssignment({ campaignId }) {
   });
 
   const removeMutation = useMutation({
-    mutationFn: (rotationId) => base44.entities.Rotation.delete(rotationId),
+    mutationFn: async (rotationId) => {
+      const { error } = await supabase.from("rotations").delete().eq("id", rotationId);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rotations", campaignId] });
       queryClient.invalidateQueries({ queryKey: ["rotations-all"] });

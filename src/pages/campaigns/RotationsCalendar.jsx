@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,9 +17,30 @@ const CAMPAIGN_COLORS = [
 export default function RotationsCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const { data: rotations = [] } = useQuery({ queryKey: ["rotations-all"], queryFn: () => base44.entities.Rotation.list() });
-  const { data: campaigns = [] } = useQuery({ queryKey: ["campaigns"], queryFn: () => base44.entities.Campaign.list() });
-  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: rotations = [] } = useQuery({
+    queryKey: ["rotations-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rotations").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ["campaigns"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaigns").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const campaignColorMap = useMemo(() => {
     const map = {};

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, AlertCircle } from "lucide-react";
@@ -38,12 +38,54 @@ export default function CampaignFinancialReport() {
   const prixTonne = getPrixTonne();
   const tvaPct = getTvaPct();
 
-  const { data: campaigns = [] } = useQuery({ queryKey: ["campaigns-all"], queryFn: () => base44.entities.Campaign.list("-date_debut", 200) });
-  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
-  const { data: rotations = [] } = useQuery({ queryKey: ["rotations-all"], queryFn: () => base44.entities.Rotation.list("-date_rotation", 2000) });
-  const { data: expenses = [] } = useQuery({ queryKey: ["expenses-all"], queryFn: () => base44.entities.Expense.list("-date_frais", 2000) });
-  const { data: fuelEntries = [] } = useQuery({ queryKey: ["fuel-all"], queryFn: () => base44.entities.FuelEntry.list("-date", 2000) });
-  const { data: maintenances = [] } = useQuery({ queryKey: ["maint-all"], queryFn: () => base44.entities.Maintenance.list("-date_entretien", 2000) });
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ["campaigns-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaigns").select("*").order("date_debut", { ascending: false }).limit(200);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: rotations = [] } = useQuery({
+    queryKey: ["rotations-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rotations").select("*").order("date_rotation", { ascending: false }).limit(2000);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: expenses = [] } = useQuery({
+    queryKey: ["expenses-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("expenses").select("*").order("date_frais", { ascending: false }).limit(2000);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: fuelEntries = [] } = useQuery({
+    queryKey: ["fuel-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("fuel_entries").select("*").order("date", { ascending: false }).limit(2000);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: maintenances = [] } = useQuery({
+    queryKey: ["maint-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("maintenance").select("*").order("date_entretien", { ascending: false }).limit(2000);
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const range = useMemo(() => getDateRange(filter), [filter]);
 

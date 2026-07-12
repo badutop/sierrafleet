@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
+import { uploadFile } from "@/lib/storage";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -121,7 +122,10 @@ export default function VehicleDocuments({ vehicle, open, onClose }) {
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
-    mutationFn: (data) => base44.entities.Vehicle.update(vehicle.id, data),
+    mutationFn: async (data) => {
+      const { error } = await supabase.from("vehicles").update(data).eq("id", vehicle.id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
     },
@@ -130,7 +134,7 @@ export default function VehicleDocuments({ vehicle, open, onClose }) {
   const handleUpload = async (key, file) => {
     setUploading(prev => ({ ...prev, [key]: true }));
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await uploadFile(file, "vehicle-docs");
       await updateMutation.mutateAsync({ [key]: file_url });
       toast.success("Document enregistré");
     } catch {
