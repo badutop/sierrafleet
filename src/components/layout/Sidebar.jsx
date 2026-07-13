@@ -1,9 +1,10 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, Truck, BookOpen, Fuel, Wrench, 
+import {
+  LayoutDashboard, Truck, BookOpen, Fuel, Wrench,
   Users, BarChart3, Settings, ChevronLeft, ChevronRight,
-  Package, Receipt, UserCog, Ship, Building2, Factory, Zap, LogOut, AlertTriangle, ScrollText
+  Package, Receipt, UserCog, Ship, Building2, Factory, Zap, LogOut, AlertTriangle, ScrollText,
+  MapPin, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
@@ -23,6 +24,7 @@ const navItems = [
   { path: "/expenses",    label: "Frais",                    icon: Receipt,         module: "expenses" },
   { path: "/journal",     label: "Journal des Dépenses",     icon: BookOpen,        module: "journal" },
   { path: "/reports",     label: "Rapports",                 icon: BarChart3,       module: "reports" },
+  { label: "Suivi GPS", icon: MapPin, module: "gps", external: true, href: "https://eu.tracksolidpro.com" },
   { path: "/users",       label: "Utilisateurs",             icon: UserCog,         module: "users" },
   { path: "/audit-log",   label: "Journal d'Audit",          icon: ScrollText,      module: "audit-log" },
   { path: "/settings",    label: "Paramètres",               icon: Settings,        module: "settings" },
@@ -62,6 +64,16 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
 
         <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
           {visibleItems.map(item => {
+            if (item.external) {
+              return (
+                <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                  <item.icon className="w-5 h-5 shrink-0" />
+                  {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+                  {!collapsed && <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-50" />}
+                </a>
+              );
+            }
             const active = location.pathname === item.path || (item.path !== "/" && location.pathname.startsWith(item.path + "/"));
             return (
               <Link key={item.path} to={item.path} onClick={() => setMobileOpen(false)}
