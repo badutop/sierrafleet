@@ -4,10 +4,11 @@ import { uploadFile } from "@/lib/storage";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Upload, ExternalLink, Trash2, Loader2, FileImage, FileBadge, ClipboardCheck } from "lucide-react";
+import { FileText, Upload, ExternalLink, Trash2, Loader2, FileImage, FileBadge, ClipboardCheck, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { confirm } from "@/lib/confirm";
+import DocumentScanner from "@/components/drivers/DocumentScanner";
 
 const DOCS = [
   {
@@ -36,6 +37,7 @@ const DOCS = [
 function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
   const inputRef = useRef();
   const Icon = doc.icon;
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -44,8 +46,20 @@ function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
     e.target.value = "";
   };
 
+  const handleScanned = (file) => {
+    onUpload(doc.key, file);
+  };
+
   return (
     <div className={cn("rounded-xl border p-4 flex flex-col gap-3", value ? "border-border bg-card" : "border-dashed border-border bg-muted/30")}>
+      {scannerOpen && (
+        <DocumentScanner
+          onCapture={handleScanned}
+          onClose={() => setScannerOpen(false)}
+          instructionText={`Alignez "${doc.label}" dans le cadre`}
+          autoStraighten
+        />
+      )}
       <div className="flex items-center gap-3">
         <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", doc.bg)}>
           <Icon className={cn("w-5 h-5", doc.color)} />
@@ -75,6 +89,15 @@ function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
               size="sm"
               variant="outline"
               className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setScannerOpen(true)}
+              disabled={uploading}
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
             >
@@ -90,19 +113,30 @@ function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
             </Button>
           </>
         ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 h-8 text-xs border-dashed"
-            onClick={() => inputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Envoi...</>
-            ) : (
-              <><Upload className="w-3.5 h-3.5 mr-1.5" /> Uploader</>
-            )}
-          </Button>
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 h-8 text-xs border-dashed"
+              onClick={() => setScannerOpen(true)}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Envoi...</>
+              ) : (
+                <><Camera className="w-3.5 h-3.5 mr-1.5" /> Scanner</>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs px-2 border-dashed"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+            >
+              <Upload className="w-3.5 h-3.5" />
+            </Button>
+          </>
         )}
       </div>
 

@@ -65,7 +65,7 @@ function DocUploadField({ label, value, fieldKey, onUploaded }) {
   return (
     <div className="col-span-2">
       {scannerOpen && (
-        <DocumentScanner onCapture={handleScanned} onClose={() => setScannerOpen(false)} />
+        <DocumentScanner onCapture={handleScanned} onClose={() => setScannerOpen(false)} autoStraighten />
       )}
       <Label className="text-xs">{label}</Label>
       <div className="flex gap-2 mt-1">

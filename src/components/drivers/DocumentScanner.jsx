@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, X, RotateCcw } from "lucide-react";
+import { Camera, X, RotateCcw, Loader2 } from "lucide-react";
+import { straightenCanvas, prewarmDocumentScanner } from "@/lib/documentScan";
 
 const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
 
@@ -11,6 +12,7 @@ export default function DocumentScanner({
   guideShape = "rect", // "rect" | "circle"
   guideWidthPercent = 85,
   instructionText = "Alignez le document dans le cadre",
+  autoStraighten = false, // redressement auto du document via jscanify (CNI, permis...)
 }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -19,9 +21,11 @@ export default function DocumentScanner({
   const streamRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [captured, setCaptured] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     startCamera();
+    if (autoStraighten) prewarmDocumentScanner();
     return () => stopCamera();
   }, []);
 
@@ -40,7 +44,7 @@ export default function DocumentScanner({
     streamRef.current?.getTracks().forEach(t => t.stop());
   };
 
-  const takePhoto = () => {
+  const takePhoto = async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const guide = guideRef.current;
@@ -84,10 +88,19 @@ export default function DocumentScanner({
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, Math.round(gLeft), Math.round(gTop), Math.round(gW), Math.round(gH), 0, 0, canvas.width, canvas.height);
 
-    canvas.toBlob((blob) => {
+    let finalCanvas = canvas;
+    let straightened = false;
+    if (autoStraighten) {
+      setProcessing(true);
+      const result = await straightenCanvas(canvas);
+      if (result) { finalCanvas = result; straightened = true; }
+      setProcessing(false);
+    }
+
+    finalCanvas.toBlob((blob) => {
       const file = new File([blob], "document.jpg", { type: "image/jpeg" });
       const previewUrl = URL.createObjectURL(blob);
-      setCaptured({ file, previewUrl });
+      setCaptured({ file, previewUrl, straightened, autoFailed: autoStraighten && !straightened });
       stopCamera();
     }, "image/jpeg", 0.95);
   };
@@ -155,12 +168,25 @@ export default function DocumentScanner({
           </>
         ) : (
           /* Prévisualisation : uniquement le document recadré */
-          <img
-            src={captured.previewUrl}
-            alt="Document capturé"
-            className="max-h-full max-w-full object-contain rounded"
-            style={{ background: "#000" }}
-          />
+          <>
+            <img
+              src={captured.previewUrl}
+              alt="Document capturé"
+              className="max-h-full max-w-full object-contain rounded"
+              style={{ background: "#000" }}
+            />
+            {captured.autoFailed && (
+              <div className="absolute bottom-0 left-0 right-0 bg-amber-500/90 text-white text-xs px-4 py-2 text-center">
+                Document non détecté automatiquement — vérifiez le cadrage ou reprenez la photo.
+              </div>
+            )}
+          </>
+        )}
+        {processing && (
+          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2 text-white z-20">
+            <Loader2 className="w-8 h-8 animate-spin" />
+            <span className="text-xs">Redressement du document...</span>
+          </div>
         )}
         <canvas ref={canvasRef} className="hidden" />
       </div>
@@ -170,7 +196,7 @@ export default function DocumentScanner({
         {!captured ? (
           <button
             onClick={takePhoto}
-            disabled={!ready}
+            disabled={!ready || processing}
             className="w-16 h-16 rounded-full bg-white disabled:opacity-40 flex items-center justify-center shadow-lg"
           >
             <Camera className="w-7 h-7 text-black" />
