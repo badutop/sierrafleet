@@ -29,6 +29,7 @@ import ClientsPage from '@/pages/campaigns/ClientsPage';
 import RotationsCalendar from '@/pages/campaigns/RotationsCalendar';
 import DriverRefuelPage from '@/pages/DriverRefuelPage';
 import AuditLogPage from '@/pages/AuditLogPage';
+import LandingPage from '@/pages/LandingPage';
 
 function App() {
 
@@ -45,9 +46,16 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
-            <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+            {/* Racine — landing page publique pour les visiteurs non connectés,
+                Dashboard pour les utilisateurs authentifiés. */}
+            <Route element={<ProtectedRoute unauthenticatedElement={<LandingPage />} />}>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Dashboard />} />
+              </Route>
+            </Route>
+
+            <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+              <Route element={<AppLayout />}>
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="/journal" element={<Journal />} />
                 <Route path="/fuel" element={<FuelManagementV2 />} />
