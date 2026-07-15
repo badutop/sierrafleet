@@ -4,7 +4,6 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider } from '@/lib/AuthContext';
-import Login from '@/pages/Login';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -42,12 +41,16 @@ function App() {
                 session de récupération temporaire fait passer isAuthenticated
                 à true (Supabase authentifie brièvement l'utilisateur quand il
                 clique le lien reçu par email). */}
-            <Route path="/login" element={<Login />} />
+            {/* Le formulaire de connexion vit désormais directement sur la
+                landing page ("/") — /login redirige pour ne pas casser les
+                liens/redirections existants (ProtectedRoute, etc.). */}
+            <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* Racine — landing page publique pour les visiteurs non connectés,
-                Dashboard pour les utilisateurs authentifiés. */}
+            {/* Racine — landing page publique (avec connexion intégrée) pour
+                les visiteurs non connectés, Dashboard pour les utilisateurs
+                authentifiés. */}
             <Route element={<ProtectedRoute unauthenticatedElement={<LandingPage />} />}>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Dashboard />} />
