@@ -21,6 +21,17 @@ const zoneConso = { zone1: "8–10 L", zone2: "25 L", zone3: "30 L", zone4: "40 
 
 const emptyForm = { nom: "", code_client: "", zone: "zone1", contact_nom: "", contact_telephone: "", actif: true };
 
+// Génère le prochain code client séquentiel (ex: CLI-0009), indépendamment
+// du nom (généré avant que l'utilisateur saisisse le nom du client).
+const generateNextClientCode = (clients) => {
+  const maxSeq = clients.reduce((max, c) => {
+    const match = /^CLI-(\d+)$/.exec(c.code_client || "");
+    return match ? Math.max(max, parseInt(match[1], 10)) : max;
+  }, 0);
+  const next = Math.max(maxSeq, clients.length) + 1;
+  return `CLI-${String(next).padStart(4, "0")}`;
+};
+
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -120,7 +131,7 @@ export default function ClientsPage() {
 
   const openCreate = () => {
     setEditingClient(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, code_client: generateNextClientCode(clients) });
     setDepots([]);
     setDialogOpen(true);
   };
@@ -233,8 +244,11 @@ export default function ClientsPage() {
           <DialogHeader><DialogTitle>{editingClient ? "Modifier le client" : "Nouveau client"}</DialogTitle></DialogHeader>
           <div className="space-y-3 mt-2">
             <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label className="text-xs">Code client <span className="text-muted-foreground font-normal">(généré automatiquement)</span></Label>
+                <Input className="mt-1 bg-muted text-muted-foreground" value={form.code_client || ""} disabled readOnly />
+              </div>
               <div className="col-span-2"><Label className="text-xs">Nom du client *</Label><Input className="mt-1" value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} /></div>
-              <div><Label className="text-xs">Code client</Label><Input className="mt-1" value={form.code_client || ""} onChange={e => setForm({ ...form, code_client: e.target.value })} /></div>
               <div><Label className="text-xs">Zone principale</Label>
                 <Select value={form.zone || "zone1"} onValueChange={v => setForm({ ...form, zone: v })}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
