@@ -33,7 +33,12 @@ const portMoles = [
   { id: "port_dakar", nom: "Port de Dakar (Général)" },
 ];
 
-const emptyForm = { nom_campagne: "", client_id: "", type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", tonnage_total_prevu: "", nombre_rotations_prevues: "", statut: "creee", observations: "" };
+// Moyenne de tonnage transporté par rotation de camion — sert de base au
+// calcul automatique du nombre de rotations prévues. (Sujet à variations
+// selon le type de camion, à affiner plus tard.)
+const TONNAGE_PAR_ROTATION = 31;
+
+const emptyForm = { nom_campagne: "", clients: [{ client_id: "", tonnage_prevu: "" }], type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", tonnage_total_prevu: 0, nombre_rotations_prevues: "", nombre_camions: "", statut: "creee", observations: "" };
 
 export default function CampaignsList() {
   const [search, setSearch] = useState("");
@@ -67,20 +72,51 @@ export default function CampaignsList() {
       return data;
     },
   });
+  const { data: campaignClients = [] } = useQuery({
+    queryKey: ["campaign_clients"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaign_clients").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const saveCampaignClients = async (campaignId, clientRows) => {
+    const { error: delError } = await supabase.from("campaign_clients").delete().eq("campaign_id", campaignId);
+    if (delError) throw delError;
+    const rows = clientRows
+      .filter(r => r.client_id && r.tonnage_prevu)
+      .map(r => ({ id: crypto.randomUUID(), campaign_id: campaignId, client_id: r.client_id, tonnage_prevu: Number(r.tonnage_prevu) }));
+    if (rows.length) {
+      const { error: insError } = await supabase.from("campaign_clients").insert(rows);
+      if (insError) throw insError;
+    }
+  };
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
-      const { error } = await supabase.from("campaigns").insert({ id: crypto.randomUUID(), ...data });
+    mutationFn: async ({ clients: clientRows, ...data }) => {
+      const id = crypto.randomUUID();
+      const { error } = await supabase.from("campaigns").insert({ id, ...data });
       if (error) throw error;
+      await saveCampaignClients(id, clientRows);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaigns"] }); closeDialog(); toast.success("Campagne créée"); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["campaign_clients"] });
+      closeDialog(); toast.success("Campagne créée");
+    },
   });
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
+    mutationFn: async ({ id, data: { clients: clientRows, ...data } }) => {
       const { error } = await supabase.from("campaigns").update(data).eq("id", id);
       if (error) throw error;
+      await saveCampaignClients(id, clientRows);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaigns"] }); closeDialog(); toast.success("Campagne modifiée"); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["campaign_clients"] });
+      closeDialog(); toast.success("Campagne modifiée");
+    },
   });
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
@@ -91,33 +127,67 @@ export default function CampaignsList() {
   });
 
   const openCreate = () => { setEditingCampaign(null); setForm(emptyForm); setDialogOpen(true); };
-  const openEdit = (c) => { setEditingCampaign(c); setForm({ ...emptyForm, ...c }); setDialogOpen(true); };
+  const openEdit = (c) => {
+    setEditingCampaign(c);
+    const existingClients = campaignClients.filter(cc => cc.campaign_id === c.id);
+    setForm({
+      ...emptyForm,
+      ...c,
+      clients: existingClients.length
+        ? existingClients.map(cc => ({ client_id: cc.client_id, tonnage_prevu: String(cc.tonnage_prevu) }))
+        : (c.client_id ? [{ client_id: c.client_id, tonnage_prevu: String(c.tonnage_total_prevu || "") }] : [{ client_id: "", tonnage_prevu: "" }]),
+    });
+    setDialogOpen(true);
+  };
   const closeDialog = () => { setDialogOpen(false); setEditingCampaign(null); setForm(emptyForm); };
 
-  // Calcul des rotations: 2 rotations par camion par jour
-  const calculateRotations = (tonnageStr, dateDebut, dateFin) => {
-    const tonnage = tonnageStr ? parseFloat(tonnageStr) || 0 : 0;
-    if (!tonnage || !dateDebut || !dateFin) return;
-    
-    const debut = new Date(dateDebut);
-    const fin = new Date(dateFin);
-    const dureeJours = Math.max(1, Math.ceil((fin - debut) / (1000 * 60 * 60 * 24)));
-    
-    // Rotations de base (35T par rotation)
-    const rotationsBase = Math.ceil(tonnage / 35);
-    
-    // Nombre de camions nécessaires pour faire rotationsBase en dureeJours avec 2 rotations/jour
-    const camionsNecessaires = Math.ceil(rotationsBase / (dureeJours * 2));
-    
-    // Rotations prévues = camions * 2 rotations/jour * durée
-    const rotationsPrevues = camionsNecessaires * 2 * dureeJours;
-    
-    setForm(prev => ({ ...prev, nombre_rotations_prevues: rotationsPrevues }));
+  // Total tonnage = somme des tonnages saisis par client.
+  const totalTonnage = (form.clients || []).reduce((sum, r) => sum + (parseFloat(r.tonnage_prevu) || 0), 0);
+  const selectedClientIds = (form.clients || []).map(r => r.client_id).filter(Boolean);
+
+  // Rotations prévues = tonnage total / tonnage moyen par rotation (31T).
+  const rotationsPrevues = totalTonnage > 0 ? Math.ceil(totalTonnage / TONNAGE_PAR_ROTATION) : 0;
+
+  // Durée (jours) = rotations prévues / (camions × 2 rotations/jour/camion).
+  const camions = parseInt(form.nombre_camions) || 0;
+  const dureeJours = rotationsPrevues > 0 && camions > 0 ? Math.ceil(rotationsPrevues / (camions * 2)) : 0;
+
+  // Recalcule rotations/durée/date de fin à chaque changement pertinent (tonnage par client, camions, date début).
+  const recalc = (nextForm) => {
+    const total = (nextForm.clients || []).reduce((sum, r) => sum + (parseFloat(r.tonnage_prevu) || 0), 0);
+    const rotations = total > 0 ? Math.ceil(total / TONNAGE_PAR_ROTATION) : 0;
+    const camionsN = parseInt(nextForm.nombre_camions) || 0;
+    const duree = rotations > 0 && camionsN > 0 ? Math.ceil(rotations / (camionsN * 2)) : 0;
+    let dateFin = "";
+    if (duree > 0 && nextForm.date_debut) {
+      const debut = new Date(nextForm.date_debut);
+      debut.setDate(debut.getDate() + (duree - 1));
+      dateFin = debut.toISOString().split("T")[0];
+    }
+    return { ...nextForm, tonnage_total_prevu: total, nombre_rotations_prevues: rotations, date_fin_prevue: dateFin };
   };
+
+  const updateClientRow = (index, field, value) => {
+    setForm(prev => {
+      const clients = prev.clients.map((r, i) => i === index ? { ...r, [field]: value } : r);
+      return recalc({ ...prev, clients });
+    });
+  };
+  const addClientRow = () => setForm(prev => ({ ...prev, clients: [...prev.clients, { client_id: "", tonnage_prevu: "" }] }));
+  const removeClientRow = (index) => setForm(prev => recalc({ ...prev, clients: prev.clients.filter((_, i) => i !== index) }));
 
   const handleSave = () => {
     // Postgres rejette "" pour les colonnes date (l'ancien backend l'acceptait) — on convertit en null.
-    const data = { ...form, tonnage_total_prevu: Number(form.tonnage_total_prevu || 0), nombre_rotations_prevues: Number(form.nombre_rotations_prevues || 0) };
+    const { clients: clientRows, ...rest } = form;
+    const validClients = clientRows.filter(r => r.client_id && r.tonnage_prevu);
+    const data = {
+      ...rest,
+      client_id: validClients[0]?.client_id || "",
+      tonnage_total_prevu: totalTonnage,
+      nombre_rotations_prevues: rotationsPrevues,
+      nombre_camions: form.nombre_camions ? Number(form.nombre_camions) : null,
+      clients: validClients,
+    };
     if (data.date_debut === "") data.date_debut = null;
     if (data.date_fin_prevue === "") data.date_fin_prevue = null;
     if (editingCampaign) updateMutation.mutate({ id: editingCampaign.id, data });
@@ -183,7 +253,11 @@ export default function CampaignsList() {
       ) : view !== "board" ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filtered.map(c => {
-            const client = clientMap[c.client_id];
+            const campaignClientNames = campaignClients
+              .filter(cc => cc.campaign_id === c.id)
+              .map(cc => clientMap[cc.client_id]?.nom)
+              .filter(Boolean);
+            const clientsLabel = campaignClientNames.length ? campaignClientNames.join(", ") : (clientMap[c.client_id]?.nom || "—");
             const progress = c.tonnage_total_prevu > 0 ? Math.min(100, Math.round((c.tonnage_realise || 0) / c.tonnage_total_prevu * 100)) : 0;
             const rotProgress = c.nombre_rotations_prevues > 0 ? Math.min(100, Math.round((c.nombre_rotations_realisees || 0) / c.nombre_rotations_prevues * 100)) : 0;
             return (
@@ -196,7 +270,7 @@ export default function CampaignsList() {
                       </div>
                       <div>
                         <CardTitle className="text-sm">{c.nom_campagne}</CardTitle>
-                        <p className="text-xs text-muted-foreground">{c.reference && `Réf: ${c.reference} · `}{client?.nom || "—"}</p>
+                        <p className="text-xs text-muted-foreground">{c.reference && `Réf: ${c.reference} · `}{clientsLabel}</p>
                       </div>
                     </div>
                     <Badge className={cn("text-[10px] shrink-0", statutColors[c.statut])}>{statutLabels[c.statut]}</Badge>
@@ -247,15 +321,35 @@ export default function CampaignsList() {
               <Label className="text-xs">Nom de la campagne *</Label>
               <Input className="mt-1" value={form.nom_campagne} onChange={e => setForm({ ...form, nom_campagne: e.target.value })} />
             </div>
-            <div>
-              <Label className="text-xs">Client *</Label>
-              <Select value={form.client_id || "none"} onValueChange={v => setForm({ ...form, client_id: v === "none" ? "" : v })}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- Sélectionner --</SelectItem>
-                  {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="col-span-2">
+              <Label className="text-xs">Clients * <span className="text-muted-foreground font-normal">(un bateau peut être partagé par plusieurs clients)</span></Label>
+              <div className="space-y-2 mt-1">
+                {form.clients.map((row, i) => (
+                  <div key={i} className="flex gap-2 items-start">
+                    <Select value={row.client_id || "none"} onValueChange={v => updateClientRow(i, "client_id", v === "none" ? "" : v)}>
+                      <SelectTrigger className="flex-1"><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">-- Sélectionner --</SelectItem>
+                        {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number" placeholder="Tonnage (T)" className="w-32"
+                      value={row.tonnage_prevu}
+                      onChange={e => updateClientRow(i, "tonnage_prevu", e.target.value)}
+                    />
+                    <Button
+                      type="button" size="sm" variant="outline" className="h-9 px-2 text-destructive hover:bg-destructive/10"
+                      onClick={() => removeClientRow(i)} disabled={form.clients.length === 1}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button type="button" size="sm" variant="outline" className="mt-2 h-8 text-xs" onClick={addClientRow}>
+                <Plus className="w-3.5 h-3.5 mr-1" /> Ajouter un client
+              </Button>
             </div>
             <div>
               <Label className="text-xs">Navire *</Label>
@@ -280,10 +374,10 @@ export default function CampaignsList() {
                 <SelectContent>
                   <SelectItem value="none">-- Sélectionner --</SelectItem>
                   {/* Dépôts du client */}
-                  {depots.filter(d => d.client_id === form.client_id).length > 0 && (
+                  {depots.filter(d => selectedClientIds.includes(d.client_id)).length > 0 && (
                     <>
                       <SelectItem disabled value="depots-label">Dépôts du client</SelectItem>
-                      {depots.filter(d => d.client_id === form.client_id).map(d => (
+                      {depots.filter(d => selectedClientIds.includes(d.client_id)).map(d => (
                         <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
                       ))}
                     </>
@@ -305,10 +399,10 @@ export default function CampaignsList() {
                 <SelectContent>
                   <SelectItem value="none">-- Sélectionner --</SelectItem>
                   {/* Dépôts du client */}
-                  {depots.filter(d => d.client_id === form.client_id).length > 0 && (
+                  {depots.filter(d => selectedClientIds.includes(d.client_id)).length > 0 && (
                     <>
                       <SelectItem disabled value="depots-label">Dépôts du client</SelectItem>
-                      {depots.filter(d => d.client_id === form.client_id).map(d => (
+                      {depots.filter(d => selectedClientIds.includes(d.client_id)).map(d => (
                         <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
                       ))}
                     </>
@@ -321,17 +415,17 @@ export default function CampaignsList() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="col-span-2 rounded-lg bg-muted/50 px-3 py-2 flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Tonnage total prévu</span>
+              <span className="font-semibold">{totalTonnage || 0} T</span>
+            </div>
             <div>
-              <Label className="text-xs">Tonnage prévu (T) *</Label>
+              <Label className="text-xs">Camions disponibles *</Label>
               <Input
                 type="number"
                 className="mt-1"
-                value={form.tonnage_total_prevu}
-                onChange={e => {
-                  const tonnage = e.target.value ? parseFloat(e.target.value) || 0 : 0;
-                  setForm({ ...form, tonnage_total_prevu: e.target.value });
-                  calculateRotations(e.target.value, form.date_debut, form.date_fin_prevue);
-                }}
+                value={form.nombre_camions}
+                onChange={e => setForm(prev => recalc({ ...prev, nombre_camions: e.target.value }))}
               />
             </div>
             <div>
@@ -340,44 +434,21 @@ export default function CampaignsList() {
                 type="date"
                 className="mt-1"
                 value={form.date_debut}
-                onChange={e => {
-                  setForm({ ...form, date_debut: e.target.value });
-                  calculateRotations(form.tonnage_total_prevu, e.target.value, form.date_fin_prevue);
-                }}
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Date fin prévue</Label>
-              <Input
-                type="date"
-                className="mt-1"
-                value={form.date_fin_prevue}
-                onChange={e => {
-                  setForm({ ...form, date_fin_prevue: e.target.value });
-                  calculateRotations(form.tonnage_total_prevu, form.date_debut, e.target.value);
-                }}
+                onChange={e => setForm(prev => recalc({ ...prev, date_debut: e.target.value }))}
               />
             </div>
             <div className="col-span-2">
-              <Label className="text-xs">Rotations prévues (2 rotations/camion/jour)</Label>
-              <Input
-                type="number"
-                className="mt-1"
-                value={form.nombre_rotations_prevues}
-                onChange={e => setForm({ ...form, nombre_rotations_prevues: e.target.value })}
-              />
-              {form.nombre_rotations_prevues && form.date_debut && form.date_fin_prevue && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {(() => {
-                    const debut = new Date(form.date_debut);
-                    const fin = new Date(form.date_fin_prevue);
-                    const dureeJours = Math.max(1, Math.ceil((fin - debut) / (1000 * 60 * 60 * 24)));
-                    const rotations = parseInt(form.nombre_rotations_prevues) || 0;
-                    const camions = Math.ceil(rotations / (dureeJours * 2));
-                    return `${rotations} rotations pour ${camions} camion${camions > 1 ? 's' : ''} sur ${dureeJours} jour${dureeJours > 1 ? 's' : ''}`;
-                  })()}
-                </p>
-              )}
+              <Label className="text-xs">Date fin prévue &amp; rotations — calculées automatiquement</Label>
+              <div className="mt-1 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm space-y-1">
+                {dureeJours > 0 ? (
+                  <>
+                    <p><span className="text-muted-foreground">Date fin prévue :</span> <span className="font-semibold">{form.date_fin_prevue}</span> <span className="text-muted-foreground">({dureeJours} jour{dureeJours > 1 ? "s" : ""})</span></p>
+                    <p><span className="text-muted-foreground">Rotations prévues :</span> <span className="font-semibold">{rotationsPrevues}</span> <span className="text-muted-foreground">({TONNAGE_PAR_ROTATION}T/rotation, {camions} camion{camions > 1 ? "s" : ""} × 2/jour)</span></p>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">Renseignez le tonnage par client, le nombre de camions et la date de début pour calculer automatiquement la date de fin et les rotations.</p>
+                )}
+              </div>
             </div>
 
             <div className="col-span-2">
@@ -391,7 +462,7 @@ export default function CampaignsList() {
           </div>
           <div className="flex gap-2 mt-4">
             <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.nom_campagne || !form.client_id || !form.type_marchandise || !form.point_origine || !form.depot_destination_id}>
+            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.nom_campagne || !selectedClientIds.length || !totalTonnage || !form.type_marchandise || !form.point_origine || !form.depot_destination_id}>
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>
