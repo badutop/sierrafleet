@@ -145,6 +145,8 @@ export default function Vehicles() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Véhicule</TableHead>
+                  <TableHead>Marque</TableHead>
+                  <TableHead>Modèle</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Chauffeur</TableHead>
                   <TableHead>Statut</TableHead>
@@ -163,10 +165,12 @@ export default function Vehicles() {
                           </div>
                           <div>
                             <p className="font-medium text-sm">{v.immatriculation}</p>
-                            <p className="text-[11px] text-muted-foreground">{v.code_camion && <span className="font-mono font-bold text-secondary mr-1">{v.code_camion}</span>}{v.marque} {v.modele}</p>
+                            {v.code_camion && <p className="text-[11px] font-mono font-bold text-secondary">{v.code_camion}</p>}
                           </div>
                         </div>
                       </TableCell>
+                      <TableCell className="text-xs">{v.marque || "-"}</TableCell>
+                      <TableCell className="text-xs">{v.modele || "-"}</TableCell>
                       <TableCell className="text-xs">{typeLabels[v.type_vehicule] || v.type_vehicule}</TableCell>
                       <TableCell className="text-xs">
                         {d ? <span className="flex items-center gap-1"><User className="w-3 h-3 text-muted-foreground" /> {d.prenom} {d.nom}</span> : "-"}
