@@ -15,6 +15,7 @@ import TruckAssignmentBoard from "@/components/campaigns/TruckAssignmentBoard";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
+import { stampStatutDate } from "@/lib/campaignStatus";
 
 const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturee: "Clôturée" };
 const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturee: "bg-muted text-muted-foreground" };
@@ -37,8 +38,11 @@ const portMoles = [
 // calcul automatique du nombre de rotations prévues. (Sujet à variations
 // selon le type de camion, à affiner plus tard.)
 const TONNAGE_PAR_ROTATION = 31;
+// Nombre de rotations qu'un camion peut faire par jour — sert au calcul
+// automatique du nombre de camions nécessaires.
+const ROTATIONS_PAR_CAMION_JOUR = 3;
 
-const emptyForm = { nom_campagne: "", clients: [{ client_id: "", tonnage_prevu: "" }], type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", tonnage_total_prevu: 0, nombre_rotations_prevues: "", nombre_camions: "", statut: "creee", observations: "" };
+const emptyForm = { nom_campagne: "", clients: [{ client_id: "", tonnage_prevu: "" }], type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", duree_prevue_jours: "", tonnage_total_prevu: 0, nombre_rotations_prevues: "", nombre_camions: "", statut: "creee", observations: "" };
 
 export default function CampaignsList() {
   const [search, setSearch] = useState("");
@@ -130,9 +134,16 @@ export default function CampaignsList() {
   const openEdit = (c) => {
     setEditingCampaign(c);
     const existingClients = campaignClients.filter(cc => cc.campaign_id === c.id);
+    // Redéduit la durée (jours) depuis les dates déjà enregistrées, pour pouvoir la modifier.
+    let dureeExistante = "";
+    if (c.date_debut && c.date_fin_prevue) {
+      const jours = Math.round((new Date(c.date_fin_prevue) - new Date(c.date_debut)) / 86400000) + 1;
+      dureeExistante = String(Math.max(1, jours));
+    }
     setForm({
       ...emptyForm,
       ...c,
+      duree_prevue_jours: dureeExistante,
       clients: existingClients.length
         ? existingClients.map(cc => ({ client_id: cc.client_id, tonnage_prevu: String(cc.tonnage_prevu) }))
         : (c.client_id ? [{ client_id: c.client_id, tonnage_prevu: String(c.tonnage_total_prevu || "") }] : [{ client_id: "", tonnage_prevu: "" }]),
@@ -147,24 +158,24 @@ export default function CampaignsList() {
 
   // Rotations prévues = tonnage total / tonnage moyen par rotation (31T).
   const rotationsPrevues = totalTonnage > 0 ? Math.ceil(totalTonnage / TONNAGE_PAR_ROTATION) : 0;
+  const dureeJours = parseInt(form.duree_prevue_jours) || 0;
 
-  // Durée (jours) = rotations prévues / (camions × 2 rotations/jour/camion).
-  const camions = parseInt(form.nombre_camions) || 0;
-  const dureeJours = rotationsPrevues > 0 && camions > 0 ? Math.ceil(rotationsPrevues / (camions * 2)) : 0;
+  // Camions nécessaires = rotations prévues / (durée × 3 rotations/jour/camion).
+  const camionsNecessaires = rotationsPrevues > 0 && dureeJours > 0 ? Math.ceil(rotationsPrevues / (dureeJours * ROTATIONS_PAR_CAMION_JOUR)) : 0;
 
-  // Recalcule rotations/durée/date de fin à chaque changement pertinent (tonnage par client, camions, date début).
+  // Recalcule rotations/camions/date de fin à chaque changement pertinent (tonnage par client, durée, date début).
   const recalc = (nextForm) => {
     const total = (nextForm.clients || []).reduce((sum, r) => sum + (parseFloat(r.tonnage_prevu) || 0), 0);
     const rotations = total > 0 ? Math.ceil(total / TONNAGE_PAR_ROTATION) : 0;
-    const camionsN = parseInt(nextForm.nombre_camions) || 0;
-    const duree = rotations > 0 && camionsN > 0 ? Math.ceil(rotations / (camionsN * 2)) : 0;
+    const duree = parseInt(nextForm.duree_prevue_jours) || 0;
+    const camions = rotations > 0 && duree > 0 ? Math.ceil(rotations / (duree * ROTATIONS_PAR_CAMION_JOUR)) : 0;
     let dateFin = "";
     if (duree > 0 && nextForm.date_debut) {
       const debut = new Date(nextForm.date_debut);
       debut.setDate(debut.getDate() + (duree - 1));
       dateFin = debut.toISOString().split("T")[0];
     }
-    return { ...nextForm, tonnage_total_prevu: total, nombre_rotations_prevues: rotations, date_fin_prevue: dateFin };
+    return { ...nextForm, tonnage_total_prevu: total, nombre_rotations_prevues: rotations, nombre_camions: camions, date_fin_prevue: dateFin };
   };
 
   const updateClientRow = (index, field, value) => {
@@ -178,20 +189,25 @@ export default function CampaignsList() {
 
   const handleSave = () => {
     // Postgres rejette "" pour les colonnes date (l'ancien backend l'acceptait) — on convertit en null.
-    const { clients: clientRows, ...rest } = form;
+    // duree_prevue_jours ne correspond à aucune colonne (juste utile au calcul), on l'exclut de l'envoi.
+    const { clients: clientRows, duree_prevue_jours, ...rest } = form;
     const validClients = clientRows.filter(r => r.client_id && r.tonnage_prevu);
     const data = {
       ...rest,
       client_id: validClients[0]?.client_id || "",
       tonnage_total_prevu: totalTonnage,
       nombre_rotations_prevues: rotationsPrevues,
-      nombre_camions: form.nombre_camions ? Number(form.nombre_camions) : null,
+      nombre_camions: camionsNecessaires,
       clients: validClients,
     };
     if (data.date_debut === "") data.date_debut = null;
     if (data.date_fin_prevue === "") data.date_fin_prevue = null;
-    if (editingCampaign) updateMutation.mutate({ id: editingCampaign.id, data });
-    else createMutation.mutate(data);
+    if (editingCampaign) {
+      Object.assign(data, stampStatutDate(editingCampaign, data.statut));
+      updateMutation.mutate({ id: editingCampaign.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
   };
 
   const handleDelete = async (c) => {
@@ -415,19 +431,6 @@ export default function CampaignsList() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 rounded-lg bg-muted/50 px-3 py-2 flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Tonnage total prévu</span>
-              <span className="font-semibold">{totalTonnage || 0} T</span>
-            </div>
-            <div>
-              <Label className="text-xs">Camions disponibles *</Label>
-              <Input
-                type="number"
-                className="mt-1"
-                value={form.nombre_camions}
-                onChange={e => setForm(prev => recalc({ ...prev, nombre_camions: e.target.value }))}
-              />
-            </div>
             <div>
               <Label className="text-xs">Date début</Label>
               <Input
@@ -437,18 +440,29 @@ export default function CampaignsList() {
                 onChange={e => setForm(prev => recalc({ ...prev, date_debut: e.target.value }))}
               />
             </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Date fin prévue &amp; rotations — calculées automatiquement</Label>
-              <div className="mt-1 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm space-y-1">
-                {dureeJours > 0 ? (
-                  <>
-                    <p><span className="text-muted-foreground">Date fin prévue :</span> <span className="font-semibold">{form.date_fin_prevue}</span> <span className="text-muted-foreground">({dureeJours} jour{dureeJours > 1 ? "s" : ""})</span></p>
-                    <p><span className="text-muted-foreground">Rotations prévues :</span> <span className="font-semibold">{rotationsPrevues}</span> <span className="text-muted-foreground">({TONNAGE_PAR_ROTATION}T/rotation, {camions} camion{camions > 1 ? "s" : ""} × 2/jour)</span></p>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground">Renseignez le tonnage par client, le nombre de camions et la date de début pour calculer automatiquement la date de fin et les rotations.</p>
-                )}
+            <div>
+              <Label className="text-xs">Durée prévue (jours) *</Label>
+              <Input
+                type="number"
+                className="mt-1"
+                value={form.duree_prevue_jours}
+                onChange={e => setForm(prev => recalc({ ...prev, duree_prevue_jours: e.target.value }))}
+              />
+            </div>
+            <div className="col-span-2 rounded-xl border-2 border-secondary bg-secondary/10 p-3">
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">Prévisions (calculées automatiquement)</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Tonnage total</span><span className="font-semibold">{totalTonnage || 0} T</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Rotations prévues</span><span className="font-semibold">{rotationsPrevues}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Camions nécessaires</span><span className="font-semibold">{camionsNecessaires || "—"}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Date fin prévue</span><span className="font-semibold">{form.date_fin_prevue || "—"}</span></div>
               </div>
+              {dureeJours === 0 && (
+                <p className="text-xs text-muted-foreground mt-2">Renseignez le tonnage par client et la durée prévue pour calculer le nombre de camions nécessaires.</p>
+              )}
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Base : {TONNAGE_PAR_ROTATION}T/rotation, {ROTATIONS_PAR_CAMION_JOUR} rotations/jour/camion.
+              </p>
             </div>
 
             <div className="col-span-2">

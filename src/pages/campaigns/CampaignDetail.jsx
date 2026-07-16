@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Truck, RotateCw, AlertTriangle, CheckCircle, Fuel, ClipboardList, Play, Pencil, Lock, FileText } from "lucide-react";
@@ -17,12 +16,8 @@ import CampaignTruckAssignmentTable from "@/components/campaigns/CampaignTruckAs
 import CampaignReport from "@/components/campaigns/CampaignReport";
 import CampaignInvoice from "@/components/campaigns/CampaignInvoice";
 import { confirm } from "@/lib/confirm";
-
-// Aligné sur le vrai vocabulaire de statut (CampaignsList.jsx) — l'ancien
-// vocabulaire (planifiee/suspendue) n'était jamais assigné nulle part, il
-// rendait le bouton "Démarrer" inatteignable.
-const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturee: "bg-muted text-muted-foreground" };
-const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturee: "Clôturée" };
+import { stampStatutDate } from "@/lib/campaignStatus";
+import CampaignStatusStepper from "@/components/campaigns/CampaignStatusStepper";
 
 export default function CampaignDetail() {
   const { id } = useParams();
@@ -83,7 +78,7 @@ export default function CampaignDetail() {
 
   const startCampaign = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("campaigns").update({ statut: "en_cours" }).eq("id", id);
+      const { error } = await supabase.from("campaigns").update({ statut: "en_cours", ...stampStatutDate(campaign, "en_cours") }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaign", id] }); toast.success("Campagne démarrée"); },
@@ -91,7 +86,7 @@ export default function CampaignDetail() {
 
   const closeCampaign = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("campaigns").update({ statut: "terminee" }).eq("id", id);
+      const { error } = await supabase.from("campaigns").update({ statut: "terminee", ...stampStatutDate(campaign, "terminee") }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -111,6 +106,8 @@ export default function CampaignDetail() {
   // Tonnage en kg → tonnes (poids_charge_tonnes stocké en kg selon la fiche)
   const tonnageKg = campaign.tonnage_realise || 0;
   const tonnageT = (tonnageKg / 1000).toFixed(3);
+  // Urgent = campagne pas encore terminée/clôturée et date de fin prévue dépassée.
+  const isUrgent = !["terminee", "clôturee"].includes(campaign.statut) && campaign.date_fin_prevue && new Date(campaign.date_fin_prevue) < new Date();
 
   return (
     <div className="space-y-5">
@@ -118,10 +115,7 @@ export default function CampaignDetail() {
       <div className="flex flex-wrap items-center gap-3">
         <Link to="/campaigns"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Retour</Button></Link>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-bold text-foreground truncate">{campaign.nom_campagne}</h1>
-            <Badge className={cn("text-[10px]", statutColors[campaign.statut])}>{statutLabels[campaign.statut]}</Badge>
-          </div>
+          <h1 className="text-xl font-bold text-foreground truncate">{campaign.nom_campagne}</h1>
           <p className="text-sm text-muted-foreground">{client?.nom || "—"} · {campaign.type_marchandise}{campaign.bl_navire ? ` · BL: ${campaign.bl_navire}` : ""}</p>
         </div>
         <div className="flex gap-2">
@@ -152,6 +146,9 @@ export default function CampaignDetail() {
           </>)}
         </div>
       </div>
+
+      {/* Progression du statut */}
+      <CampaignStatusStepper campaign={campaign} urgent={isUrgent} />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
