@@ -12,12 +12,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const zoneConsoVal = { zone1: 9, zone2: 25, zone3: 30, zone4: 40 };
-const emptyRow = { code_ct: "", vehicle_id: "", bl: "", poids_kg: "" };
+const emptyRow = { code_ct: "", vehicle_id: "", bl: "", poids_kg: "", client_id: "" };
 
 // ── STEP 1 : Saisie ──────────────────────────────────────────────────────────
-function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicles, consoParRotation, existingRotationsCount, campaign, onPreview, onClose }) {
+function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicles, consoParRotation, existingRotationsCount, campaign, campaignClients, onPreview, onClose }) {
+  const isSingleClient = campaignClients.length <= 1;
   const totalPoids = rows.reduce((s, r) => s + (Number(r.poids_kg) || 0), 0);
-  const validRows = rows.filter(r => r.vehicle_id && r.poids_kg);
+  const validRows = rows.filter(r => r.vehicle_id && r.poids_kg && (isSingleClient || r.client_id));
 
   // Index des véhicules par code_camion (insensible à la casse)
   const vehicleByCode = Object.fromEntries(
@@ -63,6 +64,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
               <TableHead className="text-primary-foreground font-bold w-10">#</TableHead>
               <TableHead className="text-primary-foreground font-bold w-20">CT</TableHead>
               <TableHead className="text-primary-foreground font-bold">CAMION (Immat.)</TableHead>
+              {!isSingleClient && <TableHead className="text-primary-foreground font-bold w-36">CLIENT</TableHead>}
               <TableHead className="text-primary-foreground font-bold w-28">BL</TableHead>
               <TableHead className="text-primary-foreground font-bold w-32 text-right">POIDS (kg)</TableHead>
               <TableHead className="w-10"></TableHead>
@@ -93,6 +95,17 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
                    </Select>
                    {row.vehicle_id && (() => { const v = vehicles.find(x => x.id === row.vehicle_id); return v ? <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">{v.immatriculation} · {v.marque} {v.modele}</p> : null; })()}
                   </TableCell>
+                  {!isSingleClient && (
+                    <TableCell>
+                      <Select value={row.client_id || "none"} onValueChange={v => updateRow(i, "client_id", v === "none" ? "" : v)}>
+                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Client" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">-- Sélectionner --</SelectItem>
+                          {campaignClients.map(cc => cc.client && <SelectItem key={cc.client_id} value={cc.client_id}>{cc.client.nom}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  )}
                   <TableCell>
                     <Input className="h-7 text-xs font-mono w-24" placeholder="6693" value={row.bl} onChange={e => updateRow(i, "bl", e.target.value)} />
                   </TableCell>
@@ -113,7 +126,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
               );
             })}
             <TableRow className="bg-secondary/10">
-              <TableCell colSpan={4} className="text-right text-sm font-bold uppercase tracking-wide text-secondary">TD : {validRows.length} ROTATIONS</TableCell>
+              <TableCell colSpan={isSingleClient ? 4 : 5} className="text-right text-sm font-bold uppercase tracking-wide text-secondary">TD : {validRows.length} ROTATIONS</TableCell>
               <TableCell className="text-right text-sm font-bold text-secondary">{totalPoids.toLocaleString("fr-FR")}</TableCell>
               <TableCell />
             </TableRow>
@@ -153,10 +166,12 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
 }
 
 // ── STEP 2 : Aperçu / Validation ─────────────────────────────────────────────
-function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotationsCount, campaign, client, onBack, onConfirm, isPending }) {
-  const validRows = rows.filter(r => r.vehicle_id && r.poids_kg);
+function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotationsCount, campaign, client, campaignClients, onBack, onConfirm, isPending }) {
+  const isSingleClient = campaignClients.length <= 1;
+  const validRows = rows.filter(r => r.vehicle_id && r.poids_kg && (isSingleClient || r.client_id));
   const totalPoids = validRows.reduce((s, r) => s + Number(r.poids_kg), 0);
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
+  const clientMap = Object.fromEntries(campaignClients.filter(cc => cc.client).map(cc => [cc.client_id, cc.client]));
 
   // Calculer les refuels prévus
   const refuelsAVenir = validRows.filter((_, i) => (existingRotationsCount + i + 1) % 3 === 0);
@@ -198,6 +213,7 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
             <TableRow className="bg-muted/60">
               <TableHead className="font-bold text-xs w-10">CT</TableHead>
               <TableHead className="font-bold text-xs">CAMIONS</TableHead>
+              {!isSingleClient && <TableHead className="font-bold text-xs">CLIENT</TableHead>}
               <TableHead className="font-bold text-xs w-24">BL</TableHead>
               <TableHead className="font-bold text-xs text-right w-28">POIDS</TableHead>
               <TableHead className="w-16 text-xs text-center">Carb.</TableHead>
@@ -212,6 +228,7 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
                 <TableRow key={i} className={cn(isRefuel && "bg-amber-50 dark:bg-amber-950/20")}>
                   <TableCell className="text-xs font-bold">{row.code_ct || `CT${i + 1}`}</TableCell>
                   <TableCell className="text-xs font-mono font-semibold">{vehicle?.immatriculation || "—"}</TableCell>
+                  {!isSingleClient && <TableCell className="text-xs">{clientMap[row.client_id]?.nom || "—"}</TableCell>}
                   <TableCell className="text-xs font-mono">{row.bl || "—"}</TableCell>
                   <TableCell className="text-right text-xs font-bold">{Number(row.poids_kg).toLocaleString("fr-FR")}</TableCell>
                   <TableCell className="text-center text-xs">
@@ -225,7 +242,7 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
             })}
             {/* Total */}
             <TableRow className="bg-secondary/20 font-bold border-t-2 border-secondary/40">
-              <TableCell colSpan={3} className="text-right text-sm font-bold uppercase text-secondary">
+              <TableCell colSpan={isSingleClient ? 3 : 4} className="text-right text-sm font-bold uppercase text-secondary">
                 TD : {validRows.length} ROTATIONS
               </TableCell>
               <TableCell className="text-right text-sm font-bold text-secondary">
@@ -288,7 +305,7 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
 }
 
 // ── Composant principal ───────────────────────────────────────────────────────
-export default function RotationSheetEntry({ open, onClose, campaign, client, vehicles, drivers, existingRotationsCount, onSaved }) {
+export default function RotationSheetEntry({ open, onClose, campaign, client, campaignClients = [], vehicles, drivers, existingRotationsCount, onSaved }) {
   const [step, setStep] = useState("saisie"); // "saisie" | "preview"
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [rows, setRows] = useState([{ ...emptyRow }]);
@@ -306,10 +323,12 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ve
   const updateRow = (i, field, value) => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
   const consoParRotation = client ? zoneConsoVal[client.zone] || 9 : 9;
+  const isSingleClient = campaignClients.length <= 1;
+  const soleClientId = campaignClients[0]?.client_id || campaign?.client_id || null;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const validRows = rows.filter(r => r.vehicle_id && r.poids_kg);
+      const validRows = rows.filter(r => r.vehicle_id && r.poids_kg && (isSingleClient || r.client_id));
       if (validRows.length === 0) throw new Error("Aucune ligne valide");
 
       let totalPoidsAdded = 0;
@@ -323,6 +342,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ve
           id: crypto.randomUUID(),
           campaign_id: campaign.id,
           vehicle_id: row.vehicle_id,
+          client_id: isSingleClient ? soleClientId : row.client_id,
           driver_id: row.driver_id || null,
           numero_rotation: rotCount,
           numero_bon_client: row.bl || "",
@@ -379,6 +399,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ve
             consoParRotation={consoParRotation}
             existingRotationsCount={existingRotationsCount}
             campaign={campaign}
+            campaignClients={campaignClients}
             onPreview={() => setStep("preview")}
             onClose={onClose}
           />
@@ -391,6 +412,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ve
             existingRotationsCount={existingRotationsCount}
             campaign={campaign}
             client={client}
+            campaignClients={campaignClients}
             onBack={() => setStep("saisie")}
             onConfirm={() => saveMutation.mutate()}
             isPending={saveMutation.isPending}

@@ -64,12 +64,21 @@ const PRINT_STYLES = `
   @media print { body { margin: 0; } .page { padding: 20px 24px; } }
 `;
 
-export default function CampaignInvoice({ campaign, client, rotations, onClose }) {
+export default function CampaignInvoice({ campaign, client, rotations, singleClient = true, onClose }) {
   const [sharing, setSharing] = useState(false);
   const prixTonne = Number(client?.tarif_par_tonne || 0);
   const tvaPct = getTvaPct();
 
-  const rotationsDone = rotations.filter(r => r.statut !== "annulee");
+  // Ne facturer que les rotations de ce client. Les rotations sans client_id
+  // (saisies avant l'ajout du multi-clients, ou campagne à un seul client)
+  // sont incluses uniquement si la campagne n'a qu'un client — sur une
+  // campagne multi-clients elles sont exclues faute de pouvoir les attribuer.
+  const rotationsDone = rotations.filter(r =>
+    r.statut !== "annulee" && (r.client_id === client?.id || (!r.client_id && singleClient))
+  );
+  // Rotations non rattachées à un client, exclues de toute facture sur une
+  // campagne multi-clients (signalé à l'utilisateur, pas au client final).
+  const unattributedCount = !singleClient ? rotations.filter(r => r.statut !== "annulee" && !r.client_id).length : 0;
   const tonnageTotal = rotationsDone.reduce((s, r) => s + (Number(r.poids_charge_tonnes) || 0), 0);
   const montantHT = tonnageTotal * prixTonne;
   const montantTVA = montantHT * (tvaPct / 100);
@@ -480,6 +489,12 @@ export default function CampaignInvoice({ campaign, client, rotations, onClose }
             </Button>
           </div>
         </div>
+
+        {unattributedCount > 0 && (
+          <div className="px-6 py-2.5 bg-amber-100 text-amber-800 text-xs font-medium border-b border-amber-200">
+            ⚠️ {unattributedCount} rotation{unattributedCount > 1 ? "s" : ""} sans client attribué {unattributedCount > 1 ? "ont" : "a"} été exclue{unattributedCount > 1 ? "s" : ""} de cette facture (campagne multi-clients).
+          </div>
+        )}
 
         {/* Facture — rendu identique au PDF */}
         <div className="bg-white" style={{ fontFamily: "Arial, sans-serif", fontSize: 11, color: "#1a1a2e" }}>

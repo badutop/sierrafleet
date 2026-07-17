@@ -24,7 +24,7 @@ export default function CampaignDetail() {
   const queryClient = useQueryClient();
   const [rotSheetOpen, setRotSheetOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [invoicingClient, setInvoicingClient] = useState(null);
 
   const { data: campaign } = useQuery({
     queryKey: ["campaign", id],
@@ -42,6 +42,22 @@ export default function CampaignDetail() {
       return data;
     },
     enabled: !!campaign?.client_id,
+  });
+  const { data: campaignClientRows = [] } = useQuery({
+    queryKey: ["campaign_clients", id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaign_clients").select("*").eq("campaign_id", id);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: allClients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("*");
+      if (error) throw error;
+      return data;
+    },
   });
   const { data: rotations = [] } = useQuery({
     queryKey: ["rotations", id],
@@ -101,7 +117,11 @@ export default function CampaignDetail() {
       queryClient.invalidateQueries({ queryKey: ["campaign", id] });
       toast.success("Campagne clôturée");
       setReportOpen(true);
-      setTimeout(() => setInvoiceOpen(true), 300);
+      // Ouverture auto de la facture seulement si un seul client — sinon
+      // l'utilisateur choisit quel client facturer via les boutons dédiés.
+      if (isSingleClient && campaignClients[0]?.client) {
+        setTimeout(() => setInvoicingClient(campaignClients[0].client), 300);
+      }
     },
   });
 
@@ -120,6 +140,14 @@ export default function CampaignDetail() {
   // une ligne rotations pour ce vehicle_id = camion actuellement affecté).
   const assignedVehicleIds = new Set(rotations.map(r => r.vehicle_id));
   const assignedVehicles = vehicles.filter(v => assignedVehicleIds.has(v.id));
+  // Clients de la campagne (campaign_clients) résolus avec leur fiche client.
+  // Repli sur l'unique client_id de la campagne pour les campagnes créées
+  // avant l'ajout du multi-clients (aucune ligne campaign_clients).
+  const clientMap = Object.fromEntries(allClients.map(c => [c.id, c]));
+  const campaignClients = campaignClientRows.length
+    ? campaignClientRows.map(cc => ({ client_id: cc.client_id, tonnage_prevu: cc.tonnage_prevu, client: clientMap[cc.client_id] }))
+    : (campaign.client_id ? [{ client_id: campaign.client_id, tonnage_prevu: campaign.tonnage_total_prevu, client: clientMap[campaign.client_id] || client }] : []);
+  const isSingleClient = campaignClients.length <= 1;
 
   return (
     <div className="space-y-5">
@@ -152,9 +180,16 @@ export default function CampaignDetail() {
             <Button variant="outline" onClick={() => setReportOpen(true)}>
               <FileText className="w-4 h-4 mr-2" /> Voir le rapport
             </Button>
-            <Button variant="outline" onClick={() => setInvoiceOpen(true)} className="border-secondary text-secondary hover:bg-secondary/10">
-              <FileText className="w-4 h-4 mr-2" /> Facture
-            </Button>
+            {campaignClients.map(cc => cc.client && (
+              <Button
+                key={cc.client_id}
+                variant="outline"
+                onClick={() => setInvoicingClient(cc.client)}
+                className="border-secondary text-secondary hover:bg-secondary/10"
+              >
+                <FileText className="w-4 h-4 mr-2" /> Facture{!isSingleClient ? ` — ${cc.client.nom}` : ""}
+              </Button>
+            ))}
           </>)}
         </div>
       </div>
@@ -238,12 +273,13 @@ export default function CampaignDetail() {
       </Tabs>
 
       {/* Facture */}
-      {invoiceOpen && (
+      {invoicingClient && (
         <CampaignInvoice
           campaign={campaign}
-          client={client}
+          client={invoicingClient}
           rotations={rotations}
-          onClose={() => setInvoiceOpen(false)}
+          singleClient={isSingleClient}
+          onClose={() => setInvoicingClient(null)}
         />
       )}
 
@@ -267,6 +303,7 @@ export default function CampaignDetail() {
         onClose={() => setRotSheetOpen(false)}
         campaign={campaign}
         client={client}
+        campaignClients={campaignClients}
         vehicles={assignedVehicles}
         drivers={drivers}
         existingRotationsCount={rotations.length}
