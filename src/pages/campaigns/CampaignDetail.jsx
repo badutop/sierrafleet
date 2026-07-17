@@ -75,6 +75,14 @@ export default function CampaignDetail() {
       return data;
     },
   });
+  const { data: depots = [] } = useQuery({
+    queryKey: ["depots"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("depots").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const startCampaign = useMutation({
     mutationFn: async () => {
@@ -248,6 +256,7 @@ export default function CampaignDetail() {
           declarations={declarations}
           vehicles={vehicles}
           drivers={drivers}
+          depots={depots}
           onClose={() => setReportOpen(false)}
         />
       )}

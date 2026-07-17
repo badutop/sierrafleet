@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Printer, X, Truck, RotateCw, Package, MapPin, Calendar, CheckCircle2, AlertTriangle, Fuel } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { resolveLocationLabel } from "@/lib/campaignLocations";
 
 const fmt = (n) => Number(n || 0).toLocaleString("fr-FR");
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR") : "—";
 
-export default function CampaignReport({ campaign, client, rotations, declarations, vehicles, drivers, onClose }) {
+export default function CampaignReport({ campaign, client, rotations, declarations, vehicles, drivers, depots = [], onClose }) {
   const printRef = useRef();
 
   const handlePrint = () => {
@@ -168,8 +169,8 @@ export default function CampaignReport({ campaign, client, rotations, declaratio
             <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /> Informations de la campagne</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               {[
-                { label: "Port d'origine", value: campaign.port_origine || "—" },
-                { label: "Dépôt destination", value: campaign.depot_destination || "—" },
+                { label: "Point de départ", value: resolveLocationLabel(campaign.point_origine, depots) },
+                { label: "Dépôt destination", value: resolveLocationLabel(campaign.depot_destination_id, depots) },
                 { label: "Date de début", value: fmtDate(campaign.date_debut) },
                 { label: "Date de fin prévue", value: fmtDate(campaign.date_fin_prevue) },
                 { label: "Navire", value: campaign.navire || "—" },

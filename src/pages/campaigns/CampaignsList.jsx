@@ -16,23 +16,11 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 import { stampStatutDate } from "@/lib/campaignStatus";
+import { PORT_MOLES as portMoles } from "@/lib/campaignLocations";
 
 const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturee: "Clôturée" };
 const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturee: "bg-muted text-muted-foreground" };
 const cerealTypes = ["Blé", "Maïs", "Riz", "Orge", "Seigle", "Avoine", "Soja", "Tournesol", "Colza"];
-
-// Môles du Port de Dakar
-const portMoles = [
-  { id: "mole_1", nom: "Môle 1 - Port de Dakar" },
-  { id: "mole_2", nom: "Môle 2 - Port de Dakar" },
-  { id: "mole_3", nom: "Môle 3 - Port de Dakar" },
-  { id: "mole_4", nom: "Môle 4 - Port de Dakar" },
-  { id: "mole_5", nom: "Môle 5 - Port de Dakar" },
-  { id: "mole_6", nom: "Môle 6 - Port de Dakar" },
-  { id: "mole_7", nom: "Môle 7 - Port de Dakar" },
-  { id: "mole_8", nom: "Môle 8 - Port de Dakar" },
-  { id: "port_dakar", nom: "Port de Dakar (Général)" },
-];
 
 // Moyenne de tonnage transporté par rotation de camion — sert de base au
 // calcul automatique du nombre de rotations prévues. (Sujet à variations
