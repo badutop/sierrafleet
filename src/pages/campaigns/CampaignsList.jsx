@@ -9,8 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Ship, Pencil, Trash2, ArrowRight, Package, CalendarDays, Rows3, Archive } from "lucide-react";
-import { Link as RouterLink } from "react-router-dom";
+import { Plus, Search, Ship, Pencil, Trash2, ArrowRight, Package, Rows3, Archive } from "lucide-react";
 import TruckAssignmentBoard from "@/components/campaigns/TruckAssignmentBoard";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -236,9 +235,6 @@ export default function CampaignsList() {
           <p className="text-sm text-muted-foreground">{campaigns.filter(c => c.statut === "en_cours").length} en cours · {activeCampaigns.length} active{activeCampaigns.length > 1 ? "s" : ""} · {archivedCampaigns.length} archivée{archivedCampaigns.length > 1 ? "s" : ""}</p>
         </div>
         <div className="flex gap-2">
-          <RouterLink to="/campaigns/calendar">
-            <Button variant="outline" size="sm"><CalendarDays className="w-4 h-4 mr-2" /> Calendrier</Button>
-          </RouterLink>
           <Button variant={view === "archived" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "archived" ? "list" : "archived")}>
             <Archive className="w-4 h-4 mr-2" /> {view === "archived" ? "Vue liste" : `Archivées (${archivedCampaigns.length})`}
           </Button>
