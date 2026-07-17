@@ -144,10 +144,9 @@ export default function CampaignDetail() {
   const tonnageT = (tonnageKg / 1000).toFixed(3);
   // Urgent = campagne pas encore terminée/clôturée et date de fin prévue dépassée.
   const isUrgent = !["terminee", "clôturee"].includes(campaign.statut) && campaign.date_fin_prevue && new Date(campaign.date_fin_prevue) < new Date();
-  // Camions affectés à cette campagne (mêmes rotations que CampaignTruckAssignmentTable :
-  // une ligne rotations pour ce vehicle_id = camion actuellement affecté).
-  const assignedVehicleIds = new Set(rotations.map(r => r.vehicle_id));
-  const assignedVehicles = vehicles.filter(v => assignedVehicleIds.has(v.id));
+  // Camions affectés à cette campagne (vehicles.campaign_id — indépendant des
+  // rotations réelles, qui ne commencent qu'à la saisie de la fiche du jour).
+  const assignedVehicles = vehicles.filter(v => v.campaign_id === id);
   // Clients de la campagne (campaign_clients) résolus avec leur fiche client.
   // Repli sur l'unique client_id de la campagne pour les campagnes créées
   // avant l'ajout du multi-clients (aucune ligne campaign_clients).

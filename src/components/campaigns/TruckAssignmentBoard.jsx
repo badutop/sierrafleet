@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Truck, GripVertical, Ship, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -24,20 +23,15 @@ const statutColors = {
 };
 const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturee: "Clôturée" };
 
+// Un camion "affecté" à une campagne = vehicles.campaign_id (un camion ne peut
+// être affecté qu'à une seule campagne à la fois) — indépendant des rotations
+// réelles, qui ne commencent qu'à la saisie de la fiche du jour.
 export default function TruckAssignmentBoard({ campaigns }) {
   const queryClient = useQueryClient();
   const [isDragging, setIsDragging] = useState(false);
   // Per-campaign: which vehicles are being selected to add (multi-select)
   const [addingTo, setAddingTo] = useState({}); // { [campaignId]: string[] }
 
-  const { data: rotations = [] } = useQuery({
-    queryKey: ["rotations-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("rotations").select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
     queryFn: async () => {
@@ -74,75 +68,55 @@ export default function TruckAssignmentBoard({ campaigns }) {
     );
   }, [vehicles, maintenances]);
 
-  // Move truck: update existing rotation to new campaign
+  // Move truck: réaffecte le camion à une autre campagne
   const moveMutation = useMutation({
-    mutationFn: async ({ rotationId, newCampaignId }) => {
-      const { error } = await supabase.from("rotations").update({ campaign_id: newCampaignId }).eq("id", rotationId);
+    mutationFn: async ({ vehicleId, newCampaignId }) => {
+      const { error } = await supabase.from("vehicles").update({ campaign_id: newCampaignId }).eq("id", vehicleId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rotations-all"] });
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
       toast.success("Camion réaffecté avec succès");
     },
   });
 
-  // Assign new truck to campaign: create a rotation entry
+  // Assign new truck(s) to campaign
   const assignMutation = useMutation({
-    mutationFn: async ({ vehicle_id, campaign_id }) => {
-      const { error } = await supabase.from("rotations").insert({
-        id: crypto.randomUUID(),
-        campaign_id,
-        vehicle_id,
-        date_rotation: new Date().toISOString(),
-        statut: "en_cours",
-      });
+    mutationFn: async ({ vehicleIds, campaignId }) => {
+      const { error } = await supabase.from("vehicles").update({ campaign_id: campaignId }).in("id", vehicleIds);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rotations-all"] });
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
       toast.success("Camion affecté à la campagne");
     },
   });
 
-  // Remove truck from campaign: delete the rotation
+  // Remove truck from campaign
   const removeMutation = useMutation({
-    mutationFn: async (rotationId) => {
-      const { error } = await supabase.from("rotations").delete().eq("id", rotationId);
+    mutationFn: async (vehicleId) => {
+      const { error } = await supabase.from("vehicles").update({ campaign_id: null }).eq("id", vehicleId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rotations-all"] });
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
       toast.success("Camion retiré de la campagne");
     },
   });
 
-  const vehicleMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
-
   const activeCampaigns = campaigns.filter(c => c.statut !== "terminee");
 
-  // Build per-campaign assignments (unique vehicle per campaign, latest rotation)
+  // Camions affectés par campagne
   const campaignTrucks = useMemo(() => {
     const result = {};
-    activeCampaigns.forEach(c => { result[c.id] = []; });
-    const seen = {};
-    [...rotations]
-      .sort((a, b) => new Date(b.date_rotation) - new Date(a.date_rotation))
-      .forEach(r => {
-        if (!result[r.campaign_id]) return;
-        const key = `${r.campaign_id}-${r.vehicle_id}`;
-        if (!seen[key]) {
-          seen[key] = true;
-          result[r.campaign_id].push(r);
-        }
-      });
+    activeCampaigns.forEach(c => { result[c.id] = vehicles.filter(v => v.campaign_id === c.id); });
     return result;
-  }, [rotations, activeCampaigns]);
+  }, [vehicles, activeCampaigns]);
 
-  // Vehicles already assigned to a given campaign
   const assignedVehicleIds = useMemo(() => {
     const map = {};
     activeCampaigns.forEach(c => {
-      map[c.id] = new Set((campaignTrucks[c.id] || []).map(r => r.vehicle_id));
+      map[c.id] = new Set((campaignTrucks[c.id] || []).map(v => v.id));
     });
     return map;
   }, [campaignTrucks, activeCampaigns]);
@@ -152,30 +126,14 @@ export default function TruckAssignmentBoard({ campaigns }) {
     setIsDragging(false);
     const { source, destination, draggableId } = result;
     if (!destination || source.droppableId === destination.droppableId) return;
-    moveMutation.mutate({ rotationId: draggableId, newCampaignId: destination.droppableId });
+    moveMutation.mutate({ vehicleId: draggableId, newCampaignId: destination.droppableId });
   };
 
   const handleAssign = (campaignId) => {
     const vehicleIds = addingTo[campaignId] || [];
     if (vehicleIds.length === 0) return;
-    
-    // Assign all selected vehicles
-    vehicleIds.forEach(vehicleId => {
-      assignMutation.mutate({ vehicle_id: vehicleId, campaign_id: campaignId });
-    });
-    
+    assignMutation.mutate({ vehicleIds, campaignId });
     setAddingTo(prev => ({ ...prev, [campaignId]: [] }));
-  };
-
-  const toggleVehicleSelection = (campaignId, vehicleId) => {
-    setAddingTo(prev => {
-      const current = prev[campaignId] || [];
-      const exists = current.includes(vehicleId);
-      return {
-        ...prev,
-        [campaignId]: exists ? current.filter(id => id !== vehicleId) : [...current, vehicleId]
-      };
-    });
   };
 
   if (activeCampaigns.length === 0) {
@@ -200,9 +158,9 @@ export default function TruckAssignmentBoard({ campaigns }) {
             const alreadyAssigned = assignedVehicleIds[campaign.id] || new Set();
             const availableVehicles = vehicles.filter(v =>
               !alreadyAssigned.has(v.id) &&
+              !v.campaign_id &&
               !blockedImmatriculations.has(v.immatriculation)
             );
-            const selectedVehicle = addingTo[campaign.id];
 
             return (
               <Card key={campaign.id} className={cn("transition-all", isDragging && "ring-2 ring-primary/20")}>
@@ -233,41 +191,37 @@ export default function TruckAssignmentBoard({ campaigns }) {
                           <p className="text-xs text-muted-foreground">Déposer ou affecter un camion</p>
                         </div>
                       )}
-                      {trucks.map((rotation, index) => {
-                        const vehicle = vehicleMap[rotation.vehicle_id];
-                        if (!vehicle) return null;
-                        return (
-                          <Draggable key={rotation.id} draggableId={rotation.id} index={index}>
-                            {(prov, snap) => (
-                              <div
-                                ref={prov.innerRef}
-                                {...prov.draggableProps}
-                                className={cn(
-                                  "flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg text-xs select-none transition-shadow",
-                                  snap.isDragging && "shadow-xl ring-2 ring-primary cursor-grabbing"
-                                )}
-                              >
-                                <div {...prov.dragHandleProps} className="cursor-grab">
-                                  <GripVertical className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                </div>
-                                <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                                  <Truck className="w-4 h-4 text-primary" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="font-bold truncate">{vehicle.immatriculation}</p>
-                                  <p className="text-muted-foreground truncate">{vehicle.code_camion && `${vehicle.code_camion} · `}{vehicle.marque} {vehicle.modele}</p>
-                                </div>
-                                <button
-                                  onClick={async () => { if (await confirm(`Retirer ${vehicle.immatriculation} de cette campagne ?`)) removeMutation.mutate(rotation.id); }}
-                                  className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
+                      {trucks.map((vehicle, index) => (
+                        <Draggable key={vehicle.id} draggableId={vehicle.id} index={index}>
+                          {(prov, snap) => (
+                            <div
+                              ref={prov.innerRef}
+                              {...prov.draggableProps}
+                              className={cn(
+                                "flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg text-xs select-none transition-shadow",
+                                snap.isDragging && "shadow-xl ring-2 ring-primary cursor-grabbing"
+                              )}
+                            >
+                              <div {...prov.dragHandleProps} className="cursor-grab">
+                                <GripVertical className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                               </div>
-                            )}
-                          </Draggable>
-                        );
-                      })}
+                              <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                                <Truck className="w-4 h-4 text-primary" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold truncate">{vehicle.immatriculation}</p>
+                                <p className="text-muted-foreground truncate">{vehicle.code_camion && `${vehicle.code_camion} · `}{vehicle.marque} {vehicle.modele}</p>
+                              </div>
+                              <button
+                                onClick={async () => { if (await confirm(`Retirer ${vehicle.immatriculation} de cette campagne ?`)) removeMutation.mutate(vehicle.id); }}
+                                className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
                       {provided.placeholder}
 
                       {/* Add truck row with multi-select checkboxes */}
@@ -283,8 +237,8 @@ export default function TruckAssignmentBoard({ campaigns }) {
                                 <label
                                   key={v.id}
                                   className={`flex items-center gap-2.5 p-2.5 rounded-md border transition-all cursor-pointer ${
-                                    isSelected 
-                                      ? 'bg-secondary/10 border-secondary/50 shadow-sm' 
+                                    isSelected
+                                      ? 'bg-secondary/10 border-secondary/50 shadow-sm'
                                       : 'bg-muted/30 border-transparent hover:bg-muted/50'
                                   }`}
                                 >
