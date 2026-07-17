@@ -42,7 +42,7 @@ const TONNAGE_PAR_ROTATION = 31;
 // automatique du nombre de camions nécessaires.
 const ROTATIONS_PAR_CAMION_JOUR = 3;
 
-const emptyForm = { nom_campagne: "", clients: [{ client_id: "", tonnage_prevu: "" }], type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", duree_prevue_jours: "", tonnage_total_prevu: 0, nombre_rotations_prevues: "", nombre_camions: "", statut: "creee", observations: "" };
+const emptyForm = { nom_campagne: "", clients: [{ client_id: "", tonnage_prevu: "" }], navire: "", type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", duree_prevue_jours: "", tonnage_total_prevu: 0, nombre_rotations_prevues: "", nombre_camions: "", statut: "creee", observations: "" };
 
 export default function CampaignsList() {
   const [search, setSearch] = useState("");
@@ -109,6 +109,7 @@ export default function CampaignsList() {
       queryClient.invalidateQueries({ queryKey: ["campaign_clients"] });
       closeDialog(); toast.success("Campagne créée");
     },
+    onError: (err) => toast.error(`Erreur lors de la création : ${err.message}`),
   });
   const updateMutation = useMutation({
     mutationFn: async ({ id, data: { clients: clientRows, ...data } }) => {
@@ -121,6 +122,7 @@ export default function CampaignsList() {
       queryClient.invalidateQueries({ queryKey: ["campaign_clients"] });
       closeDialog(); toast.success("Campagne modifiée");
     },
+    onError: (err) => toast.error(`Erreur lors de la modification : ${err.message}`),
   });
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
