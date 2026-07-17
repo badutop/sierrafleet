@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Truck, RotateCw, AlertTriangle, CheckCircle, Fuel, ClipboardList, Play, Pencil, Lock, FileText } from "lucide-react";
+import { ArrowLeft, Truck, RotateCw, AlertTriangle, CheckCircle, Fuel, ClipboardList, Play, Pencil, Lock, FileText, Archive } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import RotationSheetEntry from "./RotationSheetEntry";
@@ -115,7 +115,7 @@ export default function CampaignDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaign", id] });
-      toast.success("Campagne clôturée");
+      toast.success("Campagne terminée");
       setReportOpen(true);
       // Ouverture auto de la facture seulement si un seul client — sinon
       // l'utilisateur choisit quel client facturer via les boutons dédiés.
@@ -123,6 +123,14 @@ export default function CampaignDetail() {
         setTimeout(() => setInvoicingClient(campaignClients[0].client), 300);
       }
     },
+  });
+
+  const archiveCampaign = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("campaigns").update({ statut: "clôturee", ...stampStatutDate(campaign, "clôturee") }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaign", id] }); toast.success("Campagne archivée"); },
   });
 
   if (!campaign) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>;
@@ -170,13 +178,13 @@ export default function CampaignDetail() {
             </Button>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-md shadow-red-200"
-              onClick={async () => { if (await confirm("Clôturer définitivement cette campagne ? Cela marquera la campagne comme terminée et générera le rapport de clôture.")) closeCampaign.mutate(); }}
+              onClick={async () => { if (await confirm("Terminer définitivement cette campagne ? Cela marquera la campagne comme terminée et générera le rapport de clôture.")) closeCampaign.mutate(); }}
               disabled={closeCampaign.isPending}
             >
-              <Lock className="w-4 h-4 mr-2" /> Clôturer la campagne
+              <Lock className="w-4 h-4 mr-2" /> Terminer la campagne
             </Button>
           </>)}
-          {campaign.statut === "terminee" && (<>
+          {["terminee", "clôturee"].includes(campaign.statut) && (<>
             <Button variant="outline" onClick={() => setReportOpen(true)}>
               <FileText className="w-4 h-4 mr-2" /> Voir le rapport
             </Button>
@@ -190,6 +198,16 @@ export default function CampaignDetail() {
                 <FileText className="w-4 h-4 mr-2" /> Facture{!isSingleClient ? ` — ${cc.client.nom}` : ""}
               </Button>
             ))}
+            {campaign.statut === "terminee" && (
+              <Button
+                variant="outline"
+                onClick={async () => { if (await confirm("Archiver cette campagne ? Elle ne sera plus modifiable, seulement consultable dans les campagnes archivées.")) archiveCampaign.mutate(); }}
+                disabled={archiveCampaign.isPending}
+                className="border-muted-foreground/40 text-muted-foreground hover:bg-muted"
+              >
+                <Archive className="w-4 h-4 mr-2" /> Archiver
+              </Button>
+            )}
           </>)}
         </div>
       </div>

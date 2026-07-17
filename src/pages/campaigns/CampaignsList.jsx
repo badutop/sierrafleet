@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Ship, Pencil, Trash2, ArrowRight, Package, CalendarDays, Rows3 } from "lucide-react";
+import { Plus, Search, Ship, Pencil, Trash2, ArrowRight, Package, CalendarDays, Rows3, Archive } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 import TruckAssignmentBoard from "@/components/campaigns/TruckAssignmentBoard";
 import { cn } from "@/lib/utils";
@@ -201,32 +201,47 @@ export default function CampaignsList() {
   };
 
   const handleDelete = async (c) => {
+    if (c.statut !== "creee") {
+      toast.error("Une campagne déjà ouverte ne peut plus être supprimée — clôturez-la puis archivez-la.");
+      return;
+    }
     if (await confirm("Supprimer cette campagne ?")) deleteMutation.mutate(c.id);
   };
 
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c]));
 
-  const filtered = campaigns.filter(c => {
+  // Une campagne archivée (clôturee) sort de la liste principale — elle n'est
+  // consultable que via la vue "Archivées", plus modifiable ni supprimable.
+  const activeCampaigns = campaigns.filter(c => c.statut !== "clôturee");
+  const archivedCampaigns = campaigns.filter(c => c.statut === "clôturee");
+
+  const filtered = activeCampaigns.filter(c => {
     const matchSearch = c.nom_campagne?.toLowerCase().includes(search.toLowerCase()) || c.reference?.toLowerCase().includes(search.toLowerCase());
     const matchStatut = filterStatut === "all" || c.statut === filterStatut;
     return matchSearch && matchStatut;
   });
+  const filteredArchived = archivedCampaigns.filter(c =>
+    c.nom_campagne?.toLowerCase().includes(search.toLowerCase()) || c.reference?.toLowerCase().includes(search.toLowerCase())
+  );
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
-  const [view, setView] = useState("list"); // "list" | "board"
+  const [view, setView] = useState("list"); // "list" | "board" | "archived"
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Campagnes</h1>
-          <p className="text-sm text-muted-foreground">{campaigns.filter(c => c.statut === "en_cours").length} en cours · {campaigns.length} total</p>
+          <p className="text-sm text-muted-foreground">{campaigns.filter(c => c.statut === "en_cours").length} en cours · {activeCampaigns.length} active{activeCampaigns.length > 1 ? "s" : ""} · {archivedCampaigns.length} archivée{archivedCampaigns.length > 1 ? "s" : ""}</p>
         </div>
         <div className="flex gap-2">
           <RouterLink to="/campaigns/calendar">
             <Button variant="outline" size="sm"><CalendarDays className="w-4 h-4 mr-2" /> Calendrier</Button>
           </RouterLink>
+          <Button variant={view === "archived" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "archived" ? "list" : "archived")}>
+            <Archive className="w-4 h-4 mr-2" /> {view === "archived" ? "Vue liste" : `Archivées (${archivedCampaigns.length})`}
+          </Button>
           <Button variant={view === "board" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "board" ? "list" : "board")}>
             <Rows3 className="w-4 h-4 mr-2" /> {view === "board" ? "Vue liste" : "Affecter camions"}
           </Button>
@@ -245,20 +260,22 @@ export default function CampaignsList() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Rechercher..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <Select value={filterStatut} onValueChange={setFilterStatut}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous statuts</SelectItem>
-            {Object.entries(statutLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        {view !== "archived" && (
+          <Select value={filterStatut} onValueChange={setFilterStatut}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous statuts</SelectItem>
+              {Object.entries(statutLabels).filter(([k]) => k !== "clôturee").map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {view !== "board" && isLoading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>
       ) : view !== "board" ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filtered.map(c => {
+          {(view === "archived" ? filteredArchived : filtered).map(c => {
             const campaignClientNames = campaignClients
               .filter(cc => cc.campaign_id === c.id)
               .map(cc => clientMap[cc.client_id]?.nom)
@@ -300,20 +317,22 @@ export default function CampaignsList() {
                   <div className="flex gap-2 pt-1 border-t border-border">
                     <Link to={`/campaigns/${c.id}`} className="flex-1">
                       <Button size="sm" variant="default" className="w-full h-7 text-xs bg-primary hover:bg-primary/90">
-                        <ArrowRight className="w-3 h-3 mr-1" /> Gérer
+                        <ArrowRight className="w-3 h-3 mr-1" /> {view === "archived" ? "Consulter" : "Gérer"}
                       </Button>
                     </Link>
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(c)}><Pencil className="w-3 h-3" /></Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(c)}><Trash2 className="w-3 h-3" /></Button>
+                    {view !== "archived" && (<>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(c)}><Pencil className="w-3 h-3" /></Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(c)}><Trash2 className="w-3 h-3" /></Button>
+                    </>)}
                   </div>
                 </CardContent>
               </Card>
             );
           })}
-          {filtered.length === 0 && (
+          {(view === "archived" ? filteredArchived : filtered).length === 0 && (
             <div className="col-span-2 text-center py-16 text-muted-foreground">
               <Ship className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>Aucune campagne trouvée</p>
+              <p>{view === "archived" ? "Aucune campagne archivée" : "Aucune campagne trouvée"}</p>
             </div>
           )}
         </div>
