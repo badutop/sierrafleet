@@ -108,7 +108,7 @@ export default function CampaignReport({ campaign, client, rotations, declaratio
               <Badge className="bg-muted text-muted-foreground text-[10px]">Clôturée</Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              {client?.nom || "—"} · {campaign.type_marchandise}{campaign.bl_navire ? ` · BL: ${campaign.bl_navire}` : ""}
+              {client?.nom || "—"} · {campaign.type_marchandise}{campaign.navire ? ` · Navire: ${campaign.navire}` : ""}
               {campaign.reference ? ` · Réf: ${campaign.reference}` : ""}
             </p>
           </div>
@@ -172,7 +172,7 @@ export default function CampaignReport({ campaign, client, rotations, declaratio
                 { label: "Dépôt destination", value: campaign.depot_destination || "—" },
                 { label: "Date de début", value: fmtDate(campaign.date_debut) },
                 { label: "Date de fin prévue", value: fmtDate(campaign.date_fin_prevue) },
-                { label: "BL Navire", value: campaign.bl_navire || "—" },
+                { label: "Navire", value: campaign.navire || "—" },
                 { label: "Client", value: client?.nom || "—" },
               ].map((row, i) => (
                 <div key={i} className="flex justify-between items-center py-1.5 border-b border-border/50">

@@ -108,6 +108,10 @@ export default function CampaignDetail() {
   const tonnageT = (tonnageKg / 1000).toFixed(3);
   // Urgent = campagne pas encore terminée/clôturée et date de fin prévue dépassée.
   const isUrgent = !["terminee", "clôturee"].includes(campaign.statut) && campaign.date_fin_prevue && new Date(campaign.date_fin_prevue) < new Date();
+  // Camions affectés à cette campagne (mêmes rotations que CampaignTruckAssignmentTable :
+  // une ligne rotations pour ce vehicle_id = camion actuellement affecté).
+  const assignedVehicleIds = new Set(rotations.map(r => r.vehicle_id));
+  const assignedVehicles = vehicles.filter(v => assignedVehicleIds.has(v.id));
 
   return (
     <div className="space-y-5">
@@ -116,7 +120,7 @@ export default function CampaignDetail() {
         <Link to="/campaigns"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Retour</Button></Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold text-foreground truncate">{campaign.nom_campagne}</h1>
-          <p className="text-sm text-muted-foreground">{client?.nom || "—"} · {campaign.type_marchandise}{campaign.bl_navire ? ` · BL: ${campaign.bl_navire}` : ""}</p>
+          <p className="text-sm text-muted-foreground">{client?.nom || "—"} · {campaign.type_marchandise}{campaign.navire ? ` · Navire: ${campaign.navire}` : ""}</p>
         </div>
         <div className="flex gap-2">
           {campaign.statut === "creee" && (
@@ -221,7 +225,7 @@ export default function CampaignDetail() {
           <CampaignRotationsTable rotations={rotations} vehicles={vehicles} drivers={drivers} campaignId={id} />
         </TabsContent>
         <TabsContent value="declarations" className="mt-4">
-          <DailyDeclarations campaignId={id} declarations={declarations} vehicles={vehicles} campaign={campaign} />
+          <DailyDeclarations campaignId={id} declarations={declarations} vehicles={vehicles} assignedVehicles={assignedVehicles} campaign={campaign} />
         </TabsContent>
       </Tabs>
 

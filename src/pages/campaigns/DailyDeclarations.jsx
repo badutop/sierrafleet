@@ -15,9 +15,9 @@ import { toast } from "sonner";
 const statutColors = { brouillon: "bg-muted text-muted-foreground", soumis: "bg-blue-500/10 text-blue-600", valide: "bg-emerald-500/10 text-emerald-600", ecart_detecte: "bg-destructive/10 text-destructive" };
 const statutLabels = { brouillon: "Brouillon", soumis: "Soumis", valide: "Validé", ecart_detecte: "Écart détecté" };
 
-export default function DailyDeclarations({ campaignId, declarations, vehicles, campaign }) {
+export default function DailyDeclarations({ campaignId, declarations, vehicles, assignedVehicles, campaign }) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ vehicle_id: "", date_declaration: new Date().toISOString().split("T")[0], bl_navire: campaign?.bl_navire || "", type_marchandise: campaign?.type_marchandise || "", nombre_rotations_jour: "", tonnage_total_jour: "", bons_systeme: "", bons_physiques: "", litres_carburant_consommes: "", observations: "" });
+  const [form, setForm] = useState({ vehicle_id: "", date_declaration: new Date().toISOString().split("T")[0], bl_navire: campaign?.navire || "", type_marchandise: campaign?.type_marchandise || "", nombre_rotations_jour: "", tonnage_total_jour: "", bons_systeme: "", bons_physiques: "", litres_carburant_consommes: "", observations: "" });
   const queryClient = useQueryClient();
 
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
@@ -99,7 +99,14 @@ export default function DailyDeclarations({ campaignId, declarations, vehicles, 
               <Label className="text-xs">Camion</Label>
               <Select value={form.vehicle_id || "none"} onValueChange={v => setForm({ ...form, vehicle_id: v === "none" ? "" : v })}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                <SelectContent><SelectItem value="none">-- Tous --</SelectItem>{vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="none">-- Tous --</SelectItem>
+                  {assignedVehicles.length === 0 ? (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">Aucun camion affecté à cette campagne</div>
+                  ) : (
+                    assignedVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}</SelectItem>)
+                  )}
+                </SelectContent>
               </Select>
             </div>
             <div><Label className="text-xs">BL Navire</Label><Input className="mt-1" value={form.bl_navire} onChange={e => setForm({ ...form, bl_navire: e.target.value })} /></div>

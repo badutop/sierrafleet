@@ -37,7 +37,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
           Fiche de débarquement — {campaign?.nom_campagne}
         </DialogTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          {campaign?.type_marchandise} · BL Navire : {campaign?.bl_navire || "—"}
+          {campaign?.type_marchandise} · Navire : {campaign?.navire || "—"}
         </p>
       </DialogHeader>
 
