@@ -225,7 +225,7 @@ export default function CampaignDetail() {
           <CampaignRotationsTable rotations={rotations} vehicles={vehicles} drivers={drivers} campaignId={id} />
         </TabsContent>
         <TabsContent value="declarations" className="mt-4">
-          <DailyDeclarations campaignId={id} declarations={declarations} vehicles={vehicles} assignedVehicles={assignedVehicles} campaign={campaign} />
+          <DailyDeclarations campaignId={id} declarations={declarations} vehicles={vehicles} campaign={campaign} onOpenFicheJour={() => setRotSheetOpen(true)} />
         </TabsContent>
       </Tabs>
 
@@ -258,7 +258,7 @@ export default function CampaignDetail() {
         onClose={() => setRotSheetOpen(false)}
         campaign={campaign}
         client={client}
-        vehicles={vehicles}
+        vehicles={assignedVehicles}
         drivers={drivers}
         existingRotationsCount={rotations.length}
         onSaved={() => {
