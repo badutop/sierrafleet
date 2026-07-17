@@ -106,6 +106,7 @@ export default function CampaignDetail() {
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaign", id] }); toast.success("Campagne démarrée"); },
+    onError: (err) => toast.error(`Erreur : ${err.message}`),
   });
 
   const closeCampaign = useMutation({
@@ -123,14 +124,16 @@ export default function CampaignDetail() {
         setTimeout(() => setInvoicingClient(campaignClients[0].client), 300);
       }
     },
+    onError: (err) => toast.error(`Erreur : ${err.message}`),
   });
 
   const archiveCampaign = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("campaigns").update({ statut: "clôturee", ...stampStatutDate(campaign, "clôturee") }).eq("id", id);
+      const { error } = await supabase.from("campaigns").update({ statut: "clôturée", ...stampStatutDate(campaign, "clôturée") }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaign", id] }); toast.success("Campagne archivée"); },
+    onError: (err) => toast.error(`Erreur : ${err.message}`),
   });
 
   if (!campaign) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>;
@@ -143,7 +146,7 @@ export default function CampaignDetail() {
   const tonnageKg = campaign.tonnage_realise || 0;
   const tonnageT = (tonnageKg / 1000).toFixed(3);
   // Urgent = campagne pas encore terminée/clôturée et date de fin prévue dépassée.
-  const isUrgent = !["terminee", "clôturee"].includes(campaign.statut) && campaign.date_fin_prevue && new Date(campaign.date_fin_prevue) < new Date();
+  const isUrgent = !["terminee", "clôturée"].includes(campaign.statut) && campaign.date_fin_prevue && new Date(campaign.date_fin_prevue) < new Date();
   // Camions affectés à cette campagne (vehicles.campaign_id — indépendant des
   // rotations réelles, qui ne commencent qu'à la saisie de la fiche du jour).
   const assignedVehicles = vehicles.filter(v => v.campaign_id === id);
@@ -183,7 +186,7 @@ export default function CampaignDetail() {
               <Lock className="w-4 h-4 mr-2" /> Terminer la campagne
             </Button>
           </>)}
-          {["terminee", "clôturee"].includes(campaign.statut) && (<>
+          {["terminee", "clôturée"].includes(campaign.statut) && (<>
             <Button variant="outline" onClick={() => setReportOpen(true)}>
               <FileText className="w-4 h-4 mr-2" /> Voir le rapport
             </Button>

@@ -19,9 +19,9 @@ const statutColors = {
   validee_operationnel: "bg-cyan-500/10 text-cyan-600",
   en_cours: "bg-emerald-500/10 text-emerald-600",
   terminee: "bg-amber-500/10 text-amber-600",
-  clôturee: "bg-muted text-muted-foreground",
+  clôturée: "bg-muted text-muted-foreground",
 };
-const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturee: "Clôturée" };
+const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturée: "Clôturée" };
 
 // Un camion "affecté" à une campagne = vehicles.campaign_id (un camion ne peut
 // être affecté qu'à une seule campagne à la fois) — indépendant des rotations

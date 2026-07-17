@@ -9,7 +9,7 @@ const STATUS_COLORS = {
   validee_operationnel: "#06b6d4",
   en_cours: "#3b82f6",
   terminee: "#10b981",
-  clôturee: "#94a3b8",
+  clôturée: "#94a3b8",
 };
 
 export default function CampaignProgressChart({ campaigns }) {

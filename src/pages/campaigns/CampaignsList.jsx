@@ -18,8 +18,8 @@ import { confirm } from "@/lib/confirm";
 import { stampStatutDate } from "@/lib/campaignStatus";
 import { PORT_MOLES as portMoles } from "@/lib/campaignLocations";
 
-const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturee: "Clôturée" };
-const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturee: "bg-muted text-muted-foreground" };
+const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturée: "Clôturée" };
+const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturée: "bg-muted text-muted-foreground" };
 const cerealTypes = ["Blé", "Maïs", "Riz", "Orge", "Seigle", "Avoine", "Soja", "Tournesol", "Colza"];
 
 // Moyenne de tonnage transporté par rotation de camion — sert de base au
@@ -210,10 +210,10 @@ export default function CampaignsList() {
 
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c]));
 
-  // Une campagne archivée (clôturee) sort de la liste principale — elle n'est
+  // Une campagne archivée (clôturée) sort de la liste principale — elle n'est
   // consultable que via la vue "Archivées", plus modifiable ni supprimable.
-  const activeCampaigns = campaigns.filter(c => c.statut !== "clôturee");
-  const archivedCampaigns = campaigns.filter(c => c.statut === "clôturee");
+  const activeCampaigns = campaigns.filter(c => c.statut !== "clôturée");
+  const archivedCampaigns = campaigns.filter(c => c.statut === "clôturée");
 
   const filtered = activeCampaigns.filter(c => {
     const matchSearch = c.nom_campagne?.toLowerCase().includes(search.toLowerCase()) || c.reference?.toLowerCase().includes(search.toLowerCase());
@@ -265,7 +265,7 @@ export default function CampaignsList() {
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous statuts</SelectItem>
-              {Object.entries(statutLabels).filter(([k]) => k !== "clôturee").map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              {Object.entries(statutLabels).filter(([k]) => k !== "clôturée").map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
         )}
