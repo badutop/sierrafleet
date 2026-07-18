@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, ArrowRight, Truck, Wrench, Fuel, Receipt, Ship, BarChart3 } from "lucide-react";
+import GoalsLogo from "@/components/GoalsLogo";
 
 const TRUCK_PHOTO = "/assets/sierratruck.jpeg";
 const LOGO = "/assets/sierra-logistics-logo-ptit.png";
@@ -11,7 +12,7 @@ const ACTIVITIES = [
   { icon: Fuel, label: "Gestion du carburant" },
   { icon: Receipt, label: "Frais et Dépenses" },
   { icon: Ship, label: "Planification des campagnes et rotations" },
-  { icon: BarChart3, label: "Rapports et indicateurs clairs" },
+  { icon: BarChart3, label: "Rapports & indicateurs de performance" },
 ];
 
 export default function LandingPage() {
@@ -38,9 +39,7 @@ export default function LandingPage() {
             alt="Sierra Logistics"
             className="h-20 sm:h-24 w-auto rounded-lg bg-white/95 p-2 shadow-lg shrink-0"
           />
-          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
-            GOALS
-          </h1>
+          <GoalsLogo className="h-20 sm:h-24" />
         </div>
 
         {/* Corps principal */}
