@@ -64,6 +64,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setAuthError(null);
+    // Navigation "dure" (pas useNavigate — AuthProvider est hors du Router)
+    // pour toujours retomber sur la landing page publique, quelle que soit
+    // la route depuis laquelle on s'est déconnecté (sinon ProtectedRoute
+    // renvoie vers /login pour toutes les routes sauf "/").
+    window.location.href = "/";
   };
 
   // Utile après une modification du profil courant (ex: SettingsPage) pour
