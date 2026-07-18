@@ -285,7 +285,7 @@ export default function CampaignDetail() {
           <CampaignTruckAssignmentTable campaignId={id} />
         </TabsContent>
         <TabsContent value="rotations" className="mt-4">
-          <CampaignRotationsTable rotations={rotations} vehicles={vehicles} drivers={drivers} campaignId={id} />
+          <CampaignRotationsTable rotations={rotations} vehicles={vehicles} drivers={drivers} clients={allClients} campaignId={id} />
         </TabsContent>
         <TabsContent value="declarations" className="mt-4">
           <DailyDeclarations campaignId={id} declarations={declarations} vehicles={vehicles} campaign={campaign} onOpenFicheJour={() => setRotSheetOpen(true)} />
@@ -327,6 +327,7 @@ export default function CampaignDetail() {
         vehicles={assignedVehicles}
         drivers={drivers}
         existingRotationsCount={rotations.length}
+        existingRotations={rotations}
         onSaved={() => {
           queryClient.invalidateQueries({ queryKey: ["rotations", id] });
           queryClient.invalidateQueries({ queryKey: ["campaign", id] });

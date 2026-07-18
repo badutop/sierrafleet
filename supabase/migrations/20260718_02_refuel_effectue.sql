@@ -1,0 +1,13 @@
+-- Le refuel automatique se déclenchait jusqu'ici immédiatement à la saisie
+-- de la fiche du jour, en comptant toutes les rotations de la campagne
+-- (peu importe client/camion), sans attendre la collecte des bons physiques.
+--
+-- Nouvelle règle : le refuel ne concerne que 3 rotations d'un même client
+-- ET d'un même camion, et ne se déclenche réellement qu'une fois les 3 bons
+-- physiques correspondants marqués reçus (CampaignRotationsTable.jsx).
+--
+-- rotations.refuel_declenche reste la prédiction (position multiple de 3
+-- dans la séquence client+camion, calculée à la saisie — RotationSheetEntry).
+-- refuel_effectue marque qu'un fuel_entries a réellement été créé pour ce
+-- point de contrôle, pour ne jamais le déclencher deux fois.
+alter table public.rotations add column if not exists refuel_effectue boolean not null default false;

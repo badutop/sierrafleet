@@ -10,15 +10,33 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, Fuel, Save, Eye, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { consoLitresPourClient, countExistingForClientVehicle } from "@/lib/refuelRules";
 
-const zoneConsoVal = { zone1: 9, zone2: 25, zone3: 30, zone4: 40 };
 const emptyRow = { code_ct: "", vehicle_id: "", bl: "", poids_kg: "", client_id: "" };
 
+// Position (1-based) de chaque ligne dans la séquence de SON couple
+// (client, camion) — combine les rotations déjà enregistrées (existingRotations)
+// et les lignes précédentes de la même saisie. Le refuel ne concerne que 3
+// rotations d'un même client ET d'un même camion (pas le total campagne).
+function computeClientVehiclePositions(rows, resolveClientId, existingRotations) {
+  const runningCounts = {};
+  return rows.map(row => {
+    const clientId = resolveClientId(row);
+    const vehicleId = row.vehicle_id;
+    if (!clientId || !vehicleId) return null;
+    const key = `${clientId}-${vehicleId}`;
+    const prior = countExistingForClientVehicle(existingRotations, clientId, vehicleId);
+    runningCounts[key] = (runningCounts[key] || 0) + 1;
+    return prior + runningCounts[key];
+  });
+}
+
 // ── STEP 1 : Saisie ──────────────────────────────────────────────────────────
-function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicles, consoParRotation, existingRotationsCount, campaign, campaignClients, onPreview, onClose }) {
+function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicles, consoParRotation, existingRotationsCount, existingRotations, resolveClientId, campaign, campaignClients, onPreview, onClose }) {
   const isSingleClient = campaignClients.length <= 1;
   const totalPoids = rows.reduce((s, r) => s + (Number(r.poids_kg) || 0), 0);
   const validRows = rows.filter(r => r.vehicle_id && r.poids_kg && (isSingleClient || r.client_id));
+  const positions = computeClientVehiclePositions(rows, resolveClientId, existingRotations);
 
   // Index des véhicules par code_camion (insensible à la casse)
   const vehicleByCode = Object.fromEntries(
@@ -72,8 +90,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
           </TableHeader>
           <TableBody>
             {rows.map((row, i) => {
-              const rotNum = existingRotationsCount + i + 1;
-              const isRefuel = rotNum % 3 === 0;
+              const isRefuel = positions[i] !== null && positions[i] % 3 === 0;
               return (
                 <TableRow key={i} className={cn(isRefuel && "bg-amber-50 dark:bg-amber-950/20")}>
                   <TableCell className="font-semibold text-sm text-muted-foreground">{i + 1}</TableCell>
@@ -136,7 +153,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
 
       <div className="flex items-center gap-2 text-xs text-amber-600 mt-1">
         <Fuel className="w-3.5 h-3.5" />
-        <span>Fond ambre = refuel automatique (toutes les 3 rotations cumulées)</span>
+        <span>Fond ambre = 3e rotation d'un même client + même camion — le refuel ne se déclenchera qu'une fois les 3 bons physiques confirmés</span>
       </div>
 
       <div className="mt-3 p-3 bg-muted/50 rounded-lg text-xs space-y-1">
@@ -166,15 +183,17 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
 }
 
 // ── STEP 2 : Aperçu / Validation ─────────────────────────────────────────────
-function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotationsCount, campaign, client, campaignClients, onBack, onConfirm, isPending }) {
+function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotationsCount, existingRotations, resolveClientId, campaign, client, campaignClients, onBack, onConfirm, isPending }) {
   const isSingleClient = campaignClients.length <= 1;
   const validRows = rows.filter(r => r.vehicle_id && r.poids_kg && (isSingleClient || r.client_id));
   const totalPoids = validRows.reduce((s, r) => s + Number(r.poids_kg), 0);
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const clientMap = Object.fromEntries(campaignClients.filter(cc => cc.client).map(cc => [cc.client_id, cc.client]));
 
-  // Calculer les refuels prévus
-  const refuelsAVenir = validRows.filter((_, i) => (existingRotationsCount + i + 1) % 3 === 0);
+  // Calculer les refuels prévus (position multiple de 3 dans la séquence
+  // client+camion — la vraie déclencheur reste la collecte des bons physiques).
+  const validPositions = computeClientVehiclePositions(validRows, resolveClientId, existingRotations);
+  const refuelsAVenir = validRows.filter((_, i) => validPositions[i] !== null && validPositions[i] % 3 === 0);
 
   const dateFormatee = new Date(date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
@@ -221,8 +240,7 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
           </TableHeader>
           <TableBody>
             {validRows.map((row, i) => {
-              const rotNum = existingRotationsCount + i + 1;
-              const isRefuel = rotNum % 3 === 0;
+              const isRefuel = validPositions[i] !== null && validPositions[i] % 3 === 0;
               const vehicle = vehicleMap[row.vehicle_id];
               return (
                 <TableRow key={i} className={cn(isRefuel && "bg-amber-50 dark:bg-amber-950/20")}>
@@ -264,12 +282,12 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
       {refuelsAVenir.length > 0 && (
         <div className="mt-3 p-3 bg-amber-500/10 border border-amber-400/30 rounded-lg text-xs text-amber-700 space-y-1">
           <div className="flex items-center gap-2 font-semibold">
-            <Fuel className="w-3.5 h-3.5" /> {refuelsAVenir.length} refuel(s) automatique(s) prévu(s)
+            <Fuel className="w-3.5 h-3.5" /> {refuelsAVenir.length} refuel(s) potentiel(s) — 3e rotation d'un client+camion
           </div>
           {refuelsAVenir.map((row, i) => {
             const vehicle = vehicleMap[row.vehicle_id];
             return (
-              <div key={i} className="ml-5">— {vehicle?.immatriculation || "—"} : {consoParRotation * 3} L enregistrés</div>
+              <div key={i} className="ml-5">— {vehicle?.immatriculation || "—"} : {consoLitresPourClient(clientMap[row.client_id] || client) * 3} L, une fois les 3 bons physiques confirmés</div>
             );
           })}
         </div>
@@ -305,7 +323,7 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
 }
 
 // ── Composant principal ───────────────────────────────────────────────────────
-export default function RotationSheetEntry({ open, onClose, campaign, client, campaignClients = [], vehicles, drivers, existingRotationsCount, onSaved }) {
+export default function RotationSheetEntry({ open, onClose, campaign, client, campaignClients = [], vehicles, drivers, existingRotationsCount, existingRotations = [], onSaved }) {
   const [step, setStep] = useState("saisie"); // "saisie" | "preview"
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [rows, setRows] = useState([{ ...emptyRow }]);
@@ -322,53 +340,47 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
   const removeRow = (i) => setRows(prev => prev.filter((_, idx) => idx !== i));
   const updateRow = (i, field, value) => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
-  const consoParRotation = client ? zoneConsoVal[client.zone] || 9 : 9;
+  const consoParRotation = consoLitresPourClient(client);
   const isSingleClient = campaignClients.length <= 1;
   const soleClientId = campaignClients[0]?.client_id || campaign?.client_id || null;
+  const resolveClientId = (row) => isSingleClient ? soleClientId : row.client_id;
+  const clientMap = Object.fromEntries(campaignClients.filter(cc => cc.client).map(cc => [cc.client_id, cc.client]));
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const validRows = rows.filter(r => r.vehicle_id && r.poids_kg && (isSingleClient || r.client_id));
       if (validRows.length === 0) throw new Error("Aucune ligne valide");
 
+      // Prédiction (position multiple de 3 par couple client+camion) — stockée
+      // à titre indicatif ; le vrai refuel ne se déclenche qu'à la collecte
+      // des 3 bons physiques (CampaignRotationsTable.jsx).
+      const positions = computeClientVehiclePositions(validRows, resolveClientId, existingRotations);
+
       let totalPoidsAdded = 0;
       let rotCount = existingRotationsCount;
-      const refuels = [];
 
-      for (const row of validRows) {
+      for (let idx = 0; idx < validRows.length; idx++) {
+        const row = validRows[idx];
         rotCount += 1;
-        const refuelDeclenche = rotCount % 3 === 0;
+        const rowClientId = resolveClientId(row);
+        const rowConso = consoLitresPourClient(clientMap[rowClientId] || client);
         const { error: rotError } = await supabase.from("rotations").insert({
           id: crypto.randomUUID(),
           campaign_id: campaign.id,
           vehicle_id: row.vehicle_id,
-          client_id: isSingleClient ? soleClientId : row.client_id,
+          client_id: rowClientId,
           driver_id: row.driver_id || null,
           numero_rotation: rotCount,
           numero_bon_client: row.bl || "",
           date_rotation: new Date(date + "T12:00:00").toISOString(),
           poids_charge_tonnes: Number(row.poids_kg),
-          litres_carburant_alloues: consoParRotation,
-          refuel_declenche: refuelDeclenche,
+          litres_carburant_alloues: rowConso,
+          refuel_declenche: positions[idx] !== null && positions[idx] % 3 === 0,
           bon_physique_recu: false,
           statut: "livree",
         });
         if (rotError) throw rotError;
         totalPoidsAdded += Number(row.poids_kg);
-        if (refuelDeclenche) {
-          refuels.push({ vehicle_id: row.vehicle_id });
-          const { error: fuelError } = await supabase.from("fuel_entries").insert({
-            id: crypto.randomUUID(),
-            vehicle_id: row.vehicle_id,
-            date,
-            litres: consoParRotation * 3,
-            montant_total: consoParRotation * 3 * 650,
-            km_compteur: 0,
-            station: `Refuel auto — Rotation #${rotCount} (${campaign.nom_campagne})`,
-            statut: "en_attente",
-          });
-          if (fuelError) throw fuelError;
-        }
       }
 
       // Campaign migré sur Supabase — recouplé proprement (n'est plus best-effort).
@@ -378,14 +390,14 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
       }).eq("id", campaign.id);
       if (campaignError) throw campaignError;
 
-      return { count: validRows.length, refuels };
+      return { count: validRows.length };
     },
-    onSuccess: ({ count, refuels }) => {
+    onSuccess: ({ count }) => {
       toast.success(`${count} rotation(s) validée(s) et enregistrée(s)`);
-      if (refuels.length > 0) toast.info(`${refuels.length} refuel(s) automatique(s) enregistré(s)`);
       onSaved();
       onClose();
     },
+    onError: (err) => toast.error(`Erreur : ${err.message}`),
   });
 
   return (
@@ -398,6 +410,8 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
             vehicles={vehicles}
             consoParRotation={consoParRotation}
             existingRotationsCount={existingRotationsCount}
+            existingRotations={existingRotations}
+            resolveClientId={resolveClientId}
             campaign={campaign}
             campaignClients={campaignClients}
             onPreview={() => setStep("preview")}
@@ -410,6 +424,8 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
             vehicles={vehicles}
             consoParRotation={consoParRotation}
             existingRotationsCount={existingRotationsCount}
+            existingRotations={existingRotations}
+            resolveClientId={resolveClientId}
             campaign={campaign}
             client={client}
             campaignClients={campaignClients}
