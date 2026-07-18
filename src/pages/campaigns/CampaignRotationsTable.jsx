@@ -136,10 +136,10 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
                             <TableCell>
                               <div className="flex items-center gap-1.5">
                                 <button
-                                  onClick={() => r.bon_physique_recu
-                                    ? updateBon.mutate({ rotId: r.id, received: false })
-                                    : setScanningRotId(r.id)}
-                                  className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors", r.bon_physique_recu ? "bg-emerald-500 border-emerald-500" : "border-muted-foreground hover:border-emerald-500")}
+                                  onClick={() => !r.bon_physique_recu && setScanningRotId(r.id)}
+                                  disabled={r.bon_physique_recu}
+                                  title={r.bon_physique_recu ? "Bon confirmé — définitif" : "Scanner le bon pour confirmer"}
+                                  className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors", r.bon_physique_recu ? "bg-emerald-500 border-emerald-500 cursor-default" : "border-muted-foreground hover:border-emerald-500")}
                                 >
                                   {r.bon_physique_recu && <CheckCircle className="w-3 h-3 text-white" />}
                                 </button>
