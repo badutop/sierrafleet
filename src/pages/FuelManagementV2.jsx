@@ -46,7 +46,7 @@ export default function FuelManagementV2() {
   const queryClient = useQueryClient();
 
   // Données
-  const { data: entries = [], isLoading: loadingEntries } = useQuery({
+  const { data: allEntries = [], isLoading: loadingEntries } = useQuery({
     queryKey: ["fuel"],
     queryFn: async () => {
       const { data, error } = await supabase.from("fuel_entries").select("*").order("date", { ascending: false }).limit(500);
@@ -54,7 +54,7 @@ export default function FuelManagementV2() {
       return data;
     },
   });
-  const { data: rotations = [] } = useQuery({
+  const { data: allRotations = [] } = useQuery({
     queryKey: ["rotations"],
     queryFn: async () => {
       const { data, error } = await supabase.from("rotations").select("*").order("date_rotation", { ascending: false }).limit(1000);
@@ -62,7 +62,7 @@ export default function FuelManagementV2() {
       return data;
     },
   });
-  const { data: vehicles = [] } = useQuery({
+  const { data: allVehicles = [] } = useQuery({
     queryKey: ["vehicles"],
     queryFn: async () => {
       const { data, error } = await supabase.from("vehicles").select("*");
@@ -70,7 +70,7 @@ export default function FuelManagementV2() {
       return data;
     },
   });
-  const { data: campaigns = [] } = useQuery({
+  const { data: campaigns = [], isLoading: loadingCampaigns } = useQuery({
     queryKey: ["campaigns"],
     queryFn: async () => {
       const { data, error } = await supabase.from("campaigns").select("*");
@@ -78,6 +78,15 @@ export default function FuelManagementV2() {
       return data;
     },
   });
+
+  // Ne montrer que les enregistrements liés à la (aux) campagne(s) en cours :
+  // camions actuellement affectés (vehicles.campaign_id) à une campagne
+  // "en_cours", et les rotations/entrées carburant de ces seuls camions.
+  const ongoingCampaignIds = useMemo(() => new Set(campaigns.filter(c => c.statut === "en_cours").map(c => c.id)), [campaigns]);
+  const vehicles = useMemo(() => allVehicles.filter(v => v.campaign_id && ongoingCampaignIds.has(v.campaign_id)), [allVehicles, ongoingCampaignIds]);
+  const vehicleIds = useMemo(() => new Set(vehicles.map(v => v.id)), [vehicles]);
+  const rotations = useMemo(() => allRotations.filter(r => ongoingCampaignIds.has(r.campaign_id)), [allRotations, ongoingCampaignIds]);
+  const entries = useMemo(() => allEntries.filter(e => vehicleIds.has(e.vehicle_id)), [allEntries, vehicleIds]);
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
@@ -253,6 +262,18 @@ export default function FuelManagementV2() {
 
   const handleEdit = (entry) => { setEditEntry({ ...entry }); setDialogOpen(true); };
   const handleNew = () => { setEditEntry(null); setDialogOpen(true); };
+
+  if (!loadingCampaigns && ongoingCampaignIds.size === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
+        <Fuel className="w-12 h-12 text-muted-foreground opacity-30" />
+        <h2 className="text-lg font-bold text-foreground">Aucune campagne en cours</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          La gestion du carburant n'affiche que les enregistrements des camions affectés à la campagne en cours. Démarrez une campagne pour voir apparaître ses données ici.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
