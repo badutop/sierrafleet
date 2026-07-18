@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Fuel, BarChart2, Plus, ShieldCheck, Zap } from "lucide-react";
+import { Fuel, BarChart2, Plus, ShieldCheck } from "lucide-react";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
 import { toast } from "sonner";
 import FuelSupplyDialog from "@/components/fuel/FuelSupplyDialog";
@@ -369,9 +369,6 @@ export default function FuelManagementV2() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="rechargement" className="flex items-center gap-1.5 text-xs">
-            <Zap className="w-3.5 h-3.5" /> Rechargement Auto
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="approvisionnements" className="mt-4">
@@ -401,23 +398,6 @@ export default function FuelManagementV2() {
               setAutoRefuelOpen(true);
             }}
           />
-        </TabsContent>
-
-        <TabsContent value="rechargement" className="mt-4">
-          <Card>
-            <CardContent className="pt-8 pb-8 flex flex-col items-center text-center gap-3">
-              <div className="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center">
-                <Zap className="w-7 h-7 text-secondary" />
-              </div>
-              <h3 className="font-bold text-base">Rechargement Automatique</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Lancez un rechargement carburant en scannant les bons et la pompe pour un chauffeur et un véhicule.
-              </p>
-              <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground mt-2" onClick={() => setAutoRefuelOpen(true)}>
-                <Zap className="w-4 h-4 mr-2" /> Démarrer un rechargement
-              </Button>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
 
