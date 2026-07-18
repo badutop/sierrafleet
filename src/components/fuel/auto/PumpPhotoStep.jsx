@@ -10,8 +10,18 @@ import DocumentScanner from "@/components/drivers/DocumentScanner";
 
 const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la photo de pompe
 const DEMO_PUMP_URL = "https://placehold.co/640x480/e2e8f0/64748b?text=POMPE+DEMO";
+const DEMO_STATIONS = ["Station Total", "Station Shell", "Station Oryx", "Station Elton"];
 
-export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone }) {
+// En mode démo (pas de vraie géolocalisation inversée), on fabrique un nom de
+// station plausible à partir des coordonnées GPS plutôt que de demander à
+// l'utilisateur de la saisir manuellement.
+function generateDemoStationName(gps) {
+  const seed = gps ? Math.round((Number(gps.lat) + Number(gps.lng)) * 1000) : 0;
+  const brand = DEMO_STATIONS[Math.abs(seed) % DEMO_STATIONS.length];
+  return gps ? `${brand} — détectée via GPS (${gps.lat}, ${gps.lng})` : `${brand} — détectée automatiquement`;
+}
+
+export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], onBack, onDone }) {
   const [pumpPhoto, setPumpPhoto] = useState(null); // {file, previewUrl}
   const [station, setStation] = useState("");
   const [litres, setLitres] = useState("");
@@ -21,12 +31,28 @@ export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone })
   const [sending, setSending] = useState(false);
   const fileInputRef = useRef(null);
 
+  // GPS silencieux : sert uniquement à déterminer automatiquement la station
+  // (pas de validation demandée à l'utilisateur).
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
-      pos => setGps({ lat: pos.coords.latitude.toFixed(5), lng: pos.coords.longitude.toFixed(5) }),
-      () => {}
+      pos => {
+        const coords = { lat: pos.coords.latitude.toFixed(5), lng: pos.coords.longitude.toFixed(5) };
+        setGps(coords);
+        setStation(prev => prev || generateDemoStationName(coords));
+      },
+      () => setStation(prev => prev || generateDemoStationName(null))
     );
   }, []);
+
+  // Reconduit la dernière recharge de ce camion (champ pré-rempli mais
+  // modifiable — pas de proratage automatique en fin de campagne pour l'instant).
+  useEffect(() => {
+    if (!vehicle) return;
+    const last = entries
+      .filter(e => e.vehicle_id === vehicle.id && e.litres)
+      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))[0];
+    if (last) setLitres(String(last.litres));
+  }, [vehicle, entries]);
 
   const handleCapture = (file, previewUrl) => {
     setPumpPhoto({ file, previewUrl });
@@ -175,14 +201,15 @@ export default function PumpPhotoStep({ driver, vehicle, bons, onBack, onDone })
         </div>
       )}
 
-      {/* Champs */}
+      {/* Champs — pré-remplis automatiquement (GPS pour la station, dernière
+          recharge du camion pour les litres), mais modifiables si besoin */}
       <div className="space-y-3">
         <div>
-          <Label className="text-xs font-semibold">Station / Lieu</Label>
+          <Label className="text-xs font-semibold">Station / Lieu <span className="font-normal text-muted-foreground">(auto-détectée via GPS)</span></Label>
           <Input className="mt-1" placeholder="Ex: Station Total Dakar" value={station} onChange={e => setStation(e.target.value)} />
         </div>
         <div>
-          <Label className="text-xs font-semibold">Litres servis</Label>
+          <Label className="text-xs font-semibold">Litres servis <span className="font-normal text-muted-foreground">(reconduit de la dernière recharge)</span></Label>
           <Input className="mt-1 w-32" type="number" placeholder="Ex: 150" value={litres} onChange={e => setLitres(e.target.value)} min={1} />
         </div>
       </div>

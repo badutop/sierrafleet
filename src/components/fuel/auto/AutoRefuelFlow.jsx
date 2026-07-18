@@ -12,7 +12,7 @@ import AutoRefuelSuccess from "./AutoRefuelSuccess";
  *   drivers, vehicles, rotations — données déjà chargées
  *   onClose(fuelEntry?) — appelé à la fermeture (avec la FuelEntry créée si succès)
  */
-export default function AutoRefuelFlow({ drivers, vehicles, rotations, onClose, preselectedDriver = null, preselectedVehicle = null }) {
+export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries = [], onClose, preselectedDriver = null, preselectedVehicle = null }) {
   const [step, setStep] = useState("capture"); // capture | validation | pump | success
   const [bons, setBons] = useState([]); // [{file, previewUrl, ocrNumber, rotation}]
   const [selectedDriver, setSelectedDriver] = useState(preselectedDriver);
@@ -91,6 +91,7 @@ export default function AutoRefuelFlow({ drivers, vehicles, rotations, onClose, 
               driver={selectedDriver}
               vehicle={selectedVehicle}
               bons={bons}
+              entries={entries}
               onBack={() => setStep("validation")}
               onDone={handlePumpDone}
             />

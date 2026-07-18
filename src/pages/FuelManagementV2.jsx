@@ -425,6 +425,7 @@ export default function FuelManagementV2() {
           drivers={drivers}
           vehicles={vehicles}
           rotations={rotations}
+          entries={entries}
           preselectedVehicle={rechargeVehicle}
           preselectedDriver={rechargeDriver}
           onClose={() => {
