@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Fuel, BarChart2, Plus, ShieldCheck } from "lucide-react";
+import { Fuel, Plus, ShieldCheck } from "lucide-react";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
 import { toast } from "sonner";
 import FuelSupplyDialog from "@/components/fuel/FuelSupplyDialog";
@@ -362,9 +362,6 @@ export default function FuelManagementV2() {
           <TabsTrigger value="approvisionnements" className="flex items-center gap-1.5 text-xs">
             <Fuel className="w-3.5 h-3.5" /> Approvisionnements
           </TabsTrigger>
-          <TabsTrigger value="couts" className="flex items-center gap-1.5 text-xs">
-            <BarChart2 className="w-3.5 h-3.5" /> Coûts
-          </TabsTrigger>
           <TabsTrigger value="validation" className="flex items-center gap-1.5 text-xs">
             <ShieldCheck className="w-3.5 h-3.5" /> Validation
             {pendingValidationCount > 0 && (
@@ -375,7 +372,7 @@ export default function FuelManagementV2() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="approvisionnements" className="mt-4">
+        <TabsContent value="approvisionnements" className="mt-4 space-y-6">
           <FuelSupplyTable
             entries={[...entries].sort((a, b) => new Date(b.date || b.created_date) - new Date(a.date || a.created_date)).slice(0, 20)}
             isLoading={loadingEntries}
@@ -385,10 +382,11 @@ export default function FuelManagementV2() {
             onEdit={handleEdit}
             onDelete={(id) => deleteMutation.mutate(id)}
           />
-        </TabsContent>
 
-        <TabsContent value="couts" className="mt-4">
-          <FuelCostBreakdown consumptionData={consumptionData} rotationFuelData={rotationFuelData} formatCFA={formatCFA} />
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Analyse des coûts</h3>
+            <FuelCostBreakdown consumptionData={consumptionData} rotationFuelData={rotationFuelData} formatCFA={formatCFA} />
+          </div>
         </TabsContent>
 
         <TabsContent value="validation" className="mt-4">

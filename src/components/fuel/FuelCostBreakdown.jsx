@@ -32,14 +32,9 @@ export default function FuelCostBreakdown({ consumptionData, rotationFuelData, f
 
   return (
     <div className="space-y-4">
-      {/* KPI Coûts */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Coût total carburant</p>
-            <p className="text-2xl font-bold mt-1 text-secondary">{formatCFA(totalCost)}</p>
-          </CardContent>
-        </Card>
+      {/* KPI Coûts — le coût total est déjà affiché en en-tête de la page
+          Carburant, on ne le répète pas ici (juste les métriques en plus). */}
+      <div className="grid grid-cols-2 gap-3">
         <Card>
           <CardContent className="pt-4 pb-4">
             <p className="text-xs text-muted-foreground">Coût/km moyen</p>
