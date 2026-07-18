@@ -1,24 +1,36 @@
-import React from "react";
+import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Fuel, RotateCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Fuel, RotateCw, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { uploadFile } from "@/lib/storage";
+import DocumentScanner from "@/components/drivers/DocumentScanner";
+
+const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la vraie caméra, cf. PumpPhotoStep/BonCaptureStep
+const DEMO_BON_SCAN_URL = "https://placehold.co/320x200/e2e8f0/64748b?text=BON+SCANNE+DEMO";
+
 export default function CampaignRotationsTable({ rotations, vehicles, drivers, campaignId }) {
   const queryClient = useQueryClient();
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const driverMap = Object.fromEntries(drivers.map(d => [d.id, `${d.prenom} ${d.nom}`]));
+  const [scanningRotId, setScanningRotId] = useState(null);
 
-  // La confirmation d'un bon physique ne fait plus que marquer bon_physique_recu.
-  // Une fois les 3 bons d'un couple client+camion confirmés, le camion devient
-  // éligible dans Carburant > Validation (voir refuelRules.getRefuelCheckpoints) ;
-  // c'est là que la validation puis le Rechargement Auto créent le vrai
-  // fuel_entries — plus de création automatique ici.
+  // La confirmation d'un bon physique ne fait plus que marquer bon_physique_recu
+  // (et garder une preuve du scan). Une fois les 3 bons d'un couple
+  // client+camion confirmés, le camion devient éligible dans Carburant >
+  // Validation (voir refuelRules.getRefuelCheckpoints) ; c'est là que la
+  // validation puis le Rechargement Auto créent le vrai fuel_entries — plus
+  // de création automatique ici.
   const updateBon = useMutation({
-    mutationFn: async ({ rotId, received }) => {
-      const { error } = await supabase.from("rotations").update({ bon_physique_recu: received }).eq("id", rotId);
+    mutationFn: async ({ rotId, received, scanUrl }) => {
+      const { error } = await supabase.from("rotations").update({
+        bon_physique_recu: received,
+        bon_physique_scan_url: received ? (scanUrl || null) : null,
+      }).eq("id", rotId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -26,6 +38,23 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
     },
     onError: (err) => toast.error(`Erreur : ${err.message}`),
   });
+
+  // Confirmer un bon exige désormais de le scanner (preuve physique), pas
+  // juste un clic. Annuler la confirmation, en revanche, ne nécessite rien.
+  const handleBonCapture = async (file) => {
+    const rotId = scanningRotId;
+    setScanningRotId(null);
+    try {
+      let scanUrl = DEMO_BON_SCAN_URL;
+      if (file) {
+        const { file_url } = await uploadFile(file, "bon-scans");
+        scanUrl = file_url;
+      }
+      updateBon.mutate({ rotId, received: true, scanUrl });
+    } catch (err) {
+      toast.error(`Erreur lors de l'envoi du scan : ${err.message}`);
+    }
+  };
 
   // Group by date
   const grouped = rotations.reduce((acc, r) => {
@@ -103,12 +132,21 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
                               ) : null}
                             </TableCell>
                             <TableCell>
-                              <button
-                                onClick={() => updateBon.mutate({ rotId: r.id, received: !r.bon_physique_recu })}
-                                className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors", r.bon_physique_recu ? "bg-emerald-500 border-emerald-500" : "border-muted-foreground hover:border-emerald-500")}
-                              >
-                                {r.bon_physique_recu && <CheckCircle className="w-3 h-3 text-white" />}
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => r.bon_physique_recu
+                                    ? updateBon.mutate({ rotId: r.id, received: false })
+                                    : setScanningRotId(r.id)}
+                                  className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors", r.bon_physique_recu ? "bg-emerald-500 border-emerald-500" : "border-muted-foreground hover:border-emerald-500")}
+                                >
+                                  {r.bon_physique_recu && <CheckCircle className="w-3 h-3 text-white" />}
+                                </button>
+                                {r.bon_physique_scan_url && (
+                                  <a href={r.bon_physique_scan_url} target="_blank" rel="noreferrer" title="Voir le scan du bon" className="text-muted-foreground hover:text-secondary">
+                                    <ImageIcon className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -134,6 +172,34 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
           <span className="text-primary">{rotations.length} ROTATIONS → {rotations.reduce((s, r) => s + Number(r.poids_charge_tonnes || 0), 0).toFixed(3)} T</span>
         </div>
       </div>
+
+      {/* Scan du bon physique — requis pour confirmer un bon comme reçu */}
+      {scanningRotId && (
+        DEMO_MODE ? (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+            <div className="bg-background rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
+              <h3 className="font-bold text-sm text-center">Scanner le bon physique</h3>
+              <div className="bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 text-xs text-amber-800 font-semibold text-center">
+                ⚡ MODE DÉMO — photo non requise
+              </div>
+              <img src={DEMO_BON_SCAN_URL} alt="Bon (démo)" className="w-full h-32 object-cover rounded-lg border" />
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setScanningRotId(null)} disabled={updateBon.isPending}>Annuler</Button>
+                <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleBonCapture(null)} disabled={updateBon.isPending}>
+                  Confirmer le bon reçu
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <DocumentScanner
+            guideRatio={1.4}
+            instructionText="Alignez le bon physique dans le cadre"
+            onCapture={(file) => handleBonCapture(file)}
+            onClose={() => setScanningRotId(null)}
+          />
+        )
+      )}
     </div>
   );
 }

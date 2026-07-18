@@ -45,6 +45,7 @@ export default function FuelManagementV2() {
   const [autoRefuelOpen, setAutoRefuelOpen] = useState(false);
   const [rechargeVehicle, setRechargeVehicle] = useState(null);
   const [rechargeDriver, setRechargeDriver] = useState(null);
+  const [rechargeCheckpointId, setRechargeCheckpointId] = useState(null);
   const queryClient = useQueryClient();
 
   // Données
@@ -393,9 +394,10 @@ export default function FuelManagementV2() {
             rotations={rotations}
             vehicles={vehicles}
             clients={clients}
-            onLaunchRecharge={(vehicle) => {
+            onLaunchRecharge={(vehicle, checkpointId) => {
               setRechargeVehicle(vehicle);
               setRechargeDriver(drivers.find(d => d.id === vehicle?.driver_id) || null);
+              setRechargeCheckpointId(checkpointId);
               setAutoRefuelOpen(true);
             }}
           />
@@ -428,10 +430,12 @@ export default function FuelManagementV2() {
           entries={entries}
           preselectedVehicle={rechargeVehicle}
           preselectedDriver={rechargeDriver}
+          checkpointRotationId={rechargeCheckpointId}
           onClose={() => {
             setAutoRefuelOpen(false);
             setRechargeVehicle(null);
             setRechargeDriver(null);
+            setRechargeCheckpointId(null);
             queryClient.invalidateQueries({ queryKey: ["fuel"] });
             queryClient.invalidateQueries({ queryKey: ["rotations"] });
           }}

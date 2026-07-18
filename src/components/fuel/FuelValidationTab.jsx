@@ -78,7 +78,7 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], o
                   <Button
                     size="sm"
                     className="h-7 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground px-2"
-                    onClick={() => onLaunchRecharge(vehicle)}
+                    onClick={() => onLaunchRecharge(vehicle, item.checkpoint.id)}
                   >
                     <Zap className="w-3.5 h-3.5 mr-1" /> Déclencher le rechargement auto
                   </Button>

@@ -9,10 +9,13 @@ import AutoRefuelSuccess from "./AutoRefuelSuccess";
 /**
  * Orchestrateur du flow de rechargement automatique.
  * Props:
- *   drivers, vehicles, rotations — données déjà chargées
+ *   drivers, vehicles, rotations, entries — données déjà chargées
+ *   checkpointRotationId — si fourni (déclenché depuis Carburant > Validation),
+ *     les bons sont déjà confirmés : on lie juste le fuel_entries créé à ce
+ *     checkpoint au lieu de re-marquer bon_physique_recu (voir PumpPhotoStep).
  *   onClose(fuelEntry?) — appelé à la fermeture (avec la FuelEntry créée si succès)
  */
-export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries = [], onClose, preselectedDriver = null, preselectedVehicle = null }) {
+export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries = [], onClose, preselectedDriver = null, preselectedVehicle = null, checkpointRotationId = null }) {
   const [step, setStep] = useState("capture"); // capture | validation | pump | success
   const [bons, setBons] = useState([]); // [{file, previewUrl, ocrNumber, rotation}]
   const [selectedDriver, setSelectedDriver] = useState(preselectedDriver);
@@ -92,6 +95,7 @@ export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries =
               vehicle={selectedVehicle}
               bons={bons}
               entries={entries}
+              checkpointRotationId={checkpointRotationId}
               onBack={() => setStep("validation")}
               onDone={handlePumpDone}
             />

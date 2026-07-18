@@ -21,7 +21,7 @@ function generateDemoStationName(gps) {
   return gps ? `${brand} — détectée via GPS (${gps.lat}, ${gps.lng})` : `${brand} — détectée automatiquement`;
 }
 
-export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], onBack, onDone }) {
+export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], checkpointRotationId = null, onBack, onDone }) {
   const [pumpPhoto, setPumpPhoto] = useState(null); // {file, previewUrl}
   const [station, setStation] = useState("");
   const [litres, setLitres] = useState("");
@@ -98,13 +98,23 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], onB
       });
       if (fuelError) throw fuelError;
 
-      // Marque les bons comme utilisés
-      await Promise.all(
-        bons.filter(b => b.rotation?.id).map(async (b) => {
-          const { error } = await supabase.from("rotations").update({ bon_physique_recu: true }).eq("id", b.rotation.id);
-          if (error) throw error;
-        })
-      );
+      if (checkpointRotationId) {
+        // Déclenché depuis Carburant > Validation : les 3 bons ont déjà été
+        // confirmés individuellement (CampaignRotationsTable) avant que ce
+        // camion n'apparaisse comme éligible. On lie juste le checkpoint au
+        // vrai fuel_entries pour qu'il sorte de la liste "en attente".
+        const { error: linkError } = await supabase.from("rotations").update({ fuel_entry_id: fuelEntry.id }).eq("id", checkpointRotationId);
+        if (linkError) throw linkError;
+      } else {
+        // Rechargement en libre-service (DriverRefuelPage) : les bons scannés
+        // ici sont la confirmation elle-même.
+        await Promise.all(
+          bons.filter(b => b.rotation?.id).map(async (b) => {
+            const { error } = await supabase.from("rotations").update({ bon_physique_recu: true }).eq("id", b.rotation.id);
+            if (error) throw error;
+          })
+        );
+      }
 
       // Envoie la notification WhatsApp (fire & forget)
       sendWhatsAppConfirmation({ driver, vehicle, bons, station, litres, gps, fuelEntry });

@@ -18,11 +18,14 @@ export function countExistingForClientVehicle(existingRotations, clientId, vehic
 }
 
 // Renvoie tous les groupes de 3 rotations (même client + même camion) dont
-// les 3 bons physiques sont confirmés, qu'ils aient déjà été validés
-// (refuel_effectue) ou non — pilote l'écran Carburant > Validation :
+// les 3 bons physiques sont confirmés et dont la recharge réelle n'a pas
+// encore eu lieu (checkpoint.fuel_entry_id vide) — pilote l'écran Carburant >
+// Validation :
 // - validated=false → camion éligible, en attente de validation
 // - validated=true  → camion validé, en attente de déclenchement du
 //   rechargement auto (qui créera le vrai fuel_entries via scan des bons).
+// Une fois la recharge réellement effectuée, fuel_entry_id est renseigné sur
+// le checkpoint (voir PumpPhotoStep) et il disparaît de cette liste.
 export function getRefuelCheckpoints(allRotations) {
   const pairs = new Map();
   allRotations.forEach(r => {
@@ -38,7 +41,7 @@ export function getRefuelCheckpoints(allRotations) {
       .sort((a, b) => (a.numero_rotation || 0) - (b.numero_rotation || 0));
     for (let i = 2; i < group.length; i += 3) {
       const chunk = group.slice(i - 2, i + 1);
-      if (chunk.every(r => r.bon_physique_recu)) {
+      if (chunk.every(r => r.bon_physique_recu) && !chunk[2].fuel_entry_id) {
         checkpoints.push({ clientId, vehicleId, rotations: chunk, checkpoint: chunk[2], validated: !!chunk[2].refuel_effectue });
       }
     }
