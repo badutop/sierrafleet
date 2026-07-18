@@ -289,7 +289,7 @@ export default function CampaignDetail() {
               </Button>
             </div>
           )}
-          <CampaignRotationsTable rotations={rotations} vehicles={vehicles} drivers={drivers} clients={allClients} campaignId={id} />
+          <CampaignRotationsTable rotations={rotations} vehicles={vehicles} drivers={drivers} campaignId={id} />
         </TabsContent>
       </Tabs>
 

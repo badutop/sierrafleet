@@ -6,52 +6,23 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Fuel, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { consoLitresPourClient, findRefuelCheckpoint } from "@/lib/refuelRules";
-
-export default function CampaignRotationsTable({ rotations, vehicles, drivers, clients = [], campaignId }) {
+export default function CampaignRotationsTable({ rotations, vehicles, drivers, campaignId }) {
   const queryClient = useQueryClient();
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const driverMap = Object.fromEntries(drivers.map(d => [d.id, `${d.prenom} ${d.nom}`]));
-  const clientMap = Object.fromEntries(clients.map(c => [c.id, c]));
 
-  // Le refuel ne se déclenche réellement qu'ici : une fois les 3 bons
-  // physiques d'un même client + même camion tous confirmés (pas à la
-  // saisie de la fiche du jour, où refuel_declenche n'est qu'une prédiction).
+  // La confirmation d'un bon physique ne fait plus que marquer bon_physique_recu.
+  // Une fois les 3 bons d'un couple client+camion confirmés, le camion devient
+  // éligible dans Carburant > Validation (voir refuelRules.getRefuelCheckpoints) ;
+  // c'est là que la validation puis le Rechargement Auto créent le vrai
+  // fuel_entries — plus de création automatique ici.
   const updateBon = useMutation({
     mutationFn: async ({ rotId, received }) => {
       const { error } = await supabase.from("rotations").update({ bon_physique_recu: received }).eq("id", rotId);
       if (error) throw error;
-      if (!received) return { refueled: false };
-
-      const rotation = rotations.find(r => r.id === rotId);
-      if (!rotation?.client_id || !rotation?.vehicle_id) return { refueled: false };
-
-      const updatedRotations = rotations.map(r => r.id === rotId ? { ...r, bon_physique_recu: true } : r);
-      const checkpoint = findRefuelCheckpoint(updatedRotations, rotation.client_id, rotation.vehicle_id);
-      if (!checkpoint) return { refueled: false };
-
-      const client = clientMap[rotation.client_id];
-      const conso = consoLitresPourClient(client);
-      const { error: fuelError } = await supabase.from("fuel_entries").insert({
-        id: crypto.randomUUID(),
-        vehicle_id: checkpoint.vehicle_id,
-        date: new Date().toISOString().split("T")[0],
-        litres: conso * 3,
-        montant_total: conso * 3 * 650,
-        km_compteur: 0,
-        station: `Refuel auto — 3 bons physiques confirmés (${client?.nom || "client"})`,
-        statut: "en_attente",
-      });
-      if (fuelError) throw fuelError;
-
-      const { error: markError } = await supabase.from("rotations").update({ refuel_effectue: true }).eq("id", checkpoint.id);
-      if (markError) throw markError;
-
-      return { refueled: true, vehicle: vehicleMap[checkpoint.vehicle_id] };
     },
-    onSuccess: (result) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rotations", campaignId] });
-      if (result?.refueled) toast.info(`Refuel déclenché pour ${result.vehicle?.immatriculation || "le camion"} (3 bons confirmés)`);
     },
     onError: (err) => toast.error(`Erreur : ${err.message}`),
   });
@@ -126,7 +97,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
                             <TableCell className="text-right text-sm">{r.litres_carburant_alloues || 0}</TableCell>
                             <TableCell>
                               {r.refuel_effectue ? (
-                                <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px]"><Fuel className="w-3 h-3 mr-1" />Refuel fait</Badge>
+                                <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px]"><Fuel className="w-3 h-3 mr-1" />Validé (Carburant)</Badge>
                               ) : r.refuel_declenche ? (
                                 <Badge className="bg-amber-500/10 text-amber-600 text-[10px]"><Fuel className="w-3 h-3 mr-1" />En attente bons</Badge>
                               ) : null}

@@ -13,6 +13,7 @@ import FuelSupplyTable from "@/components/fuel/FuelSupplyTable";
 import FuelCostBreakdown from "@/components/fuel/FuelCostBreakdown";
 import FuelValidationTab from "@/components/fuel/FuelValidationTab";
 import FuelMonthlyChart from "@/components/fuel/FuelMonthlyChart";
+import { getRefuelCheckpoints } from "@/lib/refuelRules";
 import { startOfMonth, startOfYear, subMonths } from "date-fns";
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
@@ -42,6 +43,8 @@ export default function FuelManagementV2() {
   const [activeTab, setActiveTab] = useState("approvisionnements");
   const [period, setPeriod] = useState("mois_courant");
   const [autoRefuelOpen, setAutoRefuelOpen] = useState(false);
+  const [rechargeVehicle, setRechargeVehicle] = useState(null);
+  const [rechargeDriver, setRechargeDriver] = useState(null);
   const queryClient = useQueryClient();
 
   // Données
@@ -160,6 +163,9 @@ export default function FuelManagementV2() {
   const vMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
   const campaignMap = useMemo(() => Object.fromEntries(campaigns.map(c => [c.id, c])), [campaigns]);
   const clientMap = useMemo(() => Object.fromEntries(clients.map(c => [c.id, c])), [clients]);
+
+  // Camions éligibles au rechargement (3 rotations + 3 bons) pas encore validés
+  const pendingValidationCount = useMemo(() => getRefuelCheckpoints(rotations).filter(c => !c.validated).length, [rotations]);
 
   // Analyse de consommation (sur la période filtrée)
   const consumptionData = useMemo(() => {
@@ -336,8 +342,8 @@ export default function FuelManagementV2() {
         <Card>
           <CardContent className="pt-4 pb-4">
             <p className="text-xs text-muted-foreground">En attente de validation</p>
-            <p className="text-2xl font-bold mt-1 text-amber-500">{entries.filter(e => !e.statut || e.statut === "en_attente").length}</p>
-            <p className="text-xs text-muted-foreground mt-1">approvisionnements</p>
+            <p className="text-2xl font-bold mt-1 text-amber-500">{pendingValidationCount}</p>
+            <p className="text-xs text-muted-foreground mt-1">camions éligibles</p>
           </CardContent>
         </Card>
       </div>
@@ -356,9 +362,9 @@ export default function FuelManagementV2() {
           </TabsTrigger>
           <TabsTrigger value="validation" className="flex items-center gap-1.5 text-xs">
             <ShieldCheck className="w-3.5 h-3.5" /> Validation
-            {entries.filter(e => !e.statut || e.statut === "en_attente").length > 0 && (
+            {pendingValidationCount > 0 && (
               <span className="ml-1 bg-amber-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">
-                {entries.filter(e => !e.statut || e.statut === "en_attente").length}
+                {pendingValidationCount}
               </span>
             )}
           </TabsTrigger>
@@ -384,9 +390,14 @@ export default function FuelManagementV2() {
 
         <TabsContent value="validation" className="mt-4">
           <FuelValidationTab
-            entries={entries}
-            vMap={vMap}
-            onEdit={handleEdit}
+            rotations={rotations}
+            vehicles={vehicles}
+            clients={clients}
+            onLaunchRecharge={(vehicle) => {
+              setRechargeVehicle(vehicle);
+              setRechargeDriver(drivers.find(d => d.id === vehicle?.driver_id) || null);
+              setAutoRefuelOpen(true);
+            }}
           />
         </TabsContent>
 
@@ -414,8 +425,12 @@ export default function FuelManagementV2() {
           drivers={drivers}
           vehicles={vehicles}
           rotations={rotations}
+          preselectedVehicle={rechargeVehicle}
+          preselectedDriver={rechargeDriver}
           onClose={() => {
             setAutoRefuelOpen(false);
+            setRechargeVehicle(null);
+            setRechargeDriver(null);
             queryClient.invalidateQueries({ queryKey: ["fuel"] });
             queryClient.invalidateQueries({ queryKey: ["rotations"] });
           }}
