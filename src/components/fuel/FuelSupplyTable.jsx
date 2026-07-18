@@ -3,11 +3,49 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Trash2, Zap, Search } from "lucide-react";
+import { Pencil, Trash2, Zap, Search, Eye, X } from "lucide-react";
+
+const statutLabels = { en_attente: "En attente", valide: "Validé", rejete: "Rejeté" };
+const statutColors = { en_attente: "bg-amber-500/10 text-amber-600", valide: "bg-emerald-500/10 text-emerald-600", rejete: "bg-destructive/10 text-destructive" };
+
+// Fiche de consultation en lecture seule pour un rechargement automatique —
+// une fois la prise effective réalisée, il ne doit plus être possible de le
+// modifier ou de le supprimer (preuve/scan déjà liés), seulement de le consulter.
+function FuelEntryDetailSheet({ entry, vehicle, onClose }) {
+  const statut = entry.statut || "en_attente";
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3 bg-primary text-primary-foreground">
+          <span className="font-bold text-sm flex items-center gap-1.5"><Zap className="w-4 h-4 text-secondary" /> Rechargement automatique</span>
+          <button onClick={onClose} className="text-white/80 hover:text-white"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="p-5 space-y-3">
+          {entry.recu_url && (
+            <img src={entry.recu_url} alt="Photo de la pompe" className="w-full h-36 object-cover rounded-lg border" />
+          )}
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Véhicule</span><span className="font-mono font-semibold">{vehicle?.immatriculation || "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span className="font-medium">{entry.date || "—"}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Station</span><span className="font-medium text-right">{entry.station || "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Litres</span><span className="font-bold">{(entry.litres || 0).toLocaleString("fr-FR")} L</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Montant</span><span className="font-bold">{(entry.montant_total || 0).toLocaleString("fr-FR")} FCFA</span></div>
+            <div className="flex justify-between items-center"><span className="text-muted-foreground">Statut</span><Badge className={`text-[10px] ${statutColors[statut]}`}>{statutLabels[statut]}</Badge></div>
+          </div>
+          <p className="text-xs text-muted-foreground text-center pt-2 border-t">
+            Rechargement effectué et scans déjà liés — consultation uniquement.
+          </p>
+          <Button variant="outline" className="w-full" onClick={onClose}>Fermer</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function FuelSupplyTable({ entries, isLoading, vMap, onEdit, onDelete }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all"); // "all" | "auto" | "manuel"
+  const [viewEntry, setViewEntry] = useState(null);
 
   const filtered = entries.filter(e => {
     const isAuto = e.station?.startsWith("Refuel auto");
@@ -107,12 +145,20 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, onEdit, onDe
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(e)}>
-                        <Pencil className="w-3 h-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(e.id)}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                      {isAuto ? (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewEntry(e)} title="Consulter">
+                          <Eye className="w-3 h-3" />
+                        </Button>
+                      ) : (
+                        <>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(e)}>
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(e.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -121,6 +167,10 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, onEdit, onDe
           </TableBody>
         </Table>
       </div>
+
+      {viewEntry && (
+        <FuelEntryDetailSheet entry={viewEntry} vehicle={vMap[viewEntry.vehicle_id]} onClose={() => setViewEntry(null)} />
+      )}
     </div>
   );
 }
