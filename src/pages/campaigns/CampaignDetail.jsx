@@ -9,7 +9,6 @@ import { ArrowLeft, Truck, RotateCw, AlertTriangle, CheckCircle, Fuel, Clipboard
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import RotationSheetEntry from "./RotationSheetEntry";
-import DailyDeclarations from "./DailyDeclarations";
 import CampaignRotationsTable from "./CampaignRotationsTable";
 import FillEfficiencyBar from "@/components/campaigns/FillEfficiencyBar";
 import CampaignTruckAssignmentTable from "@/components/campaigns/CampaignTruckAssignmentTable";
@@ -175,9 +174,6 @@ export default function CampaignDetail() {
             </Button>
           )}
           {campaign.statut === "en_cours" && (<>
-            <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={() => setRotSheetOpen(true)}>
-              <ClipboardList className="w-4 h-4 mr-2" /> Saisir fiche du jour
-            </Button>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-md shadow-red-200"
               onClick={async () => { if (await confirm("Terminer définitivement cette campagne ? Cela marquera la campagne comme terminée et générera le rapport de clôture.")) closeCampaign.mutate(); }}
@@ -279,16 +275,19 @@ export default function CampaignDetail() {
         <TabsList>
           <TabsTrigger value="camions"><Truck className="w-3.5 h-3.5 mr-1" />Camions affectés</TabsTrigger>
           <TabsTrigger value="rotations">Rotations ({rotations.length})</TabsTrigger>
-          <TabsTrigger value="declarations">Fiches journalières ({declarations.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="camions" className="mt-4">
           <CampaignTruckAssignmentTable campaignId={id} />
         </TabsContent>
-        <TabsContent value="rotations" className="mt-4">
+        <TabsContent value="rotations" className="mt-4 space-y-3">
+          {campaign.statut === "en_cours" && (
+            <div className="flex justify-end">
+              <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={() => setRotSheetOpen(true)}>
+                <ClipboardList className="w-4 h-4 mr-2" /> Saisir fiche du jour
+              </Button>
+            </div>
+          )}
           <CampaignRotationsTable rotations={rotations} vehicles={vehicles} drivers={drivers} clients={allClients} campaignId={id} />
-        </TabsContent>
-        <TabsContent value="declarations" className="mt-4">
-          <DailyDeclarations campaignId={id} declarations={declarations} vehicles={vehicles} campaign={campaign} onOpenFicheJour={() => setRotSheetOpen(true)} />
         </TabsContent>
       </Tabs>
 
