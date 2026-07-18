@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { uploadFile } from "@/lib/storage";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
+import { getFuelPricePerLitre } from "@/pages/SettingsPage";
 
 const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la photo de pompe
 const DEMO_PUMP_URL = "https://placehold.co/640x480/e2e8f0/64748b?text=POMPE+DEMO";
@@ -85,14 +86,19 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], che
       }
 
       // Crée l'entrée FuelEntry (préfixe "Refuel auto — " pour identification)
+      const prixLitre = getFuelPricePerLitre();
+      const heureRecharge = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
       const fuelEntry = { id: crypto.randomUUID() };
       const { error: fuelError } = await supabase.from("fuel_entries").insert({
         id: fuelEntry.id,
         vehicle_id: vehicle.id,
+        driver_id: driver?.id || null,
         date: new Date().toISOString().split("T")[0],
+        heure: heureRecharge,
         station: `Refuel auto — ${station}`,
         litres: Number(litres),
-        montant_total: 0,
+        prix_litre: prixLitre,
+        montant_total: Number(litres) * prixLitre,
         statut: "valide",
         recu_url: pumpUrl,
       });
@@ -117,11 +123,11 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], che
       }
 
       // Envoie la notification WhatsApp (fire & forget)
-      sendWhatsAppConfirmation({ driver, vehicle, bons, station, litres, gps, fuelEntry });
+      sendWhatsAppConfirmation({ driver, vehicle, bons, station, litres, gps, fuelEntry, heure: heureRecharge });
 
       const transaction = {
         id: fuelEntry.id,
-        heure: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        heure: heureRecharge,
         date: new Date().toLocaleDateString("fr-FR"),
         litres,
         station,
@@ -137,9 +143,8 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], che
     }
   };
 
-  const sendWhatsAppConfirmation = async ({ driver, vehicle, bons, station, litres, gps, fuelEntry }) => {
+  const sendWhatsAppConfirmation = async ({ driver, vehicle, bons, station, litres, gps, fuelEntry, heure }) => {
     try {
-      const now = new Date();
       const message =
         `✅ *Rechargement Effectué*\n\n` +
         `👤 Chauffeur : ${driver.prenom} ${driver.nom}\n` +
@@ -147,7 +152,7 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], che
         `⛽ Litres : ${litres} L\n` +
         `🏭 Station : ${station}\n` +
         `📋 Bons : ${bons.length ? bons.map(b => b.ocrNumber).join(", ") : "Confirmés en amont (Rotations campagne)"}\n` +
-        `🕐 Heure : ${now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}\n` +
+        `🕐 Heure : ${heure}\n` +
         (gps ? `📍 GPS : ${gps.lat}, ${gps.lng}\n` : "") +
         `🆔 Tx : ${fuelEntry.id?.slice(0, 8)}`;
 

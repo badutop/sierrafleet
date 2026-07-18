@@ -11,7 +11,7 @@ const statutColors = { en_attente: "bg-amber-500/10 text-amber-600", valide: "bg
 // Fiche de consultation en lecture seule pour un rechargement automatique —
 // une fois la prise effective réalisée, il ne doit plus être possible de le
 // modifier ou de le supprimer (preuve/scan déjà liés), seulement de le consulter.
-function FuelEntryDetailSheet({ entry, vehicle, onClose }) {
+function FuelEntryDetailSheet({ entry, vehicle, driver, onClose }) {
   const statut = entry.statut || "en_attente";
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
@@ -25,8 +25,9 @@ function FuelEntryDetailSheet({ entry, vehicle, onClose }) {
             <img src={entry.recu_url} alt="Photo de la pompe" className="w-full h-36 object-cover rounded-lg border" />
           )}
           <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Chauffeur</span><span className="font-semibold">{driver ? `${driver.prenom} ${driver.nom}` : "—"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Véhicule</span><span className="font-mono font-semibold">{vehicle?.immatriculation || "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span className="font-medium">{entry.date || "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span className="font-medium">{entry.date || "—"}{entry.heure ? ` à ${entry.heure}` : ""}</span></div>
             <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Station</span><span className="font-medium text-right">{entry.station || "—"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Litres</span><span className="font-bold">{(entry.litres || 0).toLocaleString("fr-FR")} L</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Montant</span><span className="font-bold">{(entry.montant_total || 0).toLocaleString("fr-FR")} FCFA</span></div>
@@ -42,7 +43,7 @@ function FuelEntryDetailSheet({ entry, vehicle, onClose }) {
   );
 }
 
-export default function FuelSupplyTable({ entries, isLoading, vMap, onEdit, onDelete }) {
+export default function FuelSupplyTable({ entries, isLoading, vMap, driverMap = {}, onEdit, onDelete }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all"); // "all" | "auto" | "manuel"
   const [viewEntry, setViewEntry] = useState(null);
@@ -118,7 +119,7 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, onEdit, onDe
               const vehicle = vMap[e.vehicle_id];
               return (
                 <TableRow key={e.id} className="hover:bg-muted/30">
-                  <TableCell className="text-xs">{e.date}</TableCell>
+                  <TableCell className="text-xs">{e.date}{e.heure ? ` · ${e.heure}` : ""}</TableCell>
                   <TableCell className="text-xs font-semibold font-mono">
                     {vehicle?.immatriculation || "—"}
                   </TableCell>
@@ -169,7 +170,7 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, onEdit, onDe
       </div>
 
       {viewEntry && (
-        <FuelEntryDetailSheet entry={viewEntry} vehicle={vMap[viewEntry.vehicle_id]} onClose={() => setViewEntry(null)} />
+        <FuelEntryDetailSheet entry={viewEntry} vehicle={vMap[viewEntry.vehicle_id]} driver={driverMap[viewEntry.driver_id]} onClose={() => setViewEntry(null)} />
       )}
     </div>
   );

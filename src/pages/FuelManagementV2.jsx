@@ -123,10 +123,13 @@ export default function FuelManagementV2() {
         statut: "en_attente",
       };
       if (fuelData.id) {
+        // L'heure n'est jamais réécrite à la modification — c'est un simple
+        // horodatage du moment de la recharge, pas un champ éditable.
         const { error } = await supabase.from("fuel_entries").update(payload).eq("id", fuelData.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("fuel_entries").insert({ id: crypto.randomUUID(), ...payload });
+        const heure = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+        const { error } = await supabase.from("fuel_entries").insert({ id: crypto.randomUUID(), heure, ...payload });
         if (error) throw error;
       }
     },
@@ -164,6 +167,7 @@ export default function FuelManagementV2() {
   const vMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
   const campaignMap = useMemo(() => Object.fromEntries(campaigns.map(c => [c.id, c])), [campaigns]);
   const clientMap = useMemo(() => Object.fromEntries(clients.map(c => [c.id, c])), [clients]);
+  const driverMap = useMemo(() => Object.fromEntries(drivers.map(d => [d.id, d])), [drivers]);
 
   // Camions éligibles au rechargement (3 rotations + 3 bons) pas encore validés
   const pendingValidationCount = useMemo(() => getRefuelCheckpoints(rotations).filter(c => !c.validated).length, [rotations]);
@@ -376,6 +380,7 @@ export default function FuelManagementV2() {
             entries={[...entries].sort((a, b) => new Date(b.date || b.created_date) - new Date(a.date || a.created_date)).slice(0, 20)}
             isLoading={loadingEntries}
             vMap={vMap}
+            driverMap={driverMap}
             campaignMap={campaignMap}
             onEdit={handleEdit}
             onDelete={(id) => deleteMutation.mutate(id)}
