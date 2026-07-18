@@ -11,12 +11,13 @@ import AutoRefuelSuccess from "./AutoRefuelSuccess";
  * Props:
  *   drivers, vehicles, rotations, entries — données déjà chargées
  *   checkpointRotationId — si fourni (déclenché depuis Carburant > Validation),
- *     les bons sont déjà confirmés : on lie juste le fuel_entries créé à ce
- *     checkpoint au lieu de re-marquer bon_physique_recu (voir PumpPhotoStep).
+ *     les 3 bons ont déjà été scannés et confirmés à l'étape Rotations de la
+ *     campagne : on saute directement les étapes de scan/validation des bons
+ *     et on lie juste le fuel_entries créé à ce checkpoint (voir PumpPhotoStep).
  *   onClose(fuelEntry?) — appelé à la fermeture (avec la FuelEntry créée si succès)
  */
 export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries = [], onClose, preselectedDriver = null, preselectedVehicle = null, checkpointRotationId = null }) {
-  const [step, setStep] = useState("capture"); // capture | validation | pump | success
+  const [step, setStep] = useState(checkpointRotationId ? "pump" : "capture"); // capture | validation | pump | success
   const [bons, setBons] = useState([]); // [{file, previewUrl, ocrNumber, rotation}]
   const [selectedDriver, setSelectedDriver] = useState(preselectedDriver);
   const [selectedVehicle, setSelectedVehicle] = useState(preselectedVehicle);
@@ -49,14 +50,16 @@ export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries =
             <span className="font-bold text-sm">Rechargement Automatique</span>
           </div>
           <div className="flex items-center gap-3">
-            {/* Indicateur d'étape */}
+            {/* Indicateur d'étape — bons déjà scannés/confirmés en amont
+                (Rotations de la campagne) quand checkpointRotationId est fourni,
+                donc capture/validation ne sont même pas affichées. */}
             <div className="flex items-center gap-1">
-              {["capture", "validation", "pump", "success"].map((s, i) => (
+              {(checkpointRotationId ? ["pump", "success"] : ["capture", "validation", "pump", "success"]).map((s, i, steps) => (
                 <div
                   key={s}
                   className={`w-2 h-2 rounded-full transition-all ${
                     step === s ? "bg-secondary scale-125" :
-                    ["capture","validation","pump","success"].indexOf(step) > i ? "bg-white/60" : "bg-white/20"
+                    steps.indexOf(step) > i ? "bg-white/60" : "bg-white/20"
                   }`}
                 />
               ))}
@@ -96,7 +99,7 @@ export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries =
               bons={bons}
               entries={entries}
               checkpointRotationId={checkpointRotationId}
-              onBack={() => setStep("validation")}
+              onBack={() => checkpointRotationId ? onClose() : setStep("validation")}
               onDone={handlePumpDone}
             />
           )}

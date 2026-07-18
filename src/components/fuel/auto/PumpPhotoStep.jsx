@@ -126,7 +126,7 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], che
         litres,
         station,
         gps,
-        bonsNums: bons.map(b => b.ocrNumber).join(", "),
+        bonsNums: bons.length ? bons.map(b => b.ocrNumber).join(", ") : "Confirmés en amont (Rotations campagne)",
       };
 
       onDone(transaction);
@@ -146,7 +146,7 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], che
         `🚛 Véhicule : ${vehicle.immatriculation}\n` +
         `⛽ Litres : ${litres} L\n` +
         `🏭 Station : ${station}\n` +
-        `📋 Bons : ${bons.map(b => b.ocrNumber).join(", ")}\n` +
+        `📋 Bons : ${bons.length ? bons.map(b => b.ocrNumber).join(", ") : "Confirmés en amont (Rotations campagne)"}\n` +
         `🕐 Heure : ${now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}\n` +
         (gps ? `📍 GPS : ${gps.lat}, ${gps.lng}\n` : "") +
         `🆔 Tx : ${fuelEntry.id?.slice(0, 8)}`;
