@@ -125,8 +125,10 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
                             <TableCell className="text-right text-sm font-semibold">{Number(r.poids_charge_tonnes || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</TableCell>
                             <TableCell className="text-right text-sm">{r.litres_carburant_alloues || 0}</TableCell>
                             <TableCell>
-                              {r.refuel_effectue ? (
-                                <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px]"><Fuel className="w-3 h-3 mr-1" />Validé (Carburant)</Badge>
+                              {r.fuel_entry_id ? (
+                                <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px]"><Fuel className="w-3 h-3 mr-1" />Rechargement effectué</Badge>
+                              ) : r.refuel_effectue ? (
+                                <Badge className="bg-blue-500/10 text-blue-600 text-[10px]"><Fuel className="w-3 h-3 mr-1" />Validé (Carburant)</Badge>
                               ) : r.refuel_declenche ? (
                                 <Badge className="bg-amber-500/10 text-amber-600 text-[10px]"><Fuel className="w-3 h-3 mr-1" />En attente bons</Badge>
                               ) : null}
