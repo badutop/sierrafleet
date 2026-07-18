@@ -81,7 +81,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-foreground capitalize">{day}</h3>
               <div className="text-xs text-muted-foreground">
-                <span className="font-semibold text-secondary">{rots.length} rotations</span> — {(totalPoids / 1000).toFixed(3)} T
+                <span className="font-semibold text-secondary">{rots.length} rotations</span> — {totalPoids.toFixed(3)} T
               </div>
             </div>
             <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -91,7 +91,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
                     <TableHead className="w-10 font-bold">#</TableHead>
                     <TableHead className="font-bold">CAMION</TableHead>
                     <TableHead className="font-bold">BL</TableHead>
-                    <TableHead className="text-right font-bold">POIDS (kg)</TableHead>
+                    <TableHead className="text-right font-bold">POIDS (T)</TableHead>
                     <TableHead className="text-right font-bold">Conso. (L)</TableHead>
                     <TableHead className="font-bold">Refuel</TableHead>
                     <TableHead className="font-bold">Bon physique</TableHead>
@@ -103,7 +103,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
                       <TableCell className="font-bold text-sm">{r.numero_rotation}</TableCell>
                       <TableCell className="text-sm font-mono font-semibold">{vehicleMap[r.vehicle_id]?.immatriculation || "—"}</TableCell>
                       <TableCell className="text-sm font-mono">{r.numero_bon_client || "—"}</TableCell>
-                      <TableCell className="text-right text-sm font-semibold">{Number(r.poids_charge_tonnes || 0).toLocaleString("fr-FR")}</TableCell>
+                      <TableCell className="text-right text-sm font-semibold">{Number(r.poids_charge_tonnes || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</TableCell>
                       <TableCell className="text-right text-sm">{r.litres_carburant_alloues || 0}</TableCell>
                       <TableCell>
                         {r.refuel_effectue ? (
@@ -124,8 +124,8 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
                   ))}
                   <TableRow className="bg-secondary/10 font-bold">
                     <TableCell colSpan={3} className="text-right text-xs font-bold uppercase text-secondary">Total journée</TableCell>
-                    <TableCell className="text-right text-sm font-bold text-secondary">{totalPoids.toLocaleString("fr-FR")}</TableCell>
-                    <TableCell colSpan={3} className="text-xs text-muted-foreground text-right">{(totalPoids / 1000).toFixed(3)} T</TableCell>
+                    <TableCell className="text-right text-sm font-bold text-secondary">{totalPoids.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</TableCell>
+                    <TableCell colSpan={3} className="text-xs text-muted-foreground text-right">{totalPoids.toFixed(3)} T</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -138,7 +138,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
       <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl text-sm">
         <div className="flex justify-between font-bold">
           <span>CUMULS DÉBARQUÉS</span>
-          <span className="text-primary">{rotations.length} ROTATIONS → {(rotations.reduce((s, r) => s + Number(r.poids_charge_tonnes || 0), 0) / 1000).toFixed(3)} T</span>
+          <span className="text-primary">{rotations.length} ROTATIONS → {rotations.reduce((s, r) => s + Number(r.poids_charge_tonnes || 0), 0).toFixed(3)} T</span>
         </div>
       </div>
     </div>

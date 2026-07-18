@@ -141,9 +141,9 @@ export default function CampaignDetail() {
   const bonsPhysiques = rotations.filter(r => r.bon_physique_recu).length;
   const ecart = bonsSysteme - bonsPhysiques;
   const progress = campaign.tonnage_total_prevu > 0 ? Math.min(100, Math.round((campaign.tonnage_realise || 0) / campaign.tonnage_total_prevu * 100)) : 0;
-  // Tonnage en kg → tonnes (poids_charge_tonnes stocké en kg selon la fiche)
-  const tonnageKg = campaign.tonnage_realise || 0;
-  const tonnageT = (tonnageKg / 1000).toFixed(3);
+  // poids_charge_tonnes (et tonnage_realise, qui en est la somme) est bien
+  // exprimé en tonnes — la fiche du jour saisit directement des tonnes.
+  const tonnageT = (campaign.tonnage_realise || 0).toFixed(3);
   // Urgent = campagne pas encore terminée/clôturée et date de fin prévue dépassée.
   const isUrgent = !["terminee", "clôturée"].includes(campaign.statut) && campaign.date_fin_prevue && new Date(campaign.date_fin_prevue) < new Date();
   // Camions affectés à cette campagne (vehicles.campaign_id — indépendant des
@@ -257,7 +257,7 @@ export default function CampaignDetail() {
         const poidsReel = rotations.reduce((s, r) => s + (Number(r.poids_charge_tonnes) || 0), 0);
         const capaciteMoyenne = vehicleIds.reduce((s, vid) => {
           const v = vehicles.find(x => x.id === vid);
-          return s + (v?.capacite_charge_tonnes ? v.capacite_charge_tonnes * 1000 : 0);
+          return s + (v?.capacite_charge_tonnes || 0);
         }, 0);
         const capaciteTheorique = capaciteMoyenne > 0 ? (capaciteMoyenne / vehicleIds.length) * rotations.length : 0;
         if (capaciteTheorique === 0) return null;
