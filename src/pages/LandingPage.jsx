@@ -72,7 +72,7 @@ export default function LandingPage() {
 
         {/* Footer */}
         <p className="text-white/35 text-xs mt-auto pt-8">
-          © {new Date().getFullYear()} Sierra Logistics — Tous droits réservés
+          © {new Date().getFullYear()} Sierra Logistics — Tous droits réservés — v1.0
         </p>
       </div>
     </div>
