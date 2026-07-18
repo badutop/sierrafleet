@@ -146,6 +146,8 @@ export default function CampaignDetail() {
   const tonnageT = (campaign.tonnage_realise || 0).toFixed(3);
   // Urgent = campagne pas encore terminée/clôturée et date de fin prévue dépassée.
   const isUrgent = !["terminee", "clôturée"].includes(campaign.statut) && campaign.date_fin_prevue && new Date(campaign.date_fin_prevue) < new Date();
+  // Campagne terminée/clôturée = archivée : consultation seule, plus d'affectation possible.
+  const isArchived = ["terminee", "clôturée"].includes(campaign.statut);
   // Camions affectés à cette campagne (vehicles.campaign_id — indépendant des
   // rotations réelles, qui ne commencent qu'à la saisie de la fiche du jour).
   const assignedVehicles = vehicles.filter(v => v.campaign_id === id);
@@ -277,7 +279,7 @@ export default function CampaignDetail() {
           <TabsTrigger value="rotations">Rotations ({rotations.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="camions" className="mt-4">
-          <CampaignTruckAssignmentTable campaignId={id} />
+          <CampaignTruckAssignmentTable campaignId={id} readOnly={isArchived} />
         </TabsContent>
         <TabsContent value="rotations" className="mt-4 space-y-3">
           {campaign.statut === "en_cours" && (

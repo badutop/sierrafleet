@@ -2,12 +2,12 @@
 // à chacun (une campagne ne revisite jamais un statut déjà passé — voir
 // migration 20260716_add_campaign_status_dates.sql). "creee" n'a pas de
 // colonne dédiée : campaigns.created_date fait déjà foi.
-export const STATUT_SEQUENCE = ["creee", "validee_responsable", "validee_operationnel", "en_cours", "terminee", "clôturée"];
+// "validee_responsable"/"validee_operationnel" ont existé mais ne sont
+// déclenchés par aucun bouton de l'appli — retirés de la séquence réelle.
+export const STATUT_SEQUENCE = ["creee", "en_cours", "terminee", "clôturée"];
 
 export const STATUT_DATE_COLUMN = {
   creee: "created_date",
-  validee_responsable: "date_validee_responsable",
-  validee_operationnel: "date_validee_operationnel",
   en_cours: "date_en_cours",
   terminee: "date_terminee",
   clôturée: "date_cloturee",

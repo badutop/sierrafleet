@@ -1,21 +1,19 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FilePlus2, UserCheck, ShieldCheck, Truck, CheckCircle2, Lock, Check, AlertTriangle } from "lucide-react";
+import { FilePlus2, Play, CheckCircle2, Lock, Check, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUT_SEQUENCE, STATUT_DATE_COLUMN } from "@/lib/campaignStatus";
 
 const STEP_META = {
   creee: { label: "Créée", icon: FilePlus2, emoji: "📝" },
-  validee_responsable: { label: "Validée (Resp.)", icon: UserCheck, emoji: "✅" },
-  validee_operationnel: { label: "Validée (Opér.)", icon: ShieldCheck, emoji: "🛡️" },
-  en_cours: { label: "En cours", icon: Truck, emoji: "🚚" },
+  en_cours: { label: "Démarrée", icon: Play, emoji: "▶️" },
   terminee: { label: "Terminée", icon: CheckCircle2, emoji: "🏁" },
   clôturée: { label: "Clôturée", icon: Lock, emoji: "🔒" },
 };
 
-const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturée: "bg-muted text-muted-foreground" };
-const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturée: "Clôturée" };
+const statutColors = { creee: "bg-blue-500/10 text-blue-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturée: "bg-muted text-muted-foreground" };
+const statutLabels = { creee: "Créée", en_cours: "Démarrée", terminee: "Terminée", clôturée: "Clôturée" };
 
 const formatDateTime = (iso) => {
   if (!iso) return "";
@@ -23,7 +21,7 @@ const formatDateTime = (iso) => {
 };
 
 /**
- * Stepper visuel de progression d'une campagne (6 statuts fixes).
+ * Stepper visuel de progression d'une campagne (4 statuts fixes).
  * `campaign` doit contenir `statut` et les colonnes date_* horodatant
  * chaque transition (cf. src/lib/campaignStatus.js).
  */

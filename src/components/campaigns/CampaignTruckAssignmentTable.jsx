@@ -20,7 +20,7 @@ const statutVehicule = {
 // (un camion ne peut être affecté qu'à une seule campagne à la fois). Cette
 // affectation est indépendante des rotations réelles : elle ne commence à
 // compter comme rotation qu'à la saisie de la fiche du jour.
-export default function CampaignTruckAssignmentTable({ campaignId }) {
+export default function CampaignTruckAssignmentTable({ campaignId, readOnly = false }) {
   const queryClient = useQueryClient();
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
 
@@ -98,32 +98,40 @@ export default function CampaignTruckAssignmentTable({ campaignId }) {
 
   return (
     <div className="space-y-4">
+      {readOnly && (
+        <div className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-lg px-3 py-2">
+          Campagne archivée — consultation seule, plus d'affectation possible.
+        </div>
+      )}
+
       {/* Add vehicle */}
-      <div className="flex gap-2 items-center flex-wrap">
-        <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
-          <SelectTrigger className="flex-1 max-w-sm">
-            <SelectValue placeholder="Sélectionner un camion à affecter…" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableVehicles.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-muted-foreground">Tous les camions sont déjà affectés</div>
-            ) : (
-              availableVehicles.map(v => (
-                <SelectItem key={v.id} value={v.id}>
-                  {v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation}{v.marque ? ` — ${v.marque} ${v.modele || ""}` : ""}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-        <Button
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-          onClick={handleAssign}
-          disabled={!selectedVehicleId || assignMutation.isPending}
-        >
-          <Plus className="w-4 h-4 mr-1" /> Affecter
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex gap-2 items-center flex-wrap">
+          <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+            <SelectTrigger className="flex-1 max-w-sm">
+              <SelectValue placeholder="Sélectionner un camion à affecter…" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableVehicles.length === 0 ? (
+                <div className="px-3 py-2 text-xs text-muted-foreground">Tous les camions sont déjà affectés</div>
+              ) : (
+                availableVehicles.map(v => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation}{v.marque ? ` — ${v.marque} ${v.modele || ""}` : ""}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          <Button
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+            onClick={handleAssign}
+            disabled={!selectedVehicleId || assignMutation.isPending}
+          >
+            <Plus className="w-4 h-4 mr-1" /> Affecter
+          </Button>
+        </div>
+      )}
 
       {/* Table */}
       {assignedVehicles.length === 0 ? (
@@ -140,7 +148,7 @@ export default function CampaignTruckAssignmentTable({ campaignId }) {
                 <th className="px-4 py-2.5 text-left font-semibold">Immatriculation</th>
                 <th className="px-4 py-2.5 text-left font-semibold">Marque & Modèle</th>
                 <th className="px-4 py-2.5 text-left font-semibold">Statut</th>
-                <th className="px-4 py-2.5 text-center font-semibold">Actions</th>
+                {!readOnly && <th className="px-4 py-2.5 text-center font-semibold">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -158,19 +166,21 @@ export default function CampaignTruckAssignmentTable({ campaignId }) {
                     <td className="px-4 py-2.5">
                       <Badge className={cn("text-[10px]", st.color)}>{st.label}</Badge>
                     </td>
-                    <td className="px-4 py-2.5 text-center">
-                      <button
-                        onClick={async () => {
-                          if (await confirm(`Retirer ${v.immatriculation} de cette campagne ?`)) {
-                            removeMutation.mutate(v.id);
-                          }
-                        }}
-                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        disabled={removeMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
+                    {!readOnly && (
+                      <td className="px-4 py-2.5 text-center">
+                        <button
+                          onClick={async () => {
+                            if (await confirm(`Retirer ${v.immatriculation} de cette campagne ?`)) {
+                              removeMutation.mutate(v.id);
+                            }
+                          }}
+                          className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          disabled={removeMutation.isPending}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}

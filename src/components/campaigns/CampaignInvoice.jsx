@@ -4,8 +4,9 @@ import { X, Share2, Download } from "lucide-react";
 import { jsPDF } from "jspdf";
 
 const LOGO_URL = "/assets/sierra-logistics-logo.png";
-const SIERRA_NAVY = "#1e3a5f";
-const SIERRA_ORANGE = "#f97316";
+// Couleurs alignées sur le thème de l'appli (index.css : --primary, --secondary/--accent).
+const THEME_PRIMARY = "#1a2f4d";
+const THEME_ACCENT = "#82ca16";
 
 const fmt = (n, d = 0) => Number(n || 0).toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR") : "—";
@@ -20,46 +21,46 @@ const PRINT_STYLES = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; }
   .page { padding: 32px 40px; max-width: 900px; margin: 0 auto; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 3px solid ${SIERRA_NAVY}; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 3px solid ${THEME_PRIMARY}; }
   .logo-img { width: 130px; object-fit: contain; }
-  .invoice-label { font-size: 26px; font-weight: 900; color: ${SIERRA_ORANGE}; letter-spacing: 3px; text-transform: uppercase; }
-  .invoice-num { font-size: 12px; font-weight: 700; color: ${SIERRA_NAVY}; margin-top: 4px; }
+  .invoice-label { font-size: 26px; font-weight: 900; color: ${THEME_ACCENT}; letter-spacing: 3px; text-transform: uppercase; }
+  .invoice-num { font-size: 12px; font-weight: 700; color: ${THEME_PRIMARY}; margin-top: 4px; }
   .invoice-date { font-size: 10px; color: #6b7280; margin-top: 2px; }
   .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 20px; }
-  .party-emetteur { padding: 14px 16px; border-radius: 6px; background: ${SIERRA_NAVY}; color: white; }
+  .party-emetteur { padding: 14px 16px; border-radius: 6px; background: ${THEME_PRIMARY}; color: white; }
   .party-client { padding: 14px 16px; border-radius: 6px; background: #f9fafb; border: 1px solid #e5e7eb; }
   .party-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
   .party-emetteur .party-label { opacity: 0.6; }
   .party-client .party-label { color: #9ca3af; }
   .party-name { font-size: 14px; font-weight: 800; margin-bottom: 3px; }
-  .party-emetteur .party-name { color: ${SIERRA_ORANGE}; }
-  .party-client .party-name { color: ${SIERRA_NAVY}; }
+  .party-emetteur .party-name { color: ${THEME_ACCENT}; }
+  .party-client .party-name { color: ${THEME_PRIMARY}; }
   .party-detail { font-size: 10px; line-height: 1.5; }
   .party-emetteur .party-detail { opacity: 0.75; }
   .party-client .party-detail { color: #6b7280; }
-  .ref-box { background: #eff6ff; border-left: 4px solid ${SIERRA_NAVY}; padding: 10px 14px; margin-bottom: 20px; font-size: 10px; color: #374151; border-radius: 0 6px 6px 0; }
-  .section-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: ${SIERRA_NAVY}; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid ${SIERRA_ORANGE}; display: inline-block; }
+  .ref-box { background: #eff6ff; border-left: 4px solid ${THEME_PRIMARY}; padding: 10px 14px; margin-bottom: 20px; font-size: 10px; color: #374151; border-radius: 0 6px 6px 0; }
+  .section-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: ${THEME_PRIMARY}; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid ${THEME_ACCENT}; display: inline-block; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; }
-  thead tr { background: ${SIERRA_NAVY}; color: white; }
+  thead tr { background: ${THEME_PRIMARY}; color: white; }
   thead th { padding: 8px 10px; text-align: left; font-weight: 700; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; }
   .tr { text-align: right !important; }
   tbody tr:nth-child(even) { background: #f9fafb; }
   tbody td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; color: #374151; }
-  tfoot td { background: #e8f0fd; font-weight: 700; color: ${SIERRA_NAVY}; padding: 8px 10px; border-top: 2px solid ${SIERRA_NAVY}; }
+  tfoot td { background: #e8f0fd; font-weight: 700; color: ${THEME_PRIMARY}; padding: 8px 10px; border-top: 2px solid ${THEME_PRIMARY}; }
   .totals-wrapper { display: flex; justify-content: flex-end; margin-bottom: 24px; }
   .totals-box { width: 300px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
   .total-row { display: flex; justify-content: space-between; padding: 9px 14px; border-bottom: 1px solid #f0f0f0; font-size: 11px; }
   .total-ht { color: #374151; }
   .total-tva { color: #6b7280; background: #f9fafb; }
-  .total-ttc { background: ${SIERRA_NAVY}; color: white; font-size: 14px; font-weight: 900; }
-  .total-ttc-value { color: ${SIERRA_ORANGE}; }
+  .total-ttc { background: ${THEME_PRIMARY}; color: white; font-size: 14px; font-weight: 900; }
+  .total-ttc-value { color: ${THEME_ACCENT}; }
   .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
   .sig-box { border: 1.5px dashed #d1d5db; border-radius: 8px; padding: 16px; text-align: center; height: 90px; display: flex; flex-direction: column; justify-content: space-between; }
   .sig-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; }
-  .sig-name { font-size: 11px; font-weight: 600; color: ${SIERRA_NAVY}; }
+  .sig-name { font-size: 11px; font-weight: 600; color: ${THEME_PRIMARY}; }
   .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
-  .footer-brand { font-size: 12px; font-weight: 800; color: ${SIERRA_NAVY}; }
-  .footer-orange { color: ${SIERRA_ORANGE}; }
+  .footer-brand { font-size: 12px; font-weight: 800; color: ${THEME_PRIMARY}; }
+  .footer-orange { color: ${THEME_ACCENT}; }
   .footer-info { font-size: 9px; color: #9ca3af; text-align: right; }
   @media print { body { margin: 0; } .page { padding: 20px 24px; } }
 `;
@@ -83,7 +84,9 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
   const montantHT = tonnageTotal * prixTonne;
   const montantTVA = montantHT * (tvaPct / 100);
   const montantTTC = montantHT + montantTVA;
-  const invoiceNum = `SL-${new Date().getFullYear()}-${campaign.id?.slice(0, 6).toUpperCase()}`;
+  // Inclut l'id du client : sur une campagne multi-clients, deux clients ne
+  // doivent jamais recevoir le même numéro de facture.
+  const invoiceNum = `SL-${new Date().getFullYear()}-${campaign.id?.slice(0, 6).toUpperCase()}${client?.id ? `-${client.id.slice(0, 4).toUpperCase()}` : ""}`;
   const today = new Date().toLocaleDateString("fr-FR");
   const echeance = fmtDate(new Date(Date.now() + 30 * 86400000));
 
@@ -159,9 +162,9 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
             <td style="color:#9ca3af">${r.numero_rotation || (i + 1)}</td>
             <td>${fmtDate(r.date_rotation)}</td>
             <td>${r.numero_bon_client || "—"}</td>
-            <td style="text-align:right;font-weight:600;color:${SIERRA_NAVY}">${fmt(poids, 3)}</td>
+            <td style="text-align:right;font-weight:600;color:${THEME_PRIMARY}">${fmt(poids, 3)}</td>
             <td style="text-align:right;color:#6b7280">${fmt(prixTonne)}</td>
-            <td style="text-align:right;font-weight:700;color:${SIERRA_NAVY}">${fmt(montant)}</td>
+            <td style="text-align:right;font-weight:700;color:${THEME_PRIMARY}">${fmt(montant)}</td>
           </tr>`;
         }).join("")}
       </tbody>
@@ -219,11 +222,11 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
     const colW = (pageW - margin * 2) / 6;
 
     // En-tête bleu
-    doc.setFillColor(30, 58, 95);
+    doc.setFillColor(26, 47, 77);
     doc.rect(0, 0, pageW, 70, "F");
 
     // Logo texte
-    doc.setTextColor(249, 115, 22);
+    doc.setTextColor(130, 202, 22);
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
     doc.text("Sierra Logistics", margin, 30);
@@ -233,7 +236,7 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
     doc.text("Transport & Logistique · Dakar, Sénégal", margin, 42);
 
     // FACTURE (droite)
-    doc.setTextColor(249, 115, 22);
+    doc.setTextColor(130, 202, 22);
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.text("FACTURE", pageW - margin, 28, { align: "right" });
@@ -246,9 +249,9 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
     y = 90;
 
     // Parties
-    doc.setFillColor(30, 58, 95);
+    doc.setFillColor(26, 47, 77);
     doc.roundedRect(margin, y, (pageW - margin * 2) / 2 - 6, 56, 4, 4, "F");
-    doc.setTextColor(249, 115, 22);
+    doc.setTextColor(130, 202, 22);
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text("Sierra Logistics", margin + 10, y + 20);
@@ -262,7 +265,7 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
     doc.setFillColor(249, 250, 251);
     doc.setDrawColor(229, 231, 235);
     doc.roundedRect(cx, y, (pageW - margin * 2) / 2 - 6, 56, 4, 4, "FD");
-    doc.setTextColor(30, 58, 95);
+    doc.setTextColor(26, 47, 77);
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text(client?.nom || "—", cx + 10, y + 20);
@@ -276,10 +279,10 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
 
     // Ref campagne
     doc.setFillColor(239, 246, 255);
-    doc.setDrawColor(30, 58, 95);
+    doc.setDrawColor(26, 47, 77);
     doc.rect(margin, y, pageW - margin * 2, 26, "F");
     doc.setLineWidth(3);
-    doc.setDrawColor(30, 58, 95);
+    doc.setDrawColor(26, 47, 77);
     doc.line(margin, y, margin, y + 26);
     doc.setLineWidth(0.5);
     doc.setTextColor(55, 65, 81);
@@ -296,11 +299,11 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
     y += 36;
 
     // Section title
-    doc.setTextColor(30, 58, 95);
+    doc.setTextColor(26, 47, 77);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text("DÉTAIL DES ROTATIONS", margin, y + 8);
-    doc.setDrawColor(249, 115, 22);
+    doc.setDrawColor(130, 202, 22);
     doc.setLineWidth(1.5);
     doc.line(margin, y + 10, margin + 120, y + 10);
     doc.setLineWidth(0.5);
@@ -312,7 +315,7 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
     const colX = [margin];
     for (let i = 1; i < cols.length; i++) colX.push(colX[i - 1] + cols[i - 1]);
 
-    doc.setFillColor(30, 58, 95);
+    doc.setFillColor(26, 47, 77);
     doc.rect(margin, y, pageW - margin * 2, 16, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(7.5);
@@ -352,11 +355,11 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
 
     // Tfoot
     doc.setFillColor(232, 240, 253);
-    doc.setDrawColor(30, 58, 95);
+    doc.setDrawColor(26, 47, 77);
     doc.setLineWidth(1.2);
     doc.line(margin, y, pageW - margin, y);
     doc.rect(margin, y, pageW - margin * 2, lineH + 2, "F");
-    doc.setTextColor(30, 58, 95);
+    doc.setTextColor(26, 47, 77);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.text(`TOTAL — ${rotationsDone.length} rotation${rotationsDone.length > 1 ? "s" : ""}`, margin + 4, y + 9);
@@ -381,11 +384,11 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
     doc.text(`TVA (${tvaPct}%)`, totX + 10, y + 28);
     doc.setFont("helvetica", "bold");
     doc.text(`${fmt(montantTVA)} FCFA`, totX + totW - 10, y + 28, { align: "right" });
-    doc.setFillColor(30, 58, 95);
+    doc.setFillColor(26, 47, 77);
     doc.roundedRect(totX, y + 34, totW, 22, 4, 4, "F");
     doc.setTextColor(255, 255, 255); doc.setFontSize(10); doc.setFont("helvetica", "bold");
     doc.text("TOTAL TTC", totX + 10, y + 48);
-    doc.setTextColor(249, 115, 22);
+    doc.setTextColor(130, 202, 22);
     doc.text(`${fmt(montantTTC)} FCFA`, totX + totW - 10, y + 48, { align: "right" });
 
     y += 70;
@@ -400,11 +403,11 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
     doc.setLineDash([]);
     doc.setTextColor(156, 163, 175); doc.setFontSize(7); doc.setFont("helvetica", "bold");
     doc.text("SIGNATURE & CACHET", margin + sigW / 2, y + 12, { align: "center" });
-    doc.setTextColor(30, 58, 95); doc.setFontSize(9);
+    doc.setTextColor(26, 47, 77); doc.setFontSize(9);
     doc.text("Sierra Logistics", margin + sigW / 2, y + 30, { align: "center" });
     doc.setTextColor(156, 163, 175); doc.setFontSize(7);
     doc.text("SIGNATURE & CACHET", margin + sigW + 20 + sigW / 2, y + 12, { align: "center" });
-    doc.setTextColor(30, 58, 95); doc.setFontSize(9);
+    doc.setTextColor(26, 47, 77); doc.setFontSize(9);
     doc.text(client?.nom || "Client", margin + sigW + 20 + sigW / 2, y + 30, { align: "center" });
 
     y += 72;
@@ -413,9 +416,9 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
     doc.setDrawColor(229, 231, 235);
     doc.setLineWidth(0.5);
     doc.line(margin, y, pageW - margin, y);
-    doc.setTextColor(30, 58, 95); doc.setFontSize(9); doc.setFont("helvetica", "bold");
+    doc.setTextColor(26, 47, 77); doc.setFontSize(9); doc.setFont("helvetica", "bold");
     doc.text("Sierra ", margin, y + 12);
-    doc.setTextColor(249, 115, 22);
+    doc.setTextColor(130, 202, 22);
     doc.text("Logistics", margin + 26, y + 12);
     doc.setTextColor(156, 163, 175); doc.setFontSize(7); doc.setFont("helvetica", "normal");
     doc.text(`Document généré le ${today}  ·  N° ${invoiceNum}`, pageW - margin, y + 12, { align: "right" });
@@ -475,10 +478,10 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
     <div className="fixed inset-0 z-50 bg-black/70 flex items-start justify-center overflow-y-auto p-4">
       <div className="w-full max-w-4xl my-6 rounded-2xl overflow-hidden shadow-2xl">
         {/* Barre d'action */}
-        <div className="flex items-center justify-between px-6 py-3" style={{ background: SIERRA_NAVY }}>
+        <div className="flex items-center justify-between px-6 py-3" style={{ background: THEME_PRIMARY }}>
           <span className="font-bold text-white">Facture — {invoiceNum}</span>
           <div className="flex gap-2">
-            <Button onClick={handleDownload} style={{ background: SIERRA_ORANGE, color: "white" }} className="hover:opacity-90 text-sm h-8 px-3">
+            <Button onClick={handleDownload} style={{ background: THEME_ACCENT, color: "#1b2432" }} className="hover:opacity-90 text-sm h-8 px-3 font-semibold">
               <Download className="w-4 h-4 mr-1" /> PDF
             </Button>
             <Button onClick={handleShareWhatsApp} disabled={sharing} className="h-8 px-3 text-sm bg-green-600 hover:bg-green-700 text-white">
