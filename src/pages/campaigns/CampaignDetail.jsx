@@ -144,6 +144,10 @@ export default function CampaignDetail() {
   // poids_charge_tonnes (et tonnage_realise, qui en est la somme) est bien
   // exprimé en tonnes — la fiche du jour saisit directement des tonnes.
   const tonnageT = (campaign.tonnage_realise || 0).toFixed(3);
+  const rotationsPrevues = campaign.nombre_rotations_prevues || 0;
+  const rotationsRealisees = campaign.nombre_rotations_realisees || 0;
+  const rotationsRestantes = Math.max(0, rotationsPrevues - rotationsRealisees);
+  const progressRotations = rotationsPrevues > 0 ? Math.min(100, Math.round((rotationsRealisees / rotationsPrevues) * 100)) : 0;
   // Urgent = campagne pas encore terminée/clôturée et date de fin prévue dépassée.
   const isUrgent = !["terminee", "clôturée"].includes(campaign.statut) && campaign.date_fin_prevue && new Date(campaign.date_fin_prevue) < new Date();
   // Campagne terminée/clôturée = archivée : consultation seule, plus d'affectation possible.
@@ -218,7 +222,7 @@ export default function CampaignDetail() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Rotations réalisées", value: campaign.nombre_rotations_realisees || 0, icon: RotateCw, color: "text-primary" },
+          { label: "Rotations réalisées", value: campaign.nombre_rotations_realisees || 0, sub: rotationsPrevues ? `/ ${rotationsPrevues} prévues` : null, icon: RotateCw, color: "text-primary" },
           { label: "Tonnage livré (T)", value: tonnageT, icon: Truck, color: "text-secondary" },
           { label: "Bons système", value: bonsSysteme, icon: ClipboardList, color: "text-blue-600" },
           { label: ecart > 0 ? `Écart (${ecart})` : "Bons OK", value: bonsPhysiques, icon: ecart > 0 ? AlertTriangle : CheckCircle, color: ecart > 0 ? "text-destructive" : "text-emerald-600" },
@@ -226,7 +230,10 @@ export default function CampaignDetail() {
           <Card key={i}>
             <CardContent className="pt-5 pb-4">
               <div className="flex items-center justify-between">
-                <div><p className="text-xs text-muted-foreground">{kpi.label}</p><p className="text-2xl font-bold mt-1">{kpi.value}</p></div>
+                <div>
+                  <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                  <p className="text-2xl font-bold mt-1">{kpi.value}{kpi.sub && <span className="text-sm font-normal text-muted-foreground ml-1">{kpi.sub}</span>}</p>
+                </div>
                 <kpi.icon className={cn("w-8 h-8 opacity-70", kpi.color)} />
               </div>
             </CardContent>
@@ -234,14 +241,25 @@ export default function CampaignDetail() {
         ))}
       </div>
 
-      {/* Progress bar */}
+      {/* Progress bars */}
       <Card>
-        <CardContent className="pt-4 pb-4">
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-muted-foreground">Avancement tonnage</span>
-            <span className="font-semibold">{progress}% — {tonnageT} T / {campaign.tonnage_total_prevu || 0} T prévu</span>
+        <CardContent className="pt-4 pb-4 space-y-4">
+          <div>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-muted-foreground">Avancement tonnage</span>
+              <span className="font-semibold">{progress}% — {tonnageT} T / {campaign.tonnage_total_prevu || 0} T prévu</span>
+            </div>
+            <div className="h-2.5 bg-muted rounded-full"><div className="h-2.5 bg-secondary rounded-full transition-all" style={{ width: `${progress}%` }} /></div>
           </div>
-          <div className="h-2.5 bg-muted rounded-full"><div className="h-2.5 bg-secondary rounded-full transition-all" style={{ width: `${progress}%` }} /></div>
+          {rotationsPrevues > 0 && (
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-muted-foreground">Avancement rotations</span>
+                <span className="font-semibold">{progressRotations}% — {rotationsRealisees} / {rotationsPrevues} prévues · reste {rotationsRestantes} ({100 - progressRotations}%)</span>
+              </div>
+              <div className="h-2.5 bg-muted rounded-full"><div className="h-2.5 bg-primary rounded-full transition-all" style={{ width: `${progressRotations}%` }} /></div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
