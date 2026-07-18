@@ -5,12 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Fuel, TrendingUp, AlertTriangle, Truck, BarChart2, Plus, ShieldCheck, Zap } from "lucide-react";
+import { Fuel, BarChart2, Plus, ShieldCheck, Zap } from "lucide-react";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
 import { toast } from "sonner";
 import FuelSupplyDialog from "@/components/fuel/FuelSupplyDialog";
 import FuelSupplyTable from "@/components/fuel/FuelSupplyTable";
-import FuelConsumptionAnalysis from "@/components/fuel/FuelConsumptionAnalysis";
 import FuelCostBreakdown from "@/components/fuel/FuelCostBreakdown";
 import FuelValidationTab from "@/components/fuel/FuelValidationTab";
 import FuelMonthlyChart from "@/components/fuel/FuelMonthlyChart";
@@ -352,14 +351,8 @@ export default function FuelManagementV2() {
           <TabsTrigger value="approvisionnements" className="flex items-center gap-1.5 text-xs">
             <Fuel className="w-3.5 h-3.5" /> Approvisionnements
           </TabsTrigger>
-          <TabsTrigger value="consommation" className="flex items-center gap-1.5 text-xs">
-            <TrendingUp className="w-3.5 h-3.5" /> Consommation
-          </TabsTrigger>
           <TabsTrigger value="couts" className="flex items-center gap-1.5 text-xs">
             <BarChart2 className="w-3.5 h-3.5" /> Coûts
-          </TabsTrigger>
-          <TabsTrigger value="rotations" className="flex items-center gap-1.5 text-xs">
-            <Truck className="w-3.5 h-3.5" /> Par rotation
           </TabsTrigger>
           <TabsTrigger value="validation" className="flex items-center gap-1.5 text-xs">
             <ShieldCheck className="w-3.5 h-3.5" /> Validation
@@ -385,53 +378,8 @@ export default function FuelManagementV2() {
           />
         </TabsContent>
 
-        <TabsContent value="consommation" className="mt-4">
-          <FuelConsumptionAnalysis consumptionData={consumptionData} formatCFA={formatCFA} />
-        </TabsContent>
-
         <TabsContent value="couts" className="mt-4">
           <FuelCostBreakdown consumptionData={consumptionData} rotationFuelData={rotationFuelData} formatCFA={formatCFA} />
-        </TabsContent>
-
-        <TabsContent value="rotations" className="mt-4">
-          <div className="space-y-3">
-            {rotationFuelData.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">Aucune rotation livrée avec consommation carburant</p>
-            ) : (
-              rotationFuelData.map(r => (
-                <Card key={r.rotation.id}>
-                  <CardContent className="pt-4 pb-4">
-                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Rotation</p>
-                        <p className="font-semibold text-sm">{r.rotation.numero_rotation}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Véhicule</p>
-                        <p className="font-mono text-sm">{r.vehicle?.immatriculation}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Km parcourus</p>
-                        <p className="font-semibold text-sm">{Math.round(r.kmParcourus)} km</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Consommation</p>
-                        <p className="font-semibold text-sm">{r.consommationL100.toFixed(1)} L/100</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Coût rotation</p>
-                        <p className="font-bold text-secondary">{formatCFA(r.cout)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Coût/km</p>
-                        <p className="font-semibold text-sm">{formatCFA(r.coutParKm)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
         </TabsContent>
 
         <TabsContent value="validation" className="mt-4">
