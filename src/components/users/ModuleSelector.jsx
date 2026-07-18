@@ -15,6 +15,7 @@ export const ALL_MODULES = [
   { key: "suppliers",    label: "Fournisseurs" },
   { key: "journal",      label: "Journal de bord" },
   { key: "reports",      label: "Rapports & Analytique" },
+  { key: "deversement",  label: "Déversement comptable" },
   { key: "gps",          label: "Suivi GPS" },
   { key: "users",        label: "Utilisateurs" },
   { key: "settings",     label: "Paramètres" },

@@ -29,6 +29,7 @@ import ClientsPage from '@/pages/campaigns/ClientsPage';
 import DriverRefuelPage from '@/pages/DriverRefuelPage';
 import AuditLogPage from '@/pages/AuditLogPage';
 import LandingPage from '@/pages/LandingPage';
+import DeversementPage from '@/pages/DeversementPage';
 
 function App() {
 
@@ -73,6 +74,7 @@ function App() {
                 <Route path="/clients" element={<ClientsPage />} />
                 <Route path="/refuel" element={<DriverRefuelPage />} />
                 <Route path="/audit-log" element={<AuditLogPage />} />
+                <Route path="/deversement" element={<DeversementPage />} />
               </Route>
             </Route>
 

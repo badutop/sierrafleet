@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Truck, BookOpen, Fuel, Wrench,
   Users, BarChart3, Settings, ChevronLeft, ChevronRight,
   Package, Receipt, UserCog, Ship, Building2, Factory, LogOut, AlertTriangle, ScrollText,
-  MapPin, ExternalLink
+  MapPin, ExternalLink, FileSpreadsheet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
@@ -23,6 +23,7 @@ const navItems = [
   { path: "/expenses",    label: "Frais",                    icon: Receipt,         module: "expenses" },
   { path: "/journal",     label: "Journal des Dépenses",     icon: BookOpen,        module: "journal" },
   { path: "/reports",     label: "Rapports",                 icon: BarChart3,       module: "reports" },
+  { path: "/deversement", label: "Déversement",              icon: FileSpreadsheet, module: "deversement" },
   { label: "Suivi GPS", icon: MapPin, module: "gps", external: true, href: "https://eu.tracksolidpro.com" },
   { path: "/users",       label: "Utilisateurs",             icon: UserCog,         module: "users" },
   { path: "/audit-log",   label: "Journal d'Audit",          icon: ScrollText,      module: "audit-log" },
