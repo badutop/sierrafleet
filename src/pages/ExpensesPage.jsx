@@ -257,7 +257,17 @@ export default function ExpensesPage() {
           <div className="grid grid-cols-2 gap-3 mt-2">
             <div>
               <Label className="text-xs">Type de frais {!viewOnly && "*"}</Label>
-              <Select value={form.type_frais} onValueChange={v => !viewOnly && setForm({ ...form, type_frais: v })} disabled={viewOnly}>
+              <Select
+                value={form.type_frais}
+                onValueChange={v => !viewOnly && setForm(f => ({
+                  ...f,
+                  type_frais: v,
+                  // "Autre" ne se rapporte pas nécessairement à un véhicule —
+                  // on efface l'affectation véhicule/chauffeur en changeant vers ce type.
+                  ...(v === "autre" ? { vehicle_id: "", driver_id: "" } : {}),
+                }))}
+                disabled={viewOnly}
+              >
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(typeLabelsForm).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
@@ -276,26 +286,45 @@ export default function ExpensesPage() {
                 <span className={cn(statutColors[form.statut], "px-2 py-0.5 rounded text-xs font-medium")}>{statutLabels[form.statut] || "-"}</span>
               </div>
             </div>
-            <div>
-              <Label className="text-xs">Véhicule</Label>
-              <Select value={form.vehicle_id || "none"} onValueChange={v => !viewOnly && setForm({ ...form, vehicle_id: v === "none" ? "" : v })} disabled={viewOnly}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- Aucun --</SelectItem>
-                  {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Chauffeur</Label>
-              <Select value={form.driver_id || "none"} onValueChange={v => !viewOnly && setForm({ ...form, driver_id: v === "none" ? "" : v })} disabled={viewOnly}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- Aucun --</SelectItem>
-                  {drivers.map(d => <SelectItem key={d.id} value={d.id}>{d.prenom} {d.nom}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+            {form.type_frais !== "autre" && (
+              <>
+                <div>
+                  <Label className="text-xs">Véhicule</Label>
+                  <Select
+                    value={form.vehicle_id || "none"}
+                    onValueChange={v => {
+                      if (viewOnly) return;
+                      const vehicleId = v === "none" ? "" : v;
+                      const vehicle = vehicles.find(x => x.id === vehicleId);
+                      setForm(f => ({ ...f, vehicle_id: vehicleId, driver_id: vehicle?.driver_id || "" }));
+                    }}
+                    disabled={viewOnly}
+                  >
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- Aucun --</SelectItem>
+                      {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Chauffeur {form.vehicle_id && <span className="font-normal text-muted-foreground">(auto — véhicule)</span>}</Label>
+                  {form.vehicle_id ? (
+                    <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-muted/50 text-sm">
+                      {driverMap[form.driver_id] || "Aucun chauffeur affecté à ce véhicule"}
+                    </div>
+                  ) : (
+                    <Select value={form.driver_id || "none"} onValueChange={v => !viewOnly && setForm({ ...form, driver_id: v === "none" ? "" : v })} disabled={viewOnly}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">-- Aucun --</SelectItem>
+                        {drivers.map(d => <SelectItem key={d.id} value={d.id}>{d.prenom} {d.nom}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </>
+            )}
             <div className="col-span-2">
               <Label className="text-xs">Description</Label>
               <Input className="mt-1" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} disabled={viewOnly} />
