@@ -308,20 +308,10 @@ export default function ExpensesPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs">Chauffeur {form.vehicle_id && <span className="font-normal text-muted-foreground">(auto — véhicule)</span>}</Label>
-                  {form.vehicle_id ? (
-                    <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-muted/50 text-sm">
-                      {driverMap[form.driver_id] || "Aucun chauffeur affecté à ce véhicule"}
-                    </div>
-                  ) : (
-                    <Select value={form.driver_id || "none"} onValueChange={v => !viewOnly && setForm({ ...form, driver_id: v === "none" ? "" : v })} disabled={viewOnly}>
-                      <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">-- Aucun --</SelectItem>
-                        {drivers.map(d => <SelectItem key={d.id} value={d.id}>{d.prenom} {d.nom}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  )}
+                  <Label className="text-xs">Chauffeur <span className="font-normal text-muted-foreground">(auto — véhicule)</span></Label>
+                  <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-muted/50 text-sm text-muted-foreground">
+                    {form.vehicle_id ? (driverMap[form.driver_id] || "Aucun chauffeur affecté à ce véhicule") : "Sélectionnez d'abord un véhicule"}
+                  </div>
                 </div>
               </>
             )}
