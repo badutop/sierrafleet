@@ -1,12 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import {
   Truck, Route, Fuel, Wrench, Users, TrendingUp, Activity,
-  Package, AlertTriangle, CheckCircle2, BarChart3, ArrowUpRight, ArrowDownRight, Zap
+  Package, AlertTriangle, CheckCircle2, BarChart3, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import QuickTripDialog from "@/components/triplog/QuickTripDialog";
 
 // Dashboard components
 import FleetStatusDonut      from "@/components/dashboard/FleetStatusDonut";
@@ -54,8 +52,6 @@ function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel
 }
 
 export default function Dashboard() {
-  const [quickTripOpen, setQuickTripOpen] = useState(false);
-
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
     queryFn: async () => {
@@ -214,12 +210,6 @@ export default function Dashboard() {
           <p className="text-sm text-muted-foreground mt-0.5">Vue d'ensemble opérationnelle — {monthLabel}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground h-8 text-xs"
-            onClick={() => setQuickTripOpen(true)}
-          >
-            <Zap className="w-3.5 h-3.5 mr-1.5" /> Nouveau trajet
-          </Button>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-xs font-medium text-emerald-700">Système actif</span>
@@ -254,8 +244,6 @@ export default function Dashboard() {
         <TruckPerformanceCard  vehicles={vehicles} rotations={rotations} fuelEntries={fuelEntries} />
         <DashboardAlerts       alerts={alerts} />
       </div>
-
-      <QuickTripDialog open={quickTripOpen} onClose={() => setQuickTripOpen(false)} />
     </div>
   );
 }
