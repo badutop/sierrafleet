@@ -20,7 +20,6 @@ import DashboardAlerts       from "@/components/dashboard/DashboardAlerts";
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 const fmt = (n) => n.toLocaleString("fr-FR");
 const MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
-const YEARS = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
 function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, className }) {
   const colorMap = {
@@ -57,7 +56,7 @@ function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel
 export default function Dashboard() {
   const [viewMode, setViewMode] = useState("month"); // "month" | "year"
   const [selMonth, setSelMonth] = useState(() => new Date().getMonth()); // 0-11
-  const [selYear, setSelYear] = useState(() => new Date().getFullYear());
+  const selYear = new Date().getFullYear(); // toujours l'année en cours — pas de sélecteur
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
     queryFn: async () => {
@@ -249,12 +248,6 @@ export default function Dashboard() {
               </SelectContent>
             </Select>
           )}
-          <Select value={String(selYear)} onValueChange={v => setSelYear(Number(v))}>
-            <SelectTrigger className="h-8 text-xs w-24"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {YEARS.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
           <div
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 max-w-[220px]"
             title={activeCampaignsList.map(c => c.nom_campagne).join(", ") || undefined}
