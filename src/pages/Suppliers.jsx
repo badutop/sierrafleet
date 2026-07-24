@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Building2, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Building2, Factory, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 
@@ -80,7 +80,10 @@ export default function Suppliers() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Fournisseurs</h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Factory className="w-6 h-6 text-secondary" />
+            Fournisseurs
+          </h1>
           <p className="text-sm text-muted-foreground">{suppliers.length} fournisseurs registrés</p>
         </div>
         <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, User, Pencil, Trash2, Upload, ExternalLink, Loader2, X, Camera, Search } from "lucide-react";
+import { Plus, User, Users, Pencil, Trash2, Upload, ExternalLink, Loader2, X, Camera, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
@@ -183,7 +183,10 @@ export default function Drivers() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Chauffeurs</h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Users className="w-6 h-6 text-secondary" />
+            Chauffeurs
+          </h1>
           <p className="text-sm text-muted-foreground">{drivers.length} chauffeurs</p>
         </div>
         <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>

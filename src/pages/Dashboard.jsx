@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import {
   Truck, Route, Fuel, Wrench, Users, TrendingUp, Activity,
-  Package, AlertTriangle, CheckCircle2, BarChart3, ArrowUpRight, ArrowDownRight
+  Package, AlertTriangle, CheckCircle2, BarChart3, ArrowUpRight, ArrowDownRight, LayoutDashboard
 } from "lucide-react";
 
 // Dashboard components
@@ -206,7 +206,10 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <LayoutDashboard className="w-6 h-6 text-secondary" />
+            Tableau de bord
+          </h1>
           <p className="text-sm text-muted-foreground mt-0.5">Vue d'ensemble opérationnelle — {monthLabel}</p>
         </div>
         <div className="flex items-center gap-3">

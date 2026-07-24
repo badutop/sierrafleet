@@ -164,7 +164,10 @@ export default function ClientsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Clients</h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Building2 className="w-6 h-6 text-secondary" />
+            Clients
+          </h1>
           <p className="text-sm text-muted-foreground">{clients.filter(c => c.actif !== false).length} clients actifs</p>
         </div>
         <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>

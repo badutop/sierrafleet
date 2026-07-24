@@ -90,7 +90,10 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Rapports & Analytique</h1>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <BarChart3 className="w-6 h-6 text-secondary" />
+          Rapports & Analytique
+        </h1>
         <p className="text-sm text-muted-foreground">Récapitulatif complet de la flotte et des campagnes</p>
       </div>
 

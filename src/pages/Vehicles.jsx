@@ -107,7 +107,10 @@ export default function Vehicles() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Parc Véhicules</h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Truck className="w-6 h-6 text-secondary" />
+            Parc Véhicules
+          </h1>
           <p className="text-sm text-muted-foreground">{vehicles.length} véhicules enregistrés</p>
         </div>
         <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>

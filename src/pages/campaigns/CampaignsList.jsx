@@ -231,7 +231,10 @@ export default function CampaignsList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Campagnes</h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Ship className="w-6 h-6 text-secondary" />
+            Campagnes
+          </h1>
           <p className="text-sm text-muted-foreground">{campaigns.filter(c => c.statut === "en_cours").length} en cours · {activeCampaigns.length} active{activeCampaigns.length > 1 ? "s" : ""} · {archivedCampaigns.length} archivée{archivedCampaigns.length > 1 ? "s" : ""}</p>
         </div>
         <div className="flex gap-2">

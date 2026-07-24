@@ -37,7 +37,10 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Paramètres</h1>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <Settings className="w-6 h-6 text-secondary" />
+          Paramètres
+        </h1>
         <p className="text-sm text-muted-foreground">Configuration de l'application</p>
       </div>
 

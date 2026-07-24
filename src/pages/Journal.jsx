@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, BookOpen } from "lucide-react";
 import ExpenseDashboard from "@/components/journal/ExpenseDashboard";
 import ExpenseByVehicleTable from "@/components/journal/ExpenseByVehicleTable";
 import VehicleExpenseDetail from "@/components/journal/VehicleExpenseDetail";
@@ -78,7 +78,10 @@ export default function Journal() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Journal des Dépenses</h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-secondary" />
+            Journal des Dépenses
+          </h1>
           <p className="text-sm text-muted-foreground">Tableau détaillé par camion — carburant, péage, rations, contraventions…</p>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
