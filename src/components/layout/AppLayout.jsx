@@ -38,11 +38,16 @@ export default function AppLayout() {
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="lg:hidden shrink-0"
             onClick={() => setMobileOpen(true)}
           >
             <Menu className="w-5 h-5" />
           </Button>
+          <p className="flex-1 text-center text-xs sm:text-sm font-semibold tracking-wide truncate">
+            <span className="text-primary">Gestion des Opérations &amp; Activités</span>{" "}
+            <span className="text-secondary">Logistiques de Sierra</span>
+          </p>
+          <span className="shrink-0 text-[11px] font-mono font-semibold text-secondary">v1.0</span>
         </header>
         <main className="p-4 lg:p-6">
           <Outlet />

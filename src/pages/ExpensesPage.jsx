@@ -218,7 +218,7 @@ export default function ExpensesPage() {
           <div className="overflow-x-auto border rounded-lg">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 border-b">
-                <tr>
+                <tr className="divide-x divide-border">
                   <th className="px-4 py-2.5 text-left font-semibold">Date</th>
                   <th className="px-4 py-2.5 text-left font-semibold">Type</th>
                   <th className="px-4 py-2.5 text-left font-semibold">Véhicule</th>
@@ -230,7 +230,7 @@ export default function ExpensesPage() {
               </thead>
               <tbody>
                 {validatedExpenses.map(e => (
-                  <tr key={e.id} className="border-b hover:bg-muted/30">
+                  <tr key={e.id} className="border-b divide-x divide-border hover:bg-muted/30">
                     <td className="px-4 py-2.5">{e.date_frais}</td>
                     <td className="px-4 py-2.5"><Badge className={cn("text-[10px]", typeColors[e.type_frais])}>{typeLabels[e.type_frais]}</Badge></td>
                     <td className="px-4 py-2.5">{vehicleMap[e.vehicle_id] || "-"}</td>

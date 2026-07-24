@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
+import GoalsLogo from "@/components/GoalsLogo";
 
 const navItems = [
   { path: "/",            label: "Tableau de bord",          icon: LayoutDashboard, module: "dashboard" },
@@ -56,8 +57,11 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
               <img src="/assets/sierra-logistics-logo.png" alt="Sierra Logistics" className="w-full h-full object-contain" />
             </div>
           ) : (
-            <div className="bg-white rounded-xl px-3 py-1.5">
-              <img src="/assets/sierra-logistics-logo.png" alt="Sierra Logistics" className="h-10 object-contain" />
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="bg-white rounded-xl px-3 py-1.5 shrink-0">
+                <img src="/assets/sierra-logistics-logo.png" alt="Sierra Logistics" className="h-10 object-contain" />
+              </div>
+              <GoalsLogo compact className="h-10" />
             </div>
           )}
         </div>

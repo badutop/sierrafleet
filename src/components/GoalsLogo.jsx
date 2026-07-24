@@ -8,7 +8,29 @@ import { cn } from "@/lib/utils";
 // l'identité "logistique" vient du liseré route en pointillés et du camion
 // qui la parcourt, aux couleurs du thème de l'appli (primary navy / secondary
 // lime, cf. index.css).
-export default function GoalsLogo({ className }) {
+// `compact` : variante sur une seule ligne (texte + petit liseré/camion à
+// droite), pensée pour tenir à côté du logo image dans la barre latérale
+// (hauteur ~h-10) plutôt que le badge à deux lignes de la landing page.
+export default function GoalsLogo({ className, compact = false }) {
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-2 px-3 rounded-lg border border-lime-400/30 bg-gradient-to-br from-primary/60 to-primary/20 shadow-sm shrink-0",
+          className
+        )}
+      >
+        <span className="text-sm font-extrabold tracking-[0.12em] text-white leading-none">
+          GOALS
+        </span>
+        <svg viewBox="0 0 24 4" width="24" height="4" className="shrink-0" aria-hidden="true">
+          <line x1="0" y1="2" x2="24" y2="2" stroke="#a3e635" strokeWidth="2" strokeDasharray="4 3" strokeLinecap="round" />
+        </svg>
+        <Truck className="w-3 h-3 text-lime-400 shrink-0" strokeWidth={2.5} />
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
