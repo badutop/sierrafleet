@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import {
   Truck, Route, Fuel, Wrench, Users, TrendingUp, Activity,
-  Package, AlertTriangle, CheckCircle2, BarChart3, ArrowUpRight, ArrowDownRight, LayoutDashboard
+  Package, AlertTriangle, CheckCircle2, BarChart3, ArrowUpRight, ArrowDownRight, LayoutDashboard, Ship
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Dashboard components
 import FleetStatusDonut      from "@/components/dashboard/FleetStatusDonut";
@@ -18,6 +19,8 @@ import DashboardAlerts       from "@/components/dashboard/DashboardAlerts";
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 const fmt = (n) => n.toLocaleString("fr-FR");
+const MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+const YEARS = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
 function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, className }) {
   const colorMap = {
@@ -52,6 +55,9 @@ function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel
 }
 
 export default function Dashboard() {
+  const [viewMode, setViewMode] = useState("month"); // "month" | "year"
+  const [selMonth, setSelMonth] = useState(() => new Date().getMonth()); // 0-11
+  const [selYear, setSelYear] = useState(() => new Date().getFullYear());
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
     queryFn: async () => {
@@ -129,14 +135,21 @@ export default function Dashboard() {
   });
 
   // ── KPIs ──────────────────────────────────────────────────────────────
-  const now       = new Date();
-  const thisMonth = now.getMonth();
-  const thisYear  = now.getFullYear();
-  const prevMonth = thisMonth === 0 ? 11 : thisMonth - 1;
-  const prevYear  = thisMonth === 0 ? thisYear - 1 : thisYear;
+  const now = new Date();
 
-  const isThisMonth = (d) => { const dt = new Date(d); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; };
-  const isPrevMonth = (d) => { const dt = new Date(d); return dt.getMonth() === prevMonth && dt.getFullYear() === prevYear; };
+  // Période affichée : n'importe quel mois (par défaut le mois en cours) ou
+  // n'importe quelle année (par défaut l'année en cours) — sélectionnables
+  // dans l'en-tête, indépendamment de la date du jour.
+  const prevSelMonth     = selMonth === 0 ? 11 : selMonth - 1;
+  const prevSelMonthYear = selMonth === 0 ? selYear - 1 : selYear;
+
+  const isSelMonth      = (d) => { const dt = new Date(d); return dt.getMonth() === selMonth && dt.getFullYear() === selYear; };
+  const isPrevSelMonth  = (d) => { const dt = new Date(d); return dt.getMonth() === prevSelMonth && dt.getFullYear() === prevSelMonthYear; };
+  const isSelYear       = (d) => { const dt = new Date(d); return dt.getFullYear() === selYear; };
+  const isPrevSelYear   = (d) => { const dt = new Date(d); return dt.getFullYear() === selYear - 1; };
+  const inCurrentPeriod  = viewMode === "year" ? isSelYear : isSelMonth;
+  const inPreviousPeriod = viewMode === "year" ? isPrevSelYear : isPrevSelMonth;
+  const periodWord = viewMode === "year" ? "année" : "mois";
 
   // Fleet
   const disponible     = vehicles.filter(v => v.statut === "disponible").length;
@@ -146,8 +159,8 @@ export default function Dashboard() {
   const fleetRate      = vehicles.length ? Math.round(((disponible + enMission) / vehicles.length) * 100) : 0;
 
   // Fuel
-  const fuelMonth  = fuelEntries.filter(f => isThisMonth(f.date));
-  const fuelPrev   = fuelEntries.filter(f => isPrevMonth(f.date));
+  const fuelMonth  = fuelEntries.filter(f => inCurrentPeriod(f.date));
+  const fuelPrev   = fuelEntries.filter(f => inPreviousPeriod(f.date));
   const totalFuelCost  = fuelMonth.reduce((s, f) => s + (f.montant_total || 0), 0);
   const prevFuelCost   = fuelPrev.reduce((s, f)  => s + (f.montant_total || 0), 0);
   const fuelTrend      = prevFuelCost > 0 ? Math.round(((totalFuelCost - prevFuelCost) / prevFuelCost) * 100) : undefined;
@@ -157,21 +170,21 @@ export default function Dashboard() {
   const activeCampaigns   = campaigns.filter(c => c.statut === "en_cours").length;
   const termineeCampaigns = campaigns.filter(c => c.statut === "terminee").length;
 
-  // Rotations this month
-  const rotMonth = rotations.filter(r => isThisMonth(r.date_rotation));
-  const rotPrev  = rotations.filter(r => isPrevMonth(r.date_rotation));
+  // Rotations sur la période affichée
+  const rotMonth = rotations.filter(r => inCurrentPeriod(r.date_rotation));
+  const rotPrev  = rotations.filter(r => inPreviousPeriod(r.date_rotation));
   const rotTrend = rotPrev.length > 0 ? Math.round(((rotMonth.length - rotPrev.length) / rotPrev.length) * 100) : undefined;
   const tonnageMonth = rotMonth.reduce((s, r) => s + (r.poids_charge_tonnes || 0), 0);
 
   // Maintenance
-  const maintMonth     = maintenances.filter(m => isThisMonth(m.date_entretien));
+  const maintMonth     = maintenances.filter(m => inCurrentPeriod(m.date_entretien));
   const maintCostMonth = maintMonth.reduce((s, m) => s + (m.cout || 0) + (m.cout_pieces || 0) + (m.cout_main_oeuvre || 0), 0);
 
   // Expenses
-  const expMonth = expenses.filter(e => isThisMonth(e.date_frais));
+  const expMonth = expenses.filter(e => inCurrentPeriod(e.date_frais));
   const totalExp = expMonth.reduce((s, e) => s + (e.montant || 0), 0);
 
-  // Recettes projetées (mois) — tonnage transporté x tarif client par tonne
+  // Recettes projetées (période) — tonnage transporté x tarif client par tonne
   const clientById = Object.fromEntries(clients.map(c => [c.id, c]));
   const campaignById = Object.fromEntries(campaigns.map(c => [c.id, c]));
   const totalRecettes = rotMonth.reduce((s, r) => {
@@ -199,33 +212,71 @@ export default function Dashboard() {
     }
   });
 
-  const monthLabel = now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  const periodLabel = viewMode === "year" ? String(selYear) : `${MONTHS[selMonth]} ${selYear}`;
+  const activeCampaignsList = campaigns.filter(c => c.statut === "en_cours");
 
   return (
     <div className="space-y-6 pb-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <LayoutDashboard className="w-6 h-6 text-secondary" />
             Tableau de bord
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Vue d'ensemble opérationnelle — {monthLabel}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Vue d'ensemble opérationnelle — {periodLabel}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-medium text-emerald-700">Système actif</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setViewMode("month")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${viewMode === "month" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+            >
+              Mois
+            </button>
+            <button
+              onClick={() => setViewMode("year")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${viewMode === "year" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+            >
+              Année
+            </button>
+          </div>
+          {viewMode === "month" && (
+            <Select value={String(selMonth)} onValueChange={v => setSelMonth(Number(v))}>
+              <SelectTrigger className="h-8 text-xs w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          <Select value={String(selYear)} onValueChange={v => setSelYear(Number(v))}>
+            <SelectTrigger className="h-8 text-xs w-24"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {YEARS.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 max-w-[220px]"
+            title={activeCampaignsList.map(c => c.nom_campagne).join(", ") || undefined}
+          >
+            <Ship className={`w-3.5 h-3.5 text-emerald-700 shrink-0 ${activeCampaignsList.length > 0 ? "animate-pulse" : "opacity-50"}`} />
+            <span className="text-xs font-medium text-emerald-700 truncate">
+              {activeCampaignsList.length === 0
+                ? "Aucune campagne active"
+                : activeCampaignsList.length === 1
+                  ? activeCampaignsList[0].nom_campagne
+                  : `${activeCampaignsList.length} campagnes actives`}
+            </span>
           </div>
         </div>
       </div>
 
       {/* ── Row 2 : KPI opérationnels ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-        <StatCard title="Carburant (mois)"   value={formatCFA(totalFuelCost)} subtitle={`${fmt(Math.round(totalLitres))} L`} icon={Fuel} color="orange" trend={fuelTrend} className="col-span-2" />
-        <StatCard title="Maintenance (mois)" value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="red" className="col-span-2" />
-        <StatCard title="Total Dépenses (mois)" value={formatCFA(totalExp)} subtitle={`${expMonth.length} dépense(s)`} icon={BarChart3} color="indigo" className="col-span-2" />
-        <StatCard title="Résultat (mois)" value={formatCFA(resultat)} subtitle={`Recettes ${formatCFA(totalRecettes)}`} icon={TrendingUp} color="blue" className="col-span-2" />
+        <StatCard title={`Carburant (${periodWord})`}   value={formatCFA(totalFuelCost)} subtitle={`${fmt(Math.round(totalLitres))} L`} icon={Fuel} color="orange" trend={fuelTrend} className="col-span-2" />
+        <StatCard title={`Maintenance (${periodWord})`} value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="red" className="col-span-2" />
+        <StatCard title={`Total Dépenses (${periodWord})`} value={formatCFA(totalExp)} subtitle={`${expMonth.length} dépense(s)`} icon={BarChart3} color="indigo" className="col-span-2" />
+        <StatCard title={`Résultat (${periodWord})`} value={formatCFA(resultat)} subtitle={`Recettes ${formatCFA(totalRecettes)}`} icon={TrendingUp} color="blue" className="col-span-2" />
       </div>
 
       {/* ── Row 3 : Flotte donut + Rotations trend + Fuel trend ── */}
