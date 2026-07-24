@@ -34,20 +34,20 @@ export default function AppLayout() {
         "transition-all duration-300 ease-in-out min-h-screen",
         collapsed ? "lg:ml-[72px]" : "lg:ml-[260px]"
       )}>
-        <header className="sticky top-0 z-30 h-14 bg-background/80 backdrop-blur-md border-b border-border flex items-center px-4 lg:px-6 gap-3">
+        <header className="sticky top-0 z-30 h-14 bg-sidebar border-b border-sidebar-border flex items-center px-4 lg:px-6 gap-3">
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden shrink-0"
+            className="lg:hidden shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             onClick={() => setMobileOpen(true)}
           >
             <Menu className="w-5 h-5" />
           </Button>
-          <p className="flex-1 text-center text-xs sm:text-sm font-semibold tracking-wide truncate">
-            <span className="text-primary">Gestion des Opérations &amp; Activités</span>{" "}
-            <span className="text-secondary">Logistiques de Sierra</span>
+          <p className="flex-1 text-center text-xs sm:text-sm font-semibold tracking-wide truncate text-sidebar-foreground">
+            Gestion des Opérations &amp; Activités{" "}
+            <span className="text-sidebar-primary">Logistiques de Sierra</span>
           </p>
-          <span className="shrink-0 text-[11px] font-mono font-semibold text-secondary">v1.0</span>
+          <span className="shrink-0 text-[11px] font-mono font-semibold text-sidebar-primary">v1.0</span>
         </header>
         <main className="p-4 lg:p-6">
           <Outlet />
