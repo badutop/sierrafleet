@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FileSpreadsheet, TrendingUp, TrendingDown, Scale, Search } from "lucide-react";
 import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
 import { buildDeversementLines } from "@/lib/ohadaMapping";
+import { cn } from "@/lib/utils";
 
 const now = new Date();
 const defaultFilter = { mode: "month", month: now.getMonth() + 1, year: now.getFullYear(), from: "", to: "" };
@@ -155,29 +156,29 @@ export default function DeversementPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="pt-4 pb-4 flex items-center justify-between">
+        <Card className="bg-destructive/15 border-destructive/25">
+          <CardContent className="pt-4 pb-4 flex items-center justify-between text-destructive">
             <div>
-              <p className="text-xs text-muted-foreground">Total charges</p>
-              <p className="text-xl font-bold mt-1 text-destructive">{formatCFA(totalCharges)}</p>
+              <p className="text-xs opacity-80">Total charges</p>
+              <p className="text-xl font-bold mt-1">{formatCFA(totalCharges)}</p>
             </div>
-            <TrendingDown className="w-7 h-7 text-destructive opacity-70" />
+            <TrendingDown className="w-7 h-7 opacity-70" />
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4 flex items-center justify-between">
+        <Card className="bg-emerald-500/15 border-emerald-400/25">
+          <CardContent className="pt-4 pb-4 flex items-center justify-between text-emerald-700">
             <div>
-              <p className="text-xs text-muted-foreground">Total produits</p>
-              <p className="text-xl font-bold mt-1 text-emerald-600">{formatCFA(totalProduits)}</p>
+              <p className="text-xs opacity-80">Total produits</p>
+              <p className="text-xl font-bold mt-1">{formatCFA(totalProduits)}</p>
             </div>
-            <TrendingUp className="w-7 h-7 text-emerald-600 opacity-70" />
+            <TrendingUp className="w-7 h-7 opacity-70" />
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4 flex items-center justify-between">
+        <Card className={resultat >= 0 ? "bg-emerald-500/15 border-emerald-400/25" : "bg-destructive/15 border-destructive/25"}>
+          <CardContent className={cn("pt-4 pb-4 flex items-center justify-between", resultat >= 0 ? "text-emerald-700" : "text-destructive")}>
             <div>
-              <p className="text-xs text-muted-foreground">Résultat net</p>
-              <p className={`text-xl font-bold mt-1 ${resultat >= 0 ? "text-emerald-600" : "text-destructive"}`}>{formatCFA(resultat)}</p>
+              <p className="text-xs opacity-80">Résultat net</p>
+              <p className="text-xl font-bold mt-1">{formatCFA(resultat)}</p>
             </div>
             <Scale className="w-7 h-7 opacity-70" />
           </CardContent>

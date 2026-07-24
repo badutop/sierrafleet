@@ -35,17 +35,17 @@ export default function FuelCostBreakdown({ consumptionData, rotationFuelData, f
       {/* KPI Coûts — le coût total est déjà affiché en en-tête de la page
           Carburant, on ne le répète pas ici (juste les métriques en plus). */}
       <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Coût/km moyen</p>
+        <Card className="bg-orange-500/15 border-orange-400/25">
+          <CardContent className="pt-4 pb-4 text-orange-700">
+            <p className="text-xs opacity-80">Coût/km moyen</p>
             <p className="text-xl font-bold mt-1">
               {formatCFA(consumptionData.length > 0 ? totalCost / consumptionData.reduce((s, d) => s + d.totalKm, 0) : 0)}
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Prix/litre moyen</p>
+        <Card className="bg-blue-500/15 border-blue-400/25">
+          <CardContent className="pt-4 pb-4 text-blue-700">
+            <p className="text-xs opacity-80">Prix/litre moyen</p>
             <p className="text-xl font-bold mt-1">
               {formatCFA(consumptionData.length > 0 ? consumptionData.reduce((s, d) => s + d.prixMoyenLitre, 0) / consumptionData.length : 0)}
             </p>

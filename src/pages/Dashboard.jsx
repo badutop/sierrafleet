@@ -21,32 +21,32 @@ const fmt = (n) => n.toLocaleString("fr-FR");
 
 function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, className }) {
   const colorMap = {
-    green:   { bg: "bg-emerald-500/10", card: "bg-emerald-50",  text: "text-emerald-600", bar: "bg-emerald-500" },
-    blue:    { bg: "bg-blue-500/10",    card: "bg-blue-50",     text: "text-blue-600",    bar: "bg-blue-500" },
-    orange:  { bg: "bg-amber-500/10",   card: "bg-amber-50",    text: "text-amber-600",   bar: "bg-amber-500" },
-    red:     { bg: "bg-red-500/10",     card: "bg-red-50",      text: "text-red-600",     bar: "bg-red-500" },
-    indigo:  { bg: "bg-indigo-500/10",  card: "bg-indigo-50",   text: "text-indigo-600",  bar: "bg-indigo-500" },
-    primary: { bg: "bg-primary/10",     card: "bg-slate-50",    text: "text-primary",     bar: "bg-primary" },
+    green:   { card: "bg-emerald-500/15 border-emerald-400/20", bg: "bg-emerald-500/20", text: "text-emerald-700", bar: "bg-emerald-500" },
+    blue:    { card: "bg-blue-500/15 border-blue-400/20",       bg: "bg-blue-500/20",    text: "text-blue-700",    bar: "bg-blue-500" },
+    orange:  { card: "bg-amber-500/15 border-amber-400/20",     bg: "bg-amber-500/20",   text: "text-amber-700",   bar: "bg-amber-500" },
+    red:     { card: "bg-red-500/15 border-red-400/20",         bg: "bg-red-500/20",     text: "text-red-700",     bar: "bg-red-500" },
+    indigo:  { card: "bg-indigo-500/15 border-indigo-400/20",   bg: "bg-indigo-500/20",  text: "text-indigo-700",  bar: "bg-indigo-500" },
+    primary: { card: "bg-primary/15 border-primary/20",         bg: "bg-primary/20",     text: "text-primary",     bar: "bg-primary" },
   };
   const c = colorMap[color] || colorMap.primary;
 
   return (
-    <div className={`${c.card} rounded-xl border border-border p-5 hover:shadow-md transition-shadow group ${className || ""}`}>
+    <div className={`${c.card} rounded-xl border p-5 hover:shadow-md transition-shadow group ${className || ""}`}>
       <div className="flex items-start justify-between mb-3">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${c.bg}`}>
           <Icon className={`w-5 h-5 ${c.text}`} />
         </div>
         {trend !== undefined && (
-          <div className={`flex items-center gap-0.5 text-xs font-medium ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+          <div className={`flex items-center gap-0.5 text-xs font-medium ${trend >= 0 ? "text-emerald-700" : "text-red-700"}`}>
             {trend >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
             {Math.abs(trend)}%
           </div>
         )}
       </div>
-      <p className="text-lg font-semibold text-card-foreground truncate">{value}</p>
-      <p className="text-xs text-muted-foreground mt-0.5">{title}</p>
-      {subtitle && <p className="text-[11px] text-muted-foreground/70 mt-0.5">{subtitle}</p>}
-      {trendLabel && <p className="text-[10px] text-muted-foreground/60 mt-1">{trendLabel}</p>}
+      <p className={`text-lg font-semibold truncate ${c.text}`}>{value}</p>
+      <p className={`text-xs mt-0.5 ${c.text} opacity-80`}>{title}</p>
+      {subtitle && <p className={`text-[11px] mt-0.5 ${c.text} opacity-60`}>{subtitle}</p>}
+      {trendLabel && <p className={`text-[10px] mt-1 ${c.text} opacity-50`}>{trendLabel}</p>}
     </div>
   );
 }

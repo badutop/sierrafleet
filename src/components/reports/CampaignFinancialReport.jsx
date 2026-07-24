@@ -163,13 +163,13 @@ export default function CampaignFinancialReport() {
       {/* KPI globaux */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "CA Total HT", value: fmt(totals.caHT) + " FCFA", color: "text-primary" },
-          { label: "Dépenses totales", value: fmt(totals.coutTotal) + " FCFA", color: "text-destructive" },
-          { label: "Marge brute", value: fmt(totals.marge) + " FCFA", color: totals.marge >= 0 ? "text-emerald-600" : "text-destructive" },
-          { label: "Taux de marge", value: tauxMargeGlobal !== null ? tauxMargeGlobal.toFixed(1) + "%" : "—", color: (tauxMargeGlobal ?? 0) >= 0 ? "text-emerald-600" : "text-destructive" },
+          { label: "CA Total HT", value: fmt(totals.caHT) + " FCFA", color: "text-primary", card: "bg-primary/15 border-primary/25" },
+          { label: "Dépenses totales", value: fmt(totals.coutTotal) + " FCFA", color: "text-destructive", card: "bg-destructive/15 border-destructive/25" },
+          { label: "Marge brute", value: fmt(totals.marge) + " FCFA", color: totals.marge >= 0 ? "text-emerald-700" : "text-destructive", card: totals.marge >= 0 ? "bg-emerald-500/15 border-emerald-400/25" : "bg-destructive/15 border-destructive/25" },
+          { label: "Taux de marge", value: tauxMargeGlobal !== null ? tauxMargeGlobal.toFixed(1) + "%" : "—", color: (tauxMargeGlobal ?? 0) >= 0 ? "text-emerald-700" : "text-destructive", card: (tauxMargeGlobal ?? 0) >= 0 ? "bg-emerald-500/15 border-emerald-400/25" : "bg-destructive/15 border-destructive/25" },
         ].map((kpi, i) => (
-          <div key={i} className="bg-card border border-border rounded-xl p-4">
-            <p className="text-xs text-muted-foreground mb-1">{kpi.label}</p>
+          <div key={i} className={`border rounded-xl p-4 ${kpi.card}`}>
+            <p className={`text-xs mb-1 opacity-80 ${kpi.color}`}>{kpi.label}</p>
             <p className={`text-lg font-bold ${kpi.color}`}>{kpi.value}</p>
           </div>
         ))}

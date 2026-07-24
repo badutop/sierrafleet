@@ -323,32 +323,32 @@ export default function FuelManagementV2() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Litres approvisionnés</p>
+        <Card className="bg-blue-500/15 border-blue-400/25">
+          <CardContent className="pt-4 pb-4 text-blue-700">
+            <p className="text-xs opacity-80">Litres approvisionnés</p>
             <p className="text-2xl font-bold mt-1">{Math.round(filteredEntries.reduce((s, e) => s + (e.litres || 0), 0))} L</p>
-            <p className="text-xs text-muted-foreground mt-1">{filteredEntries.length} entrées</p>
+            <p className="text-xs opacity-70 mt-1">{filteredEntries.length} entrées</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Coût total</p>
+        <Card className="bg-secondary/15 border-secondary/25">
+          <CardContent className="pt-4 pb-4 text-secondary">
+            <p className="text-xs opacity-80">Coût total</p>
             <p className="text-xl font-bold mt-1">{formatCFA(filteredEntries.reduce((s, e) => s + (e.montant_total || 0), 0))}</p>
-            <p className="text-xs text-muted-foreground mt-1">{PERIODS.find(p => p.key === period)?.label}</p>
+            <p className="text-xs opacity-70 mt-1">{PERIODS.find(p => p.key === period)?.label}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">Consommation moy. L/100</p>
+        <Card className="bg-primary/15 border-primary/25">
+          <CardContent className="pt-4 pb-4 text-primary">
+            <p className="text-xs opacity-80">Consommation moy. L/100</p>
             <p className="text-2xl font-bold mt-1">{kpiData.consommationMoyenne.toFixed(1)}</p>
-            <p className="text-xs text-muted-foreground mt-1">flotte globale</p>
+            <p className="text-xs opacity-70 mt-1">flotte globale</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground">En attente de validation</p>
-            <p className="text-2xl font-bold mt-1 text-amber-500">{pendingValidationCount}</p>
-            <p className="text-xs text-muted-foreground mt-1">camions éligibles</p>
+        <Card className="bg-amber-500/15 border-amber-400/25">
+          <CardContent className="pt-4 pb-4 text-amber-700">
+            <p className="text-xs opacity-80">En attente de validation</p>
+            <p className="text-2xl font-bold mt-1">{pendingValidationCount}</p>
+            <p className="text-xs opacity-70 mt-1">camions éligibles</p>
           </CardContent>
         </Card>
       </div>

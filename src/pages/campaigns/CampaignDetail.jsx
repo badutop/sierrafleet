@@ -222,17 +222,17 @@ export default function CampaignDetail() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Rotations réalisées", value: campaign.nombre_rotations_realisees || 0, sub: rotationsPrevues ? `/ ${rotationsPrevues} prévues` : null, icon: RotateCw, color: "text-primary" },
-          { label: "Tonnage livré (T)", value: tonnageT, icon: Truck, color: "text-secondary" },
-          { label: "Bons système", value: bonsSysteme, icon: ClipboardList, color: "text-blue-600" },
-          { label: ecart > 0 ? `Écart (${ecart})` : "Bons OK", value: bonsPhysiques, icon: ecart > 0 ? AlertTriangle : CheckCircle, color: ecart > 0 ? "text-destructive" : "text-emerald-600" },
+          { label: "Rotations réalisées", value: campaign.nombre_rotations_realisees || 0, sub: rotationsPrevues ? `/ ${rotationsPrevues} prévues` : null, icon: RotateCw, color: "text-primary", card: "bg-primary/15 border-primary/25" },
+          { label: "Tonnage livré (T)", value: tonnageT, icon: Truck, color: "text-secondary", card: "bg-secondary/15 border-secondary/25" },
+          { label: "Bons système", value: bonsSysteme, icon: ClipboardList, color: "text-blue-700", card: "bg-blue-500/15 border-blue-400/25" },
+          { label: ecart > 0 ? `Écart (${ecart})` : "Bons OK", value: bonsPhysiques, icon: ecart > 0 ? AlertTriangle : CheckCircle, color: ecart > 0 ? "text-destructive" : "text-emerald-700", card: ecart > 0 ? "bg-destructive/15 border-destructive/25" : "bg-emerald-500/15 border-emerald-400/25" },
         ].map((kpi, i) => (
-          <Card key={i}>
+          <Card key={i} className={cn("border", kpi.card)}>
             <CardContent className="pt-5 pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                  <p className="text-2xl font-bold mt-1">{kpi.value}{kpi.sub && <span className="text-sm font-normal text-muted-foreground ml-1">{kpi.sub}</span>}</p>
+                <div className={kpi.color}>
+                  <p className="text-xs opacity-80">{kpi.label}</p>
+                  <p className="text-2xl font-bold mt-1">{kpi.value}{kpi.sub && <span className="text-sm font-normal opacity-70 ml-1">{kpi.sub}</span>}</p>
                 </div>
                 <kpi.icon className={cn("w-8 h-8 opacity-70", kpi.color)} />
               </div>

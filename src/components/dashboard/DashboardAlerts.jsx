@@ -5,16 +5,16 @@ import { cn } from "@/lib/utils";
 export default function DashboardAlerts({ alerts }) {
   const iconMap   = { warning: Wrench, expiry: Clock, insurance: Shield };
   const colorMap  = {
-    critical: "text-red-500 bg-red-500/10 border-red-500/20",
-    warning:  "text-amber-500 bg-amber-500/10 border-amber-500/20",
-    info:     "text-blue-500 bg-blue-500/10 border-blue-500/20",
+    critical: "text-red-700 bg-red-500/15 border-red-400/25",
+    warning:  "text-amber-700 bg-amber-500/15 border-amber-400/25",
+    info:     "text-blue-700 bg-blue-500/15 border-blue-400/25",
   };
 
   return (
     <div className="bg-card rounded-xl border border-border p-5">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-          <AlertTriangle className="w-4 h-4 text-red-500" />
+        <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center">
+          <AlertTriangle className="w-4 h-4 text-red-700" />
         </div>
         <div>
           <h3 className="text-sm font-semibold text-card-foreground">Alertes actives</h3>
@@ -24,8 +24,8 @@ export default function DashboardAlerts({ alerts }) {
 
       {alerts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6">
-          <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
-            <Shield className="w-5 h-5 text-emerald-500" />
+          <div className="w-10 h-10 rounded-full bg-emerald-500/15 flex items-center justify-center mb-2">
+            <Shield className="w-5 h-5 text-emerald-700" />
           </div>
           <p className="text-xs text-muted-foreground">Tout est en ordre ✓</p>
         </div>

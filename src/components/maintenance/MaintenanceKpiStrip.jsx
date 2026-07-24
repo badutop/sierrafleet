@@ -4,11 +4,11 @@ import { Wrench, AlertTriangle, CheckCircle2, TrendingDown, Clock } from "lucide
 const KpiBox = ({ icon: IconComp, label, value, sub, color = "primary" }) => {
   const Icon = IconComp;
   const colors = {
-    primary: "bg-primary/10 text-primary border-primary/20",
-    orange: "bg-secondary/10 text-secondary border-secondary/20",
-    red: "bg-destructive/10 text-destructive border-destructive/20",
-    green: "bg-emerald-500/10 text-emerald-700 border-emerald-300/30",
-    amber: "bg-amber-500/10 text-amber-700 border-amber-300/30",
+    primary: "bg-primary/15 text-primary border-primary/25",
+    orange: "bg-secondary/15 text-secondary border-secondary/25",
+    red: "bg-destructive/15 text-destructive border-destructive/25",
+    green: "bg-emerald-500/15 text-emerald-700 border-emerald-400/25",
+    amber: "bg-amber-500/15 text-amber-700 border-amber-400/25",
   };
   return (
     <div className={`rounded-xl border p-4 flex items-center gap-3 ${colors[color]}`}>
