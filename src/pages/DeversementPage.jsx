@@ -208,14 +208,18 @@ export default function DeversementPage() {
         </div>
       ) : (
         <div className="space-y-5">
-          {groupedByCompte.map(group => (
+          {groupedByCompte.map(group => {
+            const isCharge = group.nature === "Charge";
+            const groupColor = isCharge ? "text-destructive" : "text-emerald-700";
+            const groupCard = isCharge ? "bg-destructive/15 border-destructive/25" : "bg-emerald-500/15 border-emerald-400/25";
+            return (
             <div key={group.compte.code}>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-foreground">
+              <div className={cn("flex items-center justify-between mb-2 rounded-lg border px-3 py-2", groupCard, groupColor)}>
+                <h3 className="text-sm font-semibold">
                   {group.compte.code} — {group.compte.libelle}
                 </h3>
-                <div className="text-xs text-muted-foreground">
-                  <span className="font-semibold text-secondary">{group.lines.length} écriture{group.lines.length > 1 ? "s" : ""}</span> — {formatCFA(group.total)}
+                <div className="text-xs opacity-80">
+                  <span className="font-semibold">{group.lines.length} écriture{group.lines.length > 1 ? "s" : ""}</span> — {formatCFA(group.total)}
                 </div>
               </div>
               <div className="bg-card rounded-xl border border-border overflow-x-auto">
@@ -238,14 +242,15 @@ export default function DeversementPage() {
                         <TableCell className="text-xs max-w-[280px] truncate" title={l.description}>{l.description}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{l.source}</TableCell>
                         <TableCell className="text-right text-xs font-semibold text-destructive">{l.nature === "Charge" ? formatCFA(l.montant) : ""}</TableCell>
-                        <TableCell className="text-right text-xs font-semibold text-emerald-600">{l.nature === "Produit" ? formatCFA(l.montant) : ""}</TableCell>
+                        <TableCell className="text-right text-xs font-semibold text-emerald-700">{l.nature === "Produit" ? formatCFA(l.montant) : ""}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
