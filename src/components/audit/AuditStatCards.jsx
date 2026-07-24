@@ -7,22 +7,22 @@ export default function AuditStatCards({ logs, filteredCount }) {
   const entityTypes = new Set(logs.map(l => l.entity_name).filter(Boolean)).size;
 
   const cards = [
-    { label: "Total des logs", value: filteredCount, sub: `sur ${logs.length} au total`, icon: Activity, color: "text-blue-600" },
-    { label: "Types d'actions", value: actionTypes, sub: "différentes actions", icon: Shield, color: "text-emerald-600" },
-    { label: "Utilisateurs actifs", value: activeUsers, sub: "utilisateurs distincts", icon: Users, color: "text-violet-600" },
-    { label: "Types d'entités", value: entityTypes, sub: "types modifiés", icon: Database, color: "text-orange-600" },
+    { label: "Total des logs", value: filteredCount, sub: `sur ${logs.length} au total`, icon: Activity, color: "text-blue-700", card: "bg-blue-500/15 border-blue-400/25" },
+    { label: "Types d'actions", value: actionTypes, sub: "différentes actions", icon: Shield, color: "text-emerald-700", card: "bg-emerald-500/15 border-emerald-400/25" },
+    { label: "Utilisateurs actifs", value: activeUsers, sub: "utilisateurs distincts", icon: Users, color: "text-violet-700", card: "bg-violet-500/15 border-violet-400/25" },
+    { label: "Types d'entités", value: entityTypes, sub: "types modifiés", icon: Database, color: "text-orange-700", card: "bg-orange-500/15 border-orange-400/25" },
   ];
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {cards.map(c => (
-        <div key={c.label} className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">{c.label}</p>
-          <div className="flex items-center gap-2 mt-1.5">
-            <c.icon className={`w-4 h-4 ${c.color}`} />
-            <span className="text-2xl font-bold text-foreground">{c.value}</span>
+        <div key={c.label} className={`border rounded-xl p-4 ${c.card}`}>
+          <p className={`text-xs opacity-80 ${c.color}`}>{c.label}</p>
+          <div className={`flex items-center gap-2 mt-1.5 ${c.color}`}>
+            <c.icon className="w-4 h-4" />
+            <span className="text-2xl font-bold">{c.value}</span>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-1">{c.sub}</p>
+          <p className={`text-[11px] mt-1 opacity-70 ${c.color}`}>{c.sub}</p>
         </div>
       ))}
     </div>

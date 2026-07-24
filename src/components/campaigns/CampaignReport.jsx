@@ -132,15 +132,15 @@ export default function CampaignReport({ campaign, client, rotations, declaratio
             <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2"><RotateCw className="w-4 h-4 text-primary" /> Indicateurs clés</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: "Rotations réalisées", value: campaign.nombre_rotations_realisees || 0, sub: `/ ${campaign.nombre_rotations_prevues || 0} prévues`, color: "text-primary" },
-                { label: "Tonnage livré (T)", value: fmt(tonnageRealise), sub: `/ ${fmt(tonnagePrevu)} T prévu`, color: "text-secondary" },
-                { label: "Bons système", value: totalRotations, sub: `${bonsPhysiques} physiques`, color: "text-blue-600" },
-                { label: "Durée (jours)", value: duration ?? "—", sub: `${fmtDate(campaign.date_debut)} → ${fmtDate(campaign.date_fin_prevue)}`, color: "text-violet-600" },
+                { label: "Rotations réalisées", value: campaign.nombre_rotations_realisees || 0, sub: `/ ${campaign.nombre_rotations_prevues || 0} prévues`, color: "text-primary", card: "bg-primary/15 border-primary/25" },
+                { label: "Tonnage livré (T)", value: fmt(tonnageRealise), sub: `/ ${fmt(tonnagePrevu)} T prévu`, color: "text-secondary", card: "bg-secondary/15 border-secondary/25" },
+                { label: "Bons système", value: totalRotations, sub: `${bonsPhysiques} physiques`, color: "text-blue-700", card: "bg-blue-500/15 border-blue-400/25" },
+                { label: "Durée (jours)", value: duration ?? "—", sub: `${fmtDate(campaign.date_debut)} → ${fmtDate(campaign.date_fin_prevue)}`, color: "text-violet-700", card: "bg-violet-500/15 border-violet-400/25" },
               ].map((k, i) => (
-                <div key={i} className="bg-muted/40 border border-border rounded-xl p-4 text-center">
+                <div key={i} className={cn("border rounded-xl p-4 text-center", k.card)}>
                   <p className={cn("text-2xl font-extrabold", k.color)}>{k.value}</p>
-                  <p className="text-xs font-semibold text-foreground mt-0.5">{k.label}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{k.sub}</p>
+                  <p className={cn("text-xs font-semibold mt-0.5 opacity-90", k.color)}>{k.label}</p>
+                  <p className={cn("text-[10px] mt-0.5 opacity-70", k.color)}>{k.sub}</p>
                 </div>
               ))}
             </div>
