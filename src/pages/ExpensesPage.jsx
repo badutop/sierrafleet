@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ExpenseValidationPanel from "@/components/expenses/ExpenseValidationPanel";
 import { confirm } from "@/lib/confirm";
+import { logAudit } from "@/lib/auditLog";
 
 // "achat_pieces" n'apparaît pas dans typeLabelsForm : ce poste est généré
 // automatiquement au paiement d'une facture fournisseur (Commandes Garage),
@@ -59,24 +60,28 @@ export default function ExpensesPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const { error } = await supabase.from("expenses").insert({ id: crypto.randomUUID(), ...data });
+      const id = crypto.randomUUID();
+      const { error } = await supabase.from("expenses").insert({ id, ...data });
       if (error) throw error;
+      await logAudit("Frais", id, "create", data);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); closeDialog(); toast.success("Frais ajouté"); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
+    mutationFn: async ({ id, data, oldData }) => {
       const { error } = await supabase.from("expenses").update(data).eq("id", id);
       if (error) throw error;
+      await logAudit("Frais", id, "update", data, oldData, Object.keys(data));
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); closeDialog(); toast.success("Frais modifié"); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("expenses").delete().eq("id", id);
+    mutationFn: async (expense) => {
+      const { error } = await supabase.from("expenses").delete().eq("id", expense.id);
       if (error) throw error;
+      await logAudit("Frais", expense.id, "delete", null, expense);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); toast.success("Frais supprimé"); },
   });
@@ -91,22 +96,25 @@ export default function ExpensesPage() {
     // After modification of a rejected expense, resubmit it for validation
     const statut = editingExpense ? "en_attente" : "en_attente";
     const data = { ...form, montant: Number(form.montant || 0), statut };
-    if (editingExpense) updateMutation.mutate({ id: editingExpense.id, data });
+    if (editingExpense) updateMutation.mutate({ id: editingExpense.id, data, oldData: editingExpense });
     else createMutation.mutate(data);
   };
 
   const handleValidate = (id) => {
-    updateMutation.mutate({ id, data: { statut: "valide" } });
+    const oldData = expenses.find(e => e.id === id);
+    updateMutation.mutate({ id, data: { statut: "valide" }, oldData });
     toast.success("Frais validé");
   };
 
   const handleReject = (id) => {
-    updateMutation.mutate({ id, data: { statut: "rejete" } });
+    const oldData = expenses.find(e => e.id === id);
+    updateMutation.mutate({ id, data: { statut: "rejete" }, oldData });
     toast.error("Frais rejeté");
   };
 
   const handleDeleteExpense = async (id) => {
-    if (await confirm("Supprimer ce frais ?")) deleteMutation.mutate(id);
+    const expense = expenses.find(e => e.id === id);
+    if (await confirm("Supprimer ce frais ?")) deleteMutation.mutate(expense);
   };
 
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v.immatriculation]));

@@ -11,6 +11,7 @@ import { Plus, Trash2, Fuel, Save, Eye, ArrowLeft, CheckCircle2, AlertTriangle }
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { consoLitresPourClient, countExistingForClientVehicle } from "@/lib/refuelRules";
+import { logAudit } from "@/lib/auditLog";
 
 const emptyRow = { code_ct: "", vehicle_id: "", bl: "", poids_tonnes: "", client_id: "" };
 
@@ -387,8 +388,9 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
         rotCount += 1;
         const rowClientId = resolveClientId(row);
         const rowConso = consoLitresPourClient(clientMap[rowClientId] || client);
-        const { error: rotError } = await supabase.from("rotations").insert({
-          id: crypto.randomUUID(),
+        const rotId = crypto.randomUUID();
+        const rotData = {
+          id: rotId,
           campaign_id: campaign.id,
           vehicle_id: row.vehicle_id,
           client_id: rowClientId,
@@ -401,8 +403,10 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
           refuel_declenche: positions[idx] !== null && positions[idx] % 3 === 0,
           bon_physique_recu: false,
           statut: "livree",
-        });
+        };
+        const { error: rotError } = await supabase.from("rotations").insert(rotData);
         if (rotError) throw rotError;
+        await logAudit("Rotation", rotId, "create", rotData);
         totalPoidsAdded += Number(row.poids_tonnes);
       }
 

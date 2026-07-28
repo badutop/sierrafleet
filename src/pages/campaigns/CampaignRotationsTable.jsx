@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { uploadFile } from "@/lib/storage";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
+import { logAudit } from "@/lib/auditLog";
 
 const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la vraie caméra, cf. PumpPhotoStep/BonCaptureStep
 const DEMO_BON_SCAN_URL = "https://placehold.co/320x200/e2e8f0/64748b?text=BON+SCANNE+DEMO";
@@ -32,6 +33,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
         bon_physique_scan_url: received ? (scanUrl || null) : null,
       }).eq("id", rotId);
       if (error) throw error;
+      await logAudit("Rotation", rotId, "update", { bon_physique_recu: received }, null, ["bon_physique_recu"]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rotations", campaignId] });

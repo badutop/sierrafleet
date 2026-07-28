@@ -8,6 +8,7 @@ import { Truck, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
+import { logAudit } from "@/lib/auditLog";
 
 const statutVehicule = {
   disponible: { label: "Disponible", color: "bg-emerald-500/10 text-emerald-600" },
@@ -70,6 +71,7 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
     mutationFn: async (vehicleId) => {
       const { error } = await supabase.from("vehicles").update({ campaign_id: campaignId }).eq("id", vehicleId);
       if (error) throw error;
+      await logAudit("Véhicule", vehicleId, "update", { campaign_id: campaignId }, null, ["campaign_id"]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
@@ -82,6 +84,7 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
     mutationFn: async (vehicleId) => {
       const { error } = await supabase.from("vehicles").update({ campaign_id: null }).eq("id", vehicleId);
       if (error) throw error;
+      await logAudit("Véhicule", vehicleId, "update", { campaign_id: null }, { campaign_id: campaignId }, ["campaign_id"]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });

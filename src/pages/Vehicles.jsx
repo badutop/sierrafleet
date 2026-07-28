@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import VehicleDocuments from "@/components/vehicles/VehicleDocuments";
 import { confirm } from "@/lib/confirm";
+import { logAudit } from "@/lib/auditLog";
 
 const statusLabels = { disponible: "Disponible", en_mission: "En mission", en_maintenance: "Maintenance", hors_service: "Hors service" };
 const statusColors = { disponible: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", en_mission: "bg-blue-500/10 text-blue-600 border-blue-500/20", en_maintenance: "bg-amber-500/10 text-amber-600 border-amber-500/20", hors_service: "bg-destructive/10 text-destructive border-destructive/20" };
@@ -53,23 +54,26 @@ export default function Vehicles() {
     mutationFn: async (data) => {
       const { data: row, error } = await supabase.from("vehicles").insert({ id: crypto.randomUUID(), ...data }).select().single();
       if (error) throw error;
+      await logAudit("Véhicule", row.id, "create", row);
       return row;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); closeDialog(); toast.success("Véhicule ajouté"); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
+    mutationFn: async ({ id, data, oldData }) => {
       const { error } = await supabase.from("vehicles").update(data).eq("id", id);
       if (error) throw error;
+      await logAudit("Véhicule", id, "update", data, oldData, Object.keys(data));
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); closeDialog(); toast.success("Véhicule modifié"); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("vehicles").delete().eq("id", id);
+    mutationFn: async (vehicle) => {
+      const { error } = await supabase.from("vehicles").delete().eq("id", vehicle.id);
       if (error) throw error;
+      await logAudit("Véhicule", vehicle.id, "delete", null, vehicle);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); toast.success("Véhicule supprimé"); },
   });
@@ -86,12 +90,12 @@ export default function Vehicles() {
     numFields.forEach(f => { data[f] = (data[f] === "" || data[f] === undefined) ? null : Number(data[f]); });
     dateFields.forEach(f => { if (data[f] === "") data[f] = null; });
     if (data.driver_id === "") data.driver_id = null;
-    if (editingVehicle) updateMutation.mutate({ id: editingVehicle.id, data });
+    if (editingVehicle) updateMutation.mutate({ id: editingVehicle.id, data, oldData: editingVehicle });
     else createMutation.mutate(data);
   };
 
   const handleDelete = async (v) => {
-    if (await confirm(`Supprimer le véhicule ${v.immatriculation} ?`)) deleteMutation.mutate(v.id);
+    if (await confirm(`Supprimer le véhicule ${v.immatriculation} ?`)) deleteMutation.mutate(v);
   };
 
   const filtered = vehicles.filter(v => {

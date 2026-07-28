@@ -17,6 +17,7 @@ import CampaignInvoice from "@/components/campaigns/CampaignInvoice";
 import { confirm } from "@/lib/confirm";
 import { stampStatutDate } from "@/lib/campaignStatus";
 import CampaignStatusStepper from "@/components/campaigns/CampaignStatusStepper";
+import { logAudit } from "@/lib/auditLog";
 
 export default function CampaignDetail() {
   const { id } = useParams();
@@ -103,6 +104,7 @@ export default function CampaignDetail() {
     mutationFn: async () => {
       const { error } = await supabase.from("campaigns").update({ statut: "en_cours", ...stampStatutDate(campaign, "en_cours") }).eq("id", id);
       if (error) throw error;
+      await logAudit("Campagne", id, "update", { statut: "en_cours" }, { statut: campaign.statut }, ["statut"]);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaign", id] }); toast.success("Campagne démarrée"); },
     onError: (err) => toast.error(`Erreur : ${err.message}`),
@@ -112,6 +114,7 @@ export default function CampaignDetail() {
     mutationFn: async () => {
       const { error } = await supabase.from("campaigns").update({ statut: "terminee", ...stampStatutDate(campaign, "terminee") }).eq("id", id);
       if (error) throw error;
+      await logAudit("Campagne", id, "update", { statut: "terminee" }, { statut: campaign.statut }, ["statut"]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaign", id] });
@@ -130,6 +133,7 @@ export default function CampaignDetail() {
     mutationFn: async () => {
       const { error } = await supabase.from("campaigns").update({ statut: "clôturée", ...stampStatutDate(campaign, "clôturée") }).eq("id", id);
       if (error) throw error;
+      await logAudit("Campagne", id, "update", { statut: "clôturée" }, { statut: campaign.statut }, ["statut"]);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaign", id] }); toast.success("Campagne archivée"); },
     onError: (err) => toast.error(`Erreur : ${err.message}`),

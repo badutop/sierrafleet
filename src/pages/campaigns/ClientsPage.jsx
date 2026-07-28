@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import DepotsEditor from "@/components/clients/DepotsEditor";
 import { confirm } from "@/lib/confirm";
+import { logAudit } from "@/lib/auditLog";
 
 const zoneLabels = { zone1: "Zone 1", zone2: "Zone 2", zone3: "Zone 3", zone4: "Zone 4" };
 const zoneColors = { zone1: "bg-green-500/10 text-green-600", zone2: "bg-blue-500/10 text-blue-600", zone3: "bg-amber-500/10 text-amber-600", zone4: "bg-red-500/10 text-red-600" };
@@ -74,6 +75,7 @@ export default function ClientsPage() {
     mutationFn: async (data) => {
       const { data: client, error } = await supabase.from("clients").insert({ id: crypto.randomUUID(), ...data }).select().single();
       if (error) throw error;
+      await logAudit("Client", client.id, "create", client);
       return client;
     },
     onSuccess: async (client) => {
@@ -90,9 +92,10 @@ export default function ClientsPage() {
     },
   });
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
+    mutationFn: async ({ id, data, oldData }) => {
       const { error } = await supabase.from("clients").update(data).eq("id", id);
       if (error) throw error;
+      await logAudit("Client", id, "update", data, oldData, Object.keys(data));
     },
     onSuccess: async (_, { id }) => {
       const existing = allDepots.filter(d => d.client_id === id);
@@ -113,14 +116,15 @@ export default function ClientsPage() {
     },
   });
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const existing = allDepots.filter(d => d.client_id === id);
+    mutationFn: async (client) => {
+      const existing = allDepots.filter(d => d.client_id === client.id);
       if (existing.length > 0) {
         const { error: delError } = await supabase.from("depots").delete().in("id", existing.map(d => d.id));
         if (delError) throw delError;
       }
-      const { error } = await supabase.from("clients").delete().eq("id", id);
+      const { error } = await supabase.from("clients").delete().eq("id", client.id);
       if (error) throw error;
+      await logAudit("Client", client.id, "delete", null, client);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
@@ -145,12 +149,12 @@ export default function ClientsPage() {
 
   const handleSave = () => {
     const data = { ...form };
-    if (editingClient) updateMutation.mutate({ id: editingClient.id, data });
+    if (editingClient) updateMutation.mutate({ id: editingClient.id, data, oldData: editingClient });
     else createMutation.mutate(data);
   };
 
   const handleDelete = async (c) => {
-    if (await confirm(`Supprimer ${c.nom} ?`)) deleteMutation.mutate(c.id);
+    if (await confirm(`Supprimer ${c.nom} ?`)) deleteMutation.mutate(c);
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;

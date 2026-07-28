@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Autocomplete from "@/components/ui/autocomplete";
 import { Zap } from "lucide-react";
 import { toast } from "sonner";
+import { logAudit } from "@/lib/auditLog";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toTimeString().slice(0, 5);
@@ -68,6 +69,7 @@ export default function QuickTripDialog({ open, onClose }) {
     mutationFn: async (data) => {
       const { data: row, error } = await supabase.from("trip_logs").insert({ id: crypto.randomUUID(), ...data }).select().single();
       if (error) throw error;
+      await logAudit("Trajet", row.id, "create", row);
       return row;
     },
     onSuccess: () => {

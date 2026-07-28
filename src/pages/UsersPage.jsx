@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ModuleSelector, { ALL_MODULES } from "@/components/users/ModuleSelector";
 import { confirm } from "@/lib/confirm";
+import { logAudit } from "@/lib/auditLog";
 
 const roleLabels = {
   admin: "Administrateur",
@@ -86,9 +87,10 @@ export default function UsersPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
+    mutationFn: async ({ id, data, oldData }) => {
       const { error } = await supabase.from("profiles").update(data).eq("id", id);
       if (error) throw error;
+      await logAudit("Utilisateur", id, "update", data, oldData, Object.keys(data));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -102,8 +104,8 @@ export default function UsersPage() {
     // Passe par l'Edge Function admin-delete-user (service_role) pour
     // supprimer à la fois public.profiles ET le compte auth.users — un
     // delete direct côté client ne peut retirer que la ligne profiles.
-    mutationFn: async (id) => {
-      const { error } = await supabase.functions.invoke("admin-delete-user", { body: { id } });
+    mutationFn: async (u) => {
+      const { error } = await supabase.functions.invoke("admin-delete-user", { body: { id: u.id } });
       if (error) {
         // functions.invoke() ne parse pas automatiquement le corps JSON
         // d'une réponse d'erreur (ex: le message du garde-fou anti-auto-
@@ -120,6 +122,7 @@ export default function UsersPage() {
         }
         throw new Error(message);
       }
+      await logAudit("Utilisateur", u.id, "delete", null, u);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["users"] }); toast.success("Utilisateur supprimé"); },
     onError: (err) => toast.error(`Erreur : ${err.message}`),
@@ -164,6 +167,10 @@ export default function UsersPage() {
       }
       if (data?.error) throw new Error(data.error);
 
+      await logAudit("Utilisateur", data?.user?.id || inviteEmail, "create", {
+        email: inviteEmail, full_name: inviteFullName, role: inviteRole, modules: inviteModules,
+      });
+
       toast.success(`Utilisateur ${inviteEmail} créé`);
       setInviteFullName("");
       setInviteEmail("");
@@ -181,13 +188,13 @@ export default function UsersPage() {
   };
 
   const handleDelete = async (u) => {
-    if (await confirm(`Supprimer l'utilisateur ${u.full_name || u.email} ?`)) deleteMutation.mutate(u.id);
+    if (await confirm(`Supprimer l'utilisateur ${u.full_name || u.email} ?`)) deleteMutation.mutate(u);
   };
 
   const handleSaveEdit = () => {
     const data = { role: editRole, modules: editModules };
     if (editRole === "chauffeur" && editDriverId) data.driver_id = editDriverId;
-    updateMutation.mutate({ id: editingUser.id, data });
+    updateMutation.mutate({ id: editingUser.id, data, oldData: { role: editingUser.role, modules: editingUser.modules, driver_id: editingUser.driver_id } });
   };
 
   return (

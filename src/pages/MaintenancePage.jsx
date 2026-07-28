@@ -10,6 +10,7 @@ import MaintenanceListTab from "@/components/maintenance/MaintenanceListTab";
 import MaintenancePlanningTab from "@/components/maintenance/MaintenancePlanningTab";
 import MaintenanceVehicleTab from "@/components/maintenance/MaintenanceVehicleTab";
 import MaintenanceDialog from "@/components/maintenance/MaintenanceDialog";
+import { logAudit } from "@/lib/auditLog";
 
 export default function MaintenancePage() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -50,9 +51,12 @@ export default function MaintenancePage() {
         const { id, ...rest } = data;
         const { error } = await supabase.from("maintenance").update(rest).eq("id", id);
         if (error) throw error;
+        await logAudit("Garage", id, "update", rest, null, Object.keys(rest));
       } else {
-        const { error } = await supabase.from("maintenance").insert({ id: crypto.randomUUID(), ...data });
+        const id = crypto.randomUUID();
+        const { error } = await supabase.from("maintenance").insert({ id, ...data });
         if (error) throw error;
+        await logAudit("Garage", id, "create", data);
       }
     },
     onSuccess: () => {
@@ -64,9 +68,10 @@ export default function MaintenancePage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("maintenance").delete().eq("id", id);
+    mutationFn: async (entry) => {
+      const { error } = await supabase.from("maintenance").delete().eq("id", entry.id);
       if (error) throw error;
+      await logAudit("Garage", entry.id, "delete", null, entry);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["maintenances"] });
@@ -82,6 +87,7 @@ export default function MaintenancePage() {
       if (statut === "realise") updates.date_fin_intervention = new Date().toISOString().split("T")[0];
       const { error } = await supabase.from("maintenance").update(updates).eq("id", id);
       if (error) throw error;
+      await logAudit("Garage", id, "update", updates, null, Object.keys(updates));
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["maintenances"] });
@@ -146,7 +152,7 @@ export default function MaintenancePage() {
             isLoading={isLoading}
             vMap={vMap}
             onEdit={handleEdit}
-            onDelete={(id) => deleteMutation.mutate(id)}
+            onDelete={(id) => deleteMutation.mutate(maintenances.find(m => m.id === id))}
             onStatusChange={handleStatusChange}
             isPending={statusMutation.isPending}
           />

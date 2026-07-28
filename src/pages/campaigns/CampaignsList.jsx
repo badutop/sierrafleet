@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 import { stampStatutDate } from "@/lib/campaignStatus";
+import { logAudit } from "@/lib/auditLog";
 import { PORT_MOLES as portMoles } from "@/lib/campaignLocations";
 
 const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturée: "Clôturée" };
@@ -90,6 +91,7 @@ export default function CampaignsList() {
       const { error } = await supabase.from("campaigns").insert({ id, ...data });
       if (error) throw error;
       await saveCampaignClients(id, clientRows);
+      await logAudit("Campagne", id, "create", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
@@ -99,10 +101,11 @@ export default function CampaignsList() {
     onError: (err) => toast.error(`Erreur lors de la création : ${err.message}`),
   });
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data: { clients: clientRows, ...data } }) => {
+    mutationFn: async ({ id, data: { clients: clientRows, ...data }, oldData }) => {
       const { error } = await supabase.from("campaigns").update(data).eq("id", id);
       if (error) throw error;
       await saveCampaignClients(id, clientRows);
+      await logAudit("Campagne", id, "update", data, oldData, Object.keys(data));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
@@ -112,9 +115,10 @@ export default function CampaignsList() {
     onError: (err) => toast.error(`Erreur lors de la modification : ${err.message}`),
   });
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("campaigns").delete().eq("id", id);
+    mutationFn: async (campaign) => {
+      const { error } = await supabase.from("campaigns").delete().eq("id", campaign.id);
       if (error) throw error;
+      await logAudit("Campagne", campaign.id, "delete", null, campaign);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["campaigns"] }); toast.success("Campagne supprimée"); },
   });
@@ -193,7 +197,7 @@ export default function CampaignsList() {
     if (data.date_fin_prevue === "") data.date_fin_prevue = null;
     if (editingCampaign) {
       Object.assign(data, stampStatutDate(editingCampaign, data.statut));
-      updateMutation.mutate({ id: editingCampaign.id, data });
+      updateMutation.mutate({ id: editingCampaign.id, data, oldData: editingCampaign });
     } else {
       createMutation.mutate(data);
     }
@@ -204,7 +208,7 @@ export default function CampaignsList() {
       toast.error("Une campagne déjà ouverte ne peut plus être supprimée — clôturez-la puis archivez-la.");
       return;
     }
-    if (await confirm("Supprimer cette campagne ?")) deleteMutation.mutate(c.id);
+    if (await confirm("Supprimer cette campagne ?")) deleteMutation.mutate(c);
   };
 
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c]));

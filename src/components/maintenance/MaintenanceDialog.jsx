@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { logAudit } from "@/lib/auditLog";
 
 const typeLabels = {
   vidange: "Vidange", revision: "Révision générale", pneus: "Pneus", filtres: "Filtres",
@@ -67,10 +68,11 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
   // n'est plus en stock — le responsable la valide/lance depuis ce module.
   const orderMutation = useMutation({
     mutationFn: async (data) => {
-      const { error } = await supabase.from("garage_orders").insert({
-        id: crypto.randomUUID(), statut: "en_attente", vehicle_id: form.vehicle_id || null, ...data,
-      });
+      const id = crypto.randomUUID();
+      const payload = { id, statut: "en_attente", vehicle_id: form.vehicle_id || null, ...data };
+      const { error } = await supabase.from("garage_orders").insert(payload);
       if (error) throw error;
+      await logAudit("Commande Garage", id, "create", payload);
     },
     onSuccess: () => toast.success("Commande envoyée vers Commandes Garage > Alertes"),
   });

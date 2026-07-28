@@ -10,6 +10,7 @@ import { ShoppingCart, Bell, List, Search, Eye, FileText, Send, CheckCircle2, Pa
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import GarageOrderDialog from "@/components/garage-orders/GarageOrderDialog";
+import { logAudit } from "@/lib/auditLog";
 
 const KpiBox = ({ icon: Icon, label, value, sub, color = "primary" }) => {
   const colors = {
@@ -94,6 +95,7 @@ export default function GarageOrdersPage() {
         ...data, statut: "commandee", date_commande: new Date().toISOString().split("T")[0],
       }).eq("id", id);
       if (error) throw error;
+      await logAudit("Commande Garage", id, "update", { ...data, statut: "commandee" }, null, ["statut", ...Object.keys(data)]);
     },
     onSuccess: () => { invalidate(); setDialogOpen(false); toast.success("Commande lancée auprès du fournisseur"); },
   });
@@ -104,6 +106,7 @@ export default function GarageOrdersPage() {
     mutationFn: async ({ id, data }) => {
       const { error } = await supabase.from("garage_orders").update(data).eq("id", id);
       if (error) throw error;
+      await logAudit("Commande Garage", id, "update", data, null, Object.keys(data));
     },
     onSuccess: () => { invalidate(); toast.success("Modifications enregistrées"); },
   });
@@ -114,6 +117,7 @@ export default function GarageOrdersPage() {
         statut: "confirmee", date_confirmation: new Date().toISOString().split("T")[0],
       }).eq("id", id);
       if (error) throw error;
+      await logAudit("Commande Garage", id, "update", { statut: "confirmee" }, { statut: "commandee" }, ["statut"]);
     },
     onSuccess: () => { invalidate(); setDialogOpen(false); toast.success("Commande confirmée par le fournisseur"); },
   });
@@ -126,6 +130,7 @@ export default function GarageOrdersPage() {
         statut: "recue", date_reception: new Date().toISOString().split("T")[0],
       }).eq("id", id);
       if (error) throw error;
+      await logAudit("Commande Garage", id, "update", { statut: "recue" }, { statut: order.statut }, ["statut"]);
 
       if (order.spare_part_id) {
         const { data: part, error: partErr } = await supabase.from("spare_parts").select("quantite_stock").eq("id", order.spare_part_id).single();
@@ -151,8 +156,10 @@ export default function GarageOrdersPage() {
 
   const cancelMutation = useMutation({
     mutationFn: async (id) => {
+      const order = orders.find(o => o.id === id);
       const { error } = await supabase.from("garage_orders").update({ statut: "annulee" }).eq("id", id);
       if (error) throw error;
+      await logAudit("Commande Garage", id, "update", { statut: "annulee" }, { statut: order?.statut }, ["statut"]);
     },
     onSuccess: () => { invalidate(); setDialogOpen(false); toast.success("Commande annulée"); },
   });
@@ -161,6 +168,7 @@ export default function GarageOrdersPage() {
     mutationFn: async ({ id, data }) => {
       const { error } = await supabase.from("garage_orders").update({ ...data, statut: "facture_recue" }).eq("id", id);
       if (error) throw error;
+      await logAudit("Commande Garage", id, "update", { ...data, statut: "facture_recue" }, null, ["statut", ...Object.keys(data)]);
     },
     onSuccess: () => { invalidate(); setDialogOpen(false); toast.success("Facture enregistrée"); },
   });
@@ -186,10 +194,12 @@ export default function GarageOrdersPage() {
         statut: "valide",
       });
       if (expError) throw expError;
+      await logAudit("Frais", expenseId, "create", { vehicle_id: order.vehicle_id, type_frais: "achat_pieces", montant: Number(order.montant_facture ?? order.montant_total) || 0 });
       const { error } = await supabase.from("garage_orders").update({
         statut: "payee", date_paiement: today, expense_id: expenseId,
       }).eq("id", id);
       if (error) throw error;
+      await logAudit("Commande Garage", id, "update", { statut: "payee" }, { statut: order.statut }, ["statut"]);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
     },
     onSuccess: () => { invalidate(); setDialogOpen(false); toast.success("Facture payée — dépense enregistrée dans Dépenses"); },

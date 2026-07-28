@@ -10,6 +10,7 @@ import { Truck, GripVertical, Ship, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
+import { logAudit } from "@/lib/auditLog";
 
 // Aligné sur le vrai vocabulaire de statut (CampaignsList.jsx) — voir
 // CampaignDetail.jsx pour le contexte du fix.
@@ -73,6 +74,7 @@ export default function TruckAssignmentBoard({ campaigns }) {
     mutationFn: async ({ vehicleId, newCampaignId }) => {
       const { error } = await supabase.from("vehicles").update({ campaign_id: newCampaignId }).eq("id", vehicleId);
       if (error) throw error;
+      await logAudit("Véhicule", vehicleId, "update", { campaign_id: newCampaignId }, null, ["campaign_id"]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
@@ -85,6 +87,7 @@ export default function TruckAssignmentBoard({ campaigns }) {
     mutationFn: async ({ vehicleIds, campaignId }) => {
       const { error } = await supabase.from("vehicles").update({ campaign_id: campaignId }).in("id", vehicleIds);
       if (error) throw error;
+      await Promise.all(vehicleIds.map(vid => logAudit("Véhicule", vid, "update", { campaign_id: campaignId }, null, ["campaign_id"])));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
@@ -97,6 +100,7 @@ export default function TruckAssignmentBoard({ campaigns }) {
     mutationFn: async (vehicleId) => {
       const { error } = await supabase.from("vehicles").update({ campaign_id: null }).eq("id", vehicleId);
       if (error) throw error;
+      await logAudit("Véhicule", vehicleId, "update", { campaign_id: null }, null, ["campaign_id"]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });

@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import DriverPhotoField from "@/components/drivers/DriverPhotoField";
 import { confirm } from "@/lib/confirm";
+import { logAudit } from "@/lib/auditLog";
 
 
 const statusLabels = { actif: "Actif", inactif: "Inactif", en_mission: "En mission" };
@@ -131,23 +132,26 @@ export default function Drivers() {
     mutationFn: async (data) => {
       const { data: row, error } = await supabase.from("drivers").insert({ id: crypto.randomUUID(), ...data }).select().single();
       if (error) throw error;
+      await logAudit("Chauffeur", row.id, "create", row);
       return row;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["drivers"] }); closeDialog(); toast.success("Chauffeur ajouté"); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
+    mutationFn: async ({ id, data, oldData }) => {
       const { error } = await supabase.from("drivers").update(data).eq("id", id);
       if (error) throw error;
+      await logAudit("Chauffeur", id, "update", data, oldData, Object.keys(data));
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["drivers"] }); closeDialog(); toast.success("Chauffeur modifié"); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("drivers").delete().eq("id", id);
+    mutationFn: async (driver) => {
+      const { error } = await supabase.from("drivers").delete().eq("id", driver.id);
       if (error) throw error;
+      await logAudit("Chauffeur", driver.id, "delete", null, driver);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["drivers"] }); toast.success("Chauffeur supprimé"); },
   });
@@ -161,12 +165,12 @@ export default function Drivers() {
     const dateFields = ["date_expiration_permis", "date_embauche"];
     const data = { ...form };
     dateFields.forEach(f => { if (data[f] === "") data[f] = null; });
-    if (editingDriver) updateMutation.mutate({ id: editingDriver.id, data });
+    if (editingDriver) updateMutation.mutate({ id: editingDriver.id, data, oldData: editingDriver });
     else createMutation.mutate(data);
   };
 
   const handleDelete = async (d) => {
-    if (await confirm(`Supprimer le chauffeur ${d.prenom} ${d.nom} ?`)) deleteMutation.mutate(d.id);
+    if (await confirm(`Supprimer le chauffeur ${d.prenom} ${d.nom} ?`)) deleteMutation.mutate(d);
   };
 
   const handleDocUploaded = (fieldKey, url) => {
