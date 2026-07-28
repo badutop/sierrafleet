@@ -2,14 +2,15 @@ import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { UserCog, Mail, Pencil, Trash2, UserPlus, LayoutGrid, Truck } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { UserCog, Mail, Pencil, Trash2, UserPlus, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ModuleSelector, { ALL_MODULES } from "@/components/users/ModuleSelector";
@@ -212,70 +213,77 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {isLoading ? (
-          <div className="col-span-2 flex justify-center py-12"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>
-        ) : users.length === 0 ? (
-          <div className="col-span-2 text-center py-16 text-muted-foreground">
-            <UserCog className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>Aucun utilisateur trouvé</p>
-          </div>
-        ) : users.map(u => {
-          const isMe = currentUser && u.id === currentUser.id;
-          const moduleCount = u.role === "admin" ? ALL_MODULES.length : (u.modules?.length ?? ALL_MODULES.length);
-          return (
-            <Card key={u.id} className={cn("hover:shadow-lg transition-shadow", isMe && "ring-2 ring-secondary")}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center">
-                      <UserCog className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">{u.full_name || "—"}</CardTitle>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" />{u.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {isMe && <Badge className="text-[10px] bg-secondary/20 text-secondary border border-secondary/30">Vous</Badge>}
-                    <Badge className={cn("text-[10px]", roleColors[u.role] || "bg-muted text-muted-foreground")}>
-                      {roleLabels[u.role] || u.role || "—"}
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="text-xs">
-                <div className="flex justify-between text-muted-foreground mb-2">
-                  <span>Créé le</span>
-                  <span>{u.created_date ? new Date(u.created_date).toLocaleDateString("fr-FR") : "—"}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
-                  <LayoutGrid className="w-3 h-3" />
-                  <span>{u.role === "admin" ? "Accès complet" : u.role === "chauffeur" ? "Rechargement Auto uniquement" : `${moduleCount} module${moduleCount > 1 ? "s" : ""} autorisé${moduleCount > 1 ? "s" : ""}`}</span>
-                </div>
-                {u.role === "chauffeur" && u.driver_id && (() => {
-                  const d = drivers.find(x => x.id === u.driver_id);
-                  const v = d ? allVehiclesForDisplay?.find(v => v.driver_id === d.id) : null;
-                  return d ? (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                      <Truck className="w-3 h-3" />
-                      <span>{d.prenom} {d.nom}{v ? ` — ${v.immatriculation}` : ""}</span>
-                    </div>
-                  ) : null;
-                })()}
-                <div className="flex gap-2 pt-2 border-t border-border">
-                  <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => openEdit(u)}>
-                    <Pencil className="w-3 h-3 mr-1" /> Modifier
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(u)} disabled={deleteMutation.isPending}>
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {isLoading ? (
+        <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Utilisateur</TableHead>
+                  <TableHead>Rôle</TableHead>
+                  <TableHead>Accès</TableHead>
+                  <TableHead>Créé le</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map(u => {
+                  const isMe = currentUser && u.id === currentUser.id;
+                  const moduleCount = u.role === "admin" ? ALL_MODULES.length : (u.modules?.length ?? ALL_MODULES.length);
+                  const d = u.role === "chauffeur" && u.driver_id ? drivers.find(x => x.id === u.driver_id) : null;
+                  const v = d ? allVehiclesForDisplay?.find(veh => veh.driver_id === d.id) : null;
+                  return (
+                    <TableRow key={u.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <UserCog className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-medium text-sm">{u.full_name || "—"}</p>
+                              {isMe && <Badge className="text-[10px] bg-secondary/20 text-secondary border border-secondary/30">Vous</Badge>}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell><Badge className={cn("text-[10px]", roleColors[u.role] || "bg-muted text-muted-foreground")}>{roleLabels[u.role] || u.role || "—"}</Badge></TableCell>
+                      <TableCell className="text-xs">
+                        <p>{u.role === "admin" ? "Accès complet" : u.role === "chauffeur" ? "Rechargement Auto uniquement" : `${moduleCount} module${moduleCount > 1 ? "s" : ""} autorisé${moduleCount > 1 ? "s" : ""}`}</p>
+                        {d && (
+                          <p className="text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <Truck className="w-3 h-3" />{d.prenom} {d.nom}{v ? ` — ${v.immatriculation}` : ""}
+                          </p>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs">{u.created_date ? new Date(u.created_date).toLocaleDateString("fr-FR") : "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(u)}>
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(u)} disabled={deleteMutation.isPending}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            {users.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground">
+                <UserCog className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>Aucun utilisateur trouvé</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Create User Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
