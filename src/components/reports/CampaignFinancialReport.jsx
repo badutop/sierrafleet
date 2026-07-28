@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, AlertCircle } from "lucide-react";
-import { getPrixTonne, getTvaPct } from "@/components/campaigns/CampaignInvoice";
+import { getTvaPct } from "@/components/campaigns/CampaignInvoice";
 import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
 
 const fmt = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0));
@@ -35,7 +35,6 @@ const MargeBadge = ({ taux }) => {
 
 export default function CampaignFinancialReport() {
   const [filter, setFilter] = useState(defaultFilter);
-  const prixTonne = getPrixTonne();
   const tvaPct = getTvaPct();
 
   const { data: campaigns = [] } = useQuery({
@@ -101,8 +100,13 @@ export default function CampaignFinancialReport() {
       const campRotations = rotations.filter(r => r.campaign_id === camp.id && r.statut !== "annulee");
       const campVehicleIds = [...new Set(campRotations.map(r => r.vehicle_id))];
 
+      // Le tarif se définit par client (page Clients), exactement comme pour
+      // la vraie facture générée à la clôture (CampaignInvoice.jsx) — pas de
+      // tarif global unique.
+      const tarifClient = Number(client?.tarif_par_tonne) || 0;
       const tonnage = campRotations.reduce((s, r) => s + (Number(r.poids_charge_tonnes) || 0), 0);
-      const caHT = tonnage * prixTonne;
+      const tarifManquant = tarifClient === 0 && tonnage > 0;
+      const caHT = tonnage * tarifClient;
       const caTTC = caHT * (1 + tvaPct / 100);
 
       const campStart = camp.date_debut ? new Date(camp.date_debut) : null;
@@ -130,9 +134,9 @@ export default function CampaignFinancialReport() {
       const marge = caHT - coutTotal;
       const tauxMarge = caHT > 0 ? (marge / caHT) * 100 : null;
 
-      return { ...camp, client, campRotations: campRotations.length, tonnage, caHT, caTTC, coutCarburant, coutMaintenance, coutFrais, coutTotal, marge, tauxMarge };
+      return { ...camp, client, campRotations: campRotations.length, tonnage, tarifManquant, caHT, caTTC, coutCarburant, coutMaintenance, coutFrais, coutTotal, marge, tauxMarge };
     }).sort((a, b) => new Date(b.date_debut || 0) - new Date(a.date_debut || 0));
-  }, [filteredCampaigns, clients, rotations, fuelEntries, maintenances, expenses, prixTonne, tvaPct]);
+  }, [filteredCampaigns, clients, rotations, fuelEntries, maintenances, expenses, tvaPct]);
 
   const totals = useMemo(() => rows.reduce((acc, r) => ({
     caHT: acc.caHT + r.caHT,
@@ -146,19 +150,21 @@ export default function CampaignFinancialReport() {
 
   const tauxMargeGlobal = totals.caHT > 0 ? (totals.marge / totals.caHT) * 100 : null;
 
-  if (prixTonne === 0) {
-    return (
-      <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800">
-        <AlertCircle className="w-5 h-5 shrink-0" />
-        <p className="text-sm">Prix à la tonne non configuré. Rendez-vous dans <strong>Paramètres → Facturation campagnes</strong> pour définir le prix/tonne et la TVA.</p>
-      </div>
-    );
-  }
+  const clientsSansTarif = [...new Set(rows.filter(r => r.tarifManquant).map(r => r.client?.nom || "Client inconnu"))];
 
   return (
     <div className="space-y-5">
       {/* Filtre */}
       <PeriodFilter filter={filter} onChange={setFilter} />
+
+      {clientsSansTarif.length > 0 && (
+        <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <p className="text-sm">
+            Tarif par tonne non défini pour : <strong>{clientsSansTarif.join(", ")}</strong>. Rendez-vous dans <strong>Clients</strong> pour le configurer — le CA de leurs campagnes n'est pas comptabilisé en attendant.
+          </p>
+        </div>
+      )}
 
       {/* KPI globaux */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -176,7 +182,7 @@ export default function CampaignFinancialReport() {
       </div>
 
       <p className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-lg">
-        ℹ️ CA HT = tonnage réel × {fmt(prixTonne)} FCFA/T (TVA {tvaPct}%). Les dépenses sont imputées aux véhicules ayant participé à chaque campagne sur sa période.
+        ℹ️ CA HT = tonnage réel × tarif par tonne du client (fiche Client), TVA {tvaPct}%. Les dépenses sont imputées aux véhicules ayant participé à chaque campagne sur sa période.
       </p>
 
       {/* Tableau */}
@@ -215,7 +221,13 @@ export default function CampaignFinancialReport() {
                 <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(row.date_debut)} → {fmtDate(row.date_fin_prevue)}</TableCell>
                 <TableCell className="text-xs text-right">{row.campRotations}</TableCell>
                 <TableCell className="text-xs text-right font-medium">{row.tonnage.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</TableCell>
-                <TableCell className="text-xs text-right font-bold text-primary">{fmt(row.caHT)}</TableCell>
+                <TableCell className="text-xs text-right font-bold text-primary">
+                  {row.tarifManquant ? (
+                    <span className="inline-flex items-center gap-1 text-amber-600" title="Tarif par tonne non défini pour ce client">
+                      <AlertCircle className="w-3.5 h-3.5" />—
+                    </span>
+                  ) : fmt(row.caHT)}
+                </TableCell>
                 <TableCell className="text-xs text-right text-orange-600">{fmt(row.coutCarburant)}</TableCell>
                 <TableCell className="text-xs text-right text-blue-600">{fmt(row.coutMaintenance)}</TableCell>
                 <TableCell className="text-xs text-right text-muted-foreground">{fmt(row.coutFrais)}</TableCell>

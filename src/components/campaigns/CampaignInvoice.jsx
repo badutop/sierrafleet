@@ -11,10 +11,8 @@ const THEME_ACCENT = "#82ca16";
 const fmt = (n, d = 0) => Number(n || 0).toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR") : "—";
 
-export const INVOICE_PRICE_KEY = "sierra_prix_tonne";
 export const INVOICE_TVA_KEY = "sierra_tva_pct";
 
-export function getPrixTonne() { return Number(localStorage.getItem(INVOICE_PRICE_KEY) || 0); }
 export function getTvaPct() { return Number(localStorage.getItem(INVOICE_TVA_KEY) || 18); }
 
 const PRINT_STYLES = `

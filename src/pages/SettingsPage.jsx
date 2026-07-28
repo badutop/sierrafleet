@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings, Fuel, Save, FileText } from "lucide-react";
-import { getPrixTonne, getTvaPct, INVOICE_PRICE_KEY, INVOICE_TVA_KEY } from "@/components/campaigns/CampaignInvoice";
+import { getTvaPct, INVOICE_TVA_KEY } from "@/components/campaigns/CampaignInvoice";
 import { toast } from "sonner";
 
 export const FUEL_PRICE_KEY = "sierra_fuel_price_per_litre";
@@ -15,12 +15,10 @@ export function getFuelPricePerLitre() {
 export default function SettingsPage() {
   const [fuelPrice, setFuelPrice] = useState(() => getFuelPricePerLitre());
   const [fuelSaved, setFuelSaved] = useState(false);
-  const [prixTonne, setPrixTonne] = useState(() => getPrixTonne());
   const [tvaPct, setTvaPct] = useState(() => getTvaPct());
   const [invoiceSaved, setInvoiceSaved] = useState(false);
 
   const saveInvoiceSettings = () => {
-    localStorage.setItem(INVOICE_PRICE_KEY, String(prixTonne));
     localStorage.setItem(INVOICE_TVA_KEY, String(tvaPct));
     setInvoiceSaved(true);
     setTimeout(() => setInvoiceSaved(false), 2000);
@@ -69,17 +67,13 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <Label className="text-xs">Prix par tonne (FCFA / T)</Label>
-              <Input type="number" min="0" value={prixTonne} onChange={e => setPrixTonne(Number(e.target.value))} placeholder="Ex: 15000" className="mt-1" />
-            </div>
-            <div>
               <Label className="text-xs">TVA (%)</Label>
               <Input type="number" min="0" max="100" value={tvaPct} onChange={e => setTvaPct(Number(e.target.value))} placeholder="Ex: 18" className="mt-1" />
             </div>
             <Button size="sm" onClick={saveInvoiceSettings} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground w-full">
               <Save className="w-4 h-4 mr-1" />{invoiceSaved ? "Sauvegardé !" : "Sauvegarder"}
             </Button>
-            <p className="text-xs text-muted-foreground">Ces valeurs seront utilisées pour générer la facture lors de la clôture d'une campagne.</p>
+            <p className="text-xs text-muted-foreground">Le tarif par tonne se définit par client, dans la page <strong>Clients</strong>. La TVA ci-dessus s'applique à toutes les factures.</p>
           </CardContent>
         </Card>
 
