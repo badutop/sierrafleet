@@ -56,7 +56,6 @@ export default function MaintenanceValidationPanel({ maintenance, vMap, onStatus
         )}
         <div className="text-muted-foreground">
           {maintenance.designation || maintenance.type_entretien}
-          {maintenance.prestataire && <span className="ml-2">· {maintenance.prestataire}</span>}
         </div>
         <Badge className={cn("text-[10px]", STATUT_COLORS[maintenance.statut])}>
           {STATUT_LABELS[maintenance.statut]}

@@ -150,10 +150,9 @@ export default function MaintenancePlanningTab({ maintenances, vehicles, rotatio
                       {days !== null && <UrgencyBadge days={days} />}
                     </div>
                   </div>
-                  {/* Date + prestataire */}
-                  <div className="px-4 py-2 text-xs text-muted-foreground flex justify-between">
-                    <span>{m.date_entretien ? new Date(m.date_entretien).toLocaleDateString("fr-FR") : "—"}</span>
-                    <span>{m.prestataire || "Prestataire non défini"}</span>
+                  {/* Date */}
+                  <div className="px-4 py-2 text-xs text-muted-foreground">
+                    {m.date_entretien ? new Date(m.date_entretien).toLocaleDateString("fr-FR") : "—"}
                   </div>
                   {/* Panneau de validation */}
                   <div className="px-3 pb-3">

@@ -46,8 +46,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
     if (filterStatut !== "all" && m.statut !== filterStatut) return false;
     const immat = vMap[m.vehicle_id]?.immatriculation || "";
     const desig = m.designation || "";
-    const prest = m.prestataire || "";
-    return (immat + desig + prest).toLowerCase().includes(search.toLowerCase());
+    return (immat + desig).toLowerCase().includes(search.toLowerCase());
   });
 
   const activeOnes = maintenances.filter(m => m.statut === "planifie" || m.statut === "en_cours");
@@ -86,7 +85,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Rechercher véhicule, désignation, prestataire..." value={search} onChange={e => setSearch(e.target.value)} />
+          <Input className="pl-9" placeholder="Rechercher véhicule, désignation..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-1 flex-wrap">
           {[["all","Tout"],["preventive","Préventive"],["corrective","Corrective"]].map(([v,l]) => (
@@ -109,7 +108,6 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
               <TableHead className="text-xs">Véhicule</TableHead>
               <TableHead className="text-xs">Catégorie</TableHead>
               <TableHead className="text-xs">Type / Désignation</TableHead>
-              <TableHead className="text-xs">Prestataire</TableHead>
               <TableHead className="text-xs">Pièces</TableHead>
               <TableHead className="text-xs text-right">Coût (FCFA)</TableHead>
               <TableHead className="text-xs text-center">Statut</TableHead>
@@ -118,9 +116,9 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-8"><div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8"><div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" /></TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground text-sm">Aucune intervention trouvée</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground text-sm">Aucune intervention trouvée</TableCell></TableRow>
             ) : filtered.slice(0, MAX_ROWS).map(m => {
               const vehicle = vMap[m.vehicle_id];
               return (
@@ -140,7 +138,6 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
                     <div className="font-medium">{typeLabels[m.type_entretien] || m.type_entretien}</div>
                     {m.designation && <div className="text-muted-foreground text-[11px]">{m.designation}</div>}
                   </TableCell>
-                  <TableCell className="text-xs">{m.prestataire || "—"}</TableCell>
                   <TableCell className="text-xs max-w-[120px] truncate" title={m.pieces_remplacees}>{m.pieces_remplacees || "—"}</TableCell>
                   <TableCell className="text-xs text-right font-bold">{(m.cout || 0).toLocaleString("fr-FR")}</TableCell>
                   <TableCell className="text-center">

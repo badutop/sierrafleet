@@ -3,10 +3,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const TYPES = ["carburant", "peage", "rations", "contravention", "transport", "autre"];
+const TYPES = ["carburant", "peage", "rations", "contravention", "transport", "entretien", "pneus", "achat_pieces", "autre"];
 const TYPE_LABELS = {
   carburant: "Carburant", peage: "Péage", rations: "Rations",
-  contravention: "Contravention", transport: "Transport", autre: "Autre",
+  contravention: "Contravention", transport: "Transport",
+  entretien: "Entretien", pneus: "Pneus", achat_pieces: "Achat pièces", autre: "Autre",
 };
 const MONTH_NAMES = ["", "Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 const fmt = n => n > 0 ? new Intl.NumberFormat("fr-FR").format(Math.round(n)) : "—";

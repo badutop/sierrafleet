@@ -3,8 +3,8 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Truck, BookOpen, Fuel, Wrench,
   Users, BarChart3, Settings, ChevronLeft, ChevronRight,
-  Package, Receipt, UserCog, Ship, Building2, Factory, LogOut, AlertTriangle, ScrollText,
-  MapPin, ExternalLink, FileSpreadsheet
+  Package, Receipt, UserCog, Ship, Building2, Factory, LogOut, ScrollText,
+  MapPin, ExternalLink, FileSpreadsheet, ShoppingCart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
@@ -19,8 +19,8 @@ const navItems = [
   { path: "/spare-parts", label: "Pièces Détachées",         icon: Package,         module: "spare-parts" },
   { path: "/campaigns",   label: "Campagnes",                icon: Ship,            module: "campaigns" },
   { path: "/fuel",        label: "Carburant",                icon: Fuel,            module: "fuel" },
-  { path: "/maintenance", label: "Maintenance",              icon: Wrench,          module: "maintenance" },
-  { path: "/repairs",     label: "Réparations",              icon: AlertTriangle,   module: "repairs" },
+  { path: "/maintenance", label: "Garage",                   icon: Wrench,          module: "maintenance" },
+  { path: "/garage-orders", label: "Commandes Garage",       icon: ShoppingCart,    module: "garage-orders" },
   { path: "/expenses",    label: "Frais",                    icon: Receipt,         module: "expenses" },
   { path: "/journal",     label: "Journal des Dépenses",     icon: BookOpen,        module: "journal" },
   { path: "/reports",     label: "Rapports",                 icon: BarChart3,       module: "reports" },

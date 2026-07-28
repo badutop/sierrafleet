@@ -19,7 +19,7 @@ export default function MaintenanceCostChart({ maintenances }) {
       const d = new Date(m.date_entretien);
       const slot = months.find(mo => d >= mo.start && d <= mo.end);
       if (slot) {
-        const cost = (m.cout || 0) + (m.cout_pieces || 0) + (m.cout_main_oeuvre || 0);
+        const cost = m.cout || 0;
         if (m.categorie === "corrective") slot.Corrective += cost;
         else slot.Préventive += cost;
       }

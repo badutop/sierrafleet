@@ -15,7 +15,7 @@ import Journal from '@/pages/Journal';
 import FuelSupplyPage from '@/pages/fuel/FuelSupplyPage';
 import FuelManagementV2 from '@/pages/FuelManagementV2';
 import MaintenancePage from '@/pages/MaintenancePage';
-import RepairsPage from '@/pages/RepairsPage';
+import GarageOrdersPage from '@/pages/GarageOrdersPage';
 import Drivers from '@/pages/Drivers';
 import Reports from '@/pages/Reports';
 import SettingsPage from '@/pages/SettingsPage';
@@ -61,7 +61,8 @@ function App() {
                 <Route path="/fuel" element={<FuelManagementV2 />} />
                 <Route path="/fuel-supply" element={<FuelSupplyPage />} />
                 <Route path="/maintenance" element={<MaintenancePage />} />
-                <Route path="/repairs" element={<RepairsPage />} />
+                <Route path="/garage-orders" element={<GarageOrdersPage />} />
+                <Route path="/repairs" element={<Navigate to="/maintenance" replace />} />
                 <Route path="/drivers" element={<Drivers />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/settings" element={<SettingsPage />} />

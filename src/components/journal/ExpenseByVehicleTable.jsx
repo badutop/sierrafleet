@@ -4,10 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const TYPES = ["carburant", "peage", "rations", "contravention", "transport", "autre"];
+const TYPES = ["carburant", "peage", "rations", "contravention", "transport", "entretien", "pneus", "achat_pieces", "autre"];
 const TYPE_LABELS = {
   carburant: "Carburant", peage: "Péage", rations: "Rations",
-  contravention: "Contravention", transport: "Transport", autre: "Autre",
+  contravention: "Contravention", transport: "Transport",
+  entretien: "Entretien", pneus: "Pneus", achat_pieces: "Achat pièces", autre: "Autre",
 };
 const fmt = n => n > 0 ? new Intl.NumberFormat("fr-FR").format(Math.round(n)) : "—";
 

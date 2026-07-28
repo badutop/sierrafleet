@@ -13,9 +13,12 @@ import { toast } from "sonner";
 import ExpenseValidationPanel from "@/components/expenses/ExpenseValidationPanel";
 import { confirm } from "@/lib/confirm";
 
-const typeLabels = { carburant: "Carburant", peage: "Péage", rations: "Rations", contravention: "Contravention", transport: "Transport", autre: "Autre" };
+// "achat_pieces" n'apparaît pas dans typeLabelsForm : ce poste est généré
+// automatiquement au paiement d'une facture fournisseur (Commandes Garage),
+// pas saisi manuellement ici.
+const typeLabels = { carburant: "Carburant", peage: "Péage", rations: "Rations", contravention: "Contravention", transport: "Transport", achat_pieces: "Achat pièces garage", autre: "Autre" };
 const typeLabelsForm = { peage: "Péage", rations: "Rations", contravention: "Contravention", transport: "Transport", autre: "Autre" };
-const typeColors = { carburant: "bg-orange-500/10 text-orange-600", peage: "bg-blue-500/10 text-blue-600", rations: "bg-green-500/10 text-green-600", contravention: "bg-red-500/10 text-red-600", transport: "bg-purple-500/10 text-purple-600", autre: "bg-muted text-muted-foreground" };
+const typeColors = { carburant: "bg-orange-500/10 text-orange-600", peage: "bg-blue-500/10 text-blue-600", rations: "bg-green-500/10 text-green-600", contravention: "bg-red-500/10 text-red-600", transport: "bg-purple-500/10 text-purple-600", achat_pieces: "bg-cyan-500/10 text-cyan-600", autre: "bg-muted text-muted-foreground" };
 const statutLabels = { en_attente: "En attente", valide: "Validé", rejete: "Rejeté" };
 const statutColors = { en_attente: "bg-amber-500/10 text-amber-600", valide: "bg-emerald-500/10 text-emerald-600", rejete: "bg-destructive/10 text-destructive" };
 

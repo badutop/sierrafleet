@@ -42,7 +42,7 @@ export default function MaintenancePage() {
     },
   });
 
-  const maintenances = allMaintenances.filter(m => m.categorie !== "corrective");
+  const maintenances = allMaintenances;
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
@@ -76,7 +76,11 @@ export default function MaintenancePage() {
 
   const statusMutation = useMutation({
     mutationFn: async ({ id, statut, observations }) => {
-      const { error } = await supabase.from("maintenance").update({ statut, ...(observations ? { observations } : {}) }).eq("id", id);
+      const updates = { statut, ...(observations ? { observations } : {}) };
+      // La date de fin d'intervention n'est jamais saisie dans le formulaire :
+      // elle est fixée automatiquement quand le chef de garage valide la fin.
+      if (statut === "realise") updates.date_fin_intervention = new Date().toISOString().split("T")[0];
+      const { error } = await supabase.from("maintenance").update(updates).eq("id", id);
       if (error) throw error;
     },
     onSuccess: (_, vars) => {

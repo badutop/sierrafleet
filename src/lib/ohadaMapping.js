@@ -59,7 +59,7 @@ export function buildDeversementLines({ expenses = [], maintenances = [], fuelEn
         nature: "Charge",
         compte: COMPTE_ENTRETIEN,
         categorie: m.categorie === "corrective" ? "Réparation" : "Entretien préventif",
-        description: [vehicle?.immatriculation, m.type_entretien, m.prestataire].filter(Boolean).join(" — ") || "—",
+        description: [vehicle?.immatriculation, m.type_entretien].filter(Boolean).join(" — ") || "—",
         montant: Number(m.cout),
         source: m.categorie === "corrective" ? "Réparations" : "Maintenance",
       });

@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { TrendingUp, Fuel, BarChart3, AlertTriangle, Utensils, Truck } from "lucide-react";
+import { TrendingUp, Fuel, BarChart3, AlertTriangle, Utensils, Truck, Wrench, Disc, ShoppingCart } from "lucide-react";
 
 const TYPE_CONFIG = {
   carburant:      { label: "Carburant",       color: "bg-blue-500/15 text-blue-700 border-blue-400/20",    icon: Fuel },
@@ -7,6 +7,9 @@ const TYPE_CONFIG = {
   rations:        { label: "Rations",          color: "bg-emerald-500/15 text-emerald-700 border-emerald-400/20", icon: Utensils },
   contravention:  { label: "Contraventions",   color: "bg-destructive/15 text-destructive border-destructive/20", icon: AlertTriangle },
   transport:      { label: "Transport",        color: "bg-amber-500/15 text-amber-700 border-amber-400/20",  icon: Truck },
+  entretien:      { label: "Entretien garage", color: "bg-cyan-500/15 text-cyan-700 border-cyan-400/20",     icon: Wrench },
+  pneus:          { label: "Pneus",            color: "bg-slate-500/15 text-slate-700 border-slate-400/20",  icon: Disc },
+  achat_pieces:   { label: "Achat pièces",     color: "bg-indigo-500/15 text-indigo-700 border-indigo-400/20", icon: ShoppingCart },
   autre:          { label: "Autre",            color: "bg-muted text-muted-foreground border-border",        icon: BarChart3 },
 };
 

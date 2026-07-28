@@ -10,6 +10,7 @@ export const ALL_MODULES = [
   { key: "fuel",         label: "Carburant" },
   { key: "refuel",       label: "Rechargement Auto (Chauffeur)" },
   { key: "maintenance",  label: "Maintenance" },
+  { key: "garage-orders", label: "Commandes Garage" },
   { key: "expenses",     label: "Dépenses" },
   { key: "spare-parts",  label: "Pièces détachées" },
   { key: "suppliers",    label: "Fournisseurs" },

@@ -42,12 +42,40 @@ export default function Journal() {
       return data;
     },
   });
+  const { data: maintenances = [] } = useQuery({
+    queryKey: ["maintenances"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("maintenance").select("*").order("date_entretien", { ascending: false }).limit(500);
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const vMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
 
+  // Coûts du garage (préventif + correctif), réalisés uniquement — intégrés au
+  // journal comme des dépenses en lecture seule. Les pneus sont détachés dans
+  // leur propre poste (comme Péage, Rations…) ; le reste des coûts de garage
+  // (vidange, freins, pannes diverses...) va dans le poste "Entretien".
+  const maintenanceExpenses = useMemo(() => {
+    return maintenances
+      .filter(m => m.statut === "realise" && Number(m.cout) > 0)
+      .map(m => ({
+        id: `maint-${m.id}`,
+        vehicle_id: m.vehicle_id,
+        date_frais: m.date_fin_intervention || m.date_entretien,
+        type_frais: m.type_entretien === "pneus" ? "pneus" : "entretien",
+        montant: Number(m.cout) || 0,
+        description: m.designation || m.type_entretien,
+        statut: "valide",
+      }));
+  }, [maintenances]);
+
+  const allExpenses = useMemo(() => [...expenses, ...maintenanceExpenses], [expenses, maintenanceExpenses]);
+
   // Filter by year + month + vehicle search text
   const filtered = useMemo(() => {
-    return expenses.filter(e => {
+    return allExpenses.filter(e => {
       if (!e.date_frais) return false;
       const [year, month] = e.date_frais.split("-");
       if (year !== filterYear) return false;
@@ -59,17 +87,17 @@ export default function Journal() {
       }
       return true;
     });
-  }, [expenses, filterYear, filterMonth, search, vMap]);
+  }, [allExpenses, filterYear, filterMonth, search, vMap]);
 
   // Expenses for the selected vehicle (all year, no month filter) for the detail view
   const vehicleYearExpenses = useMemo(() => {
     if (selectedVehicleId === "all") return [];
-    return expenses.filter(e => {
+    return allExpenses.filter(e => {
       if (!e.date_frais) return false;
       const [year] = e.date_frais.split("-");
       return e.vehicle_id === selectedVehicleId && year === filterYear;
     });
-  }, [expenses, selectedVehicleId, filterYear]);
+  }, [allExpenses, selectedVehicleId, filterYear]);
 
   const selectedVehicle = selectedVehicleId !== "all" ? vMap[selectedVehicleId] : null;
 
@@ -82,7 +110,7 @@ export default function Journal() {
             <BookOpen className="w-6 h-6 text-secondary" />
             Journal des Dépenses
           </h1>
-          <p className="text-sm text-muted-foreground">Tableau détaillé par camion — carburant, péage, rations, contraventions…</p>
+          <p className="text-sm text-muted-foreground">Tableau détaillé par camion — carburant, péage, rations, contraventions, entretien garage, pneus…</p>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
           <Select value={filterYear} onValueChange={setFilterYear}>

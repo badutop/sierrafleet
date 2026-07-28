@@ -165,7 +165,7 @@ export default function Dashboard() {
 
   // Maintenance
   const maintMonth     = maintenances.filter(m => isThisMonth(m.date_entretien));
-  const maintCostMonth = maintMonth.reduce((s, m) => s + (m.cout || 0) + (m.cout_pieces || 0) + (m.cout_main_oeuvre || 0), 0);
+  const maintCostMonth = maintMonth.reduce((s, m) => s + (m.cout || 0), 0);
 
   // Expenses
   const expMonth = expenses.filter(e => isThisMonth(e.date_frais));
