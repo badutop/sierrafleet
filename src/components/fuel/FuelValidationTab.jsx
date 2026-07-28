@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getRefuelCheckpoints, consoLitresPourClient } from "@/lib/refuelRules";
+import { logAudit } from "@/lib/auditLog";
 
 // Ne montre plus la liste brute des fuel_entries / rotations saisies : un
 // camion n'apparaît ici que lorsqu'il a réalisé 3 rotations d'un même client
@@ -24,6 +25,7 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], o
     mutationFn: async (checkpointId) => {
       const { error } = await supabase.from("rotations").update({ refuel_effectue: true }).eq("id", checkpointId);
       if (error) throw error;
+      await logAudit("Carburant", checkpointId, "update", { refuel_effectue: true }, null, ["refuel_effectue"]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rotations"] });

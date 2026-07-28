@@ -8,6 +8,7 @@ import { uploadFile } from "@/lib/storage";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { getFuelPricePerLitre } from "@/pages/SettingsPage";
+import { logAudit } from "@/lib/auditLog";
 
 const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la photo de pompe
 const DEMO_PUMP_URL = "https://placehold.co/640x480/e2e8f0/64748b?text=POMPE+DEMO";
@@ -89,7 +90,7 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], che
       const prixLitre = getFuelPricePerLitre();
       const heureRecharge = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
       const fuelEntry = { id: crypto.randomUUID() };
-      const { error: fuelError } = await supabase.from("fuel_entries").insert({
+      const fuelPayload = {
         id: fuelEntry.id,
         vehicle_id: vehicle.id,
         driver_id: driver?.id || null,
@@ -101,8 +102,10 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], che
         montant_total: Number(litres) * prixLitre,
         statut: "valide",
         recu_url: pumpUrl,
-      });
+      };
+      const { error: fuelError } = await supabase.from("fuel_entries").insert(fuelPayload);
       if (fuelError) throw fuelError;
+      await logAudit("Carburant", fuelEntry.id, "create", fuelPayload);
 
       if (checkpointRotationId) {
         // Déclenché depuis Carburant > Validation : les 3 bons ont déjà été

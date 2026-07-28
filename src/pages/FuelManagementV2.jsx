@@ -14,6 +14,7 @@ import FuelCostBreakdown from "@/components/fuel/FuelCostBreakdown";
 import FuelValidationTab from "@/components/fuel/FuelValidationTab";
 import FuelMonthlyChart from "@/components/fuel/FuelMonthlyChart";
 import { getRefuelCheckpoints } from "@/lib/refuelRules";
+import { logAudit } from "@/lib/auditLog";
 import { startOfMonth, startOfYear, subMonths } from "date-fns";
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
@@ -127,10 +128,13 @@ export default function FuelManagementV2() {
         // horodatage du moment de la recharge, pas un champ éditable.
         const { error } = await supabase.from("fuel_entries").update(payload).eq("id", fuelData.id);
         if (error) throw error;
+        await logAudit("Carburant", fuelData.id, "update", payload, editEntry, Object.keys(payload));
       } else {
+        const id = crypto.randomUUID();
         const heure = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-        const { error } = await supabase.from("fuel_entries").insert({ id: crypto.randomUUID(), heure, ...payload });
+        const { error } = await supabase.from("fuel_entries").insert({ id, heure, ...payload });
         if (error) throw error;
+        await logAudit("Carburant", id, "create", { id, heure, ...payload });
       }
     },
     onSuccess: () => {
@@ -142,9 +146,10 @@ export default function FuelManagementV2() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("fuel_entries").delete().eq("id", id);
+    mutationFn: async (entry) => {
+      const { error } = await supabase.from("fuel_entries").delete().eq("id", entry.id);
       if (error) throw error;
+      await logAudit("Carburant", entry.id, "delete", null, entry);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fuel"] });
@@ -380,7 +385,7 @@ export default function FuelManagementV2() {
             driverMap={driverMap}
             campaignMap={campaignMap}
             onEdit={handleEdit}
-            onDelete={(id) => deleteMutation.mutate(id)}
+            onDelete={(id) => deleteMutation.mutate(entries.find(e => e.id === id))}
           />
 
           <div>

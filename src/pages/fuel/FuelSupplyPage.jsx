@@ -12,6 +12,7 @@ import FuelSupplyDialog from "@/components/fuel/FuelSupplyDialog";
 import FuelCampaignTab from "@/components/fuel/FuelCampaignTab";
 import FuelVehiclePerformance from "@/components/fuel/FuelVehiclePerformance";
 import FuelAlertsTab from "@/components/fuel/FuelAlertsTab";
+import { logAudit } from "@/lib/auditLog";
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 
@@ -75,9 +76,12 @@ export default function FuelSupplyPage() {
       if (id) {
         const { error } = await supabase.from("fuel_entries").update(payload).eq("id", id);
         if (error) throw error;
+        await logAudit("Carburant", id, "update", payload, editEntry, Object.keys(payload));
       } else {
-        const { error } = await supabase.from("fuel_entries").insert({ id: crypto.randomUUID(), ...payload });
+        const newId = crypto.randomUUID();
+        const { error } = await supabase.from("fuel_entries").insert({ id: newId, ...payload });
         if (error) throw error;
+        await logAudit("Carburant", newId, "create", { id: newId, ...payload });
       }
     },
     onSuccess: () => {
@@ -89,9 +93,10 @@ export default function FuelSupplyPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("fuel_entries").delete().eq("id", id);
+    mutationFn: async (entry) => {
+      const { error } = await supabase.from("fuel_entries").delete().eq("id", entry.id);
       if (error) throw error;
+      await logAudit("Carburant", entry.id, "delete", null, entry);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fuel"] });
@@ -198,7 +203,7 @@ export default function FuelSupplyPage() {
             vMap={vMap}
             campaignMap={campaignMap}
             onEdit={handleEdit}
-            onDelete={(id) => deleteMutation.mutate(id)}
+            onDelete={(id) => deleteMutation.mutate(entries.find(e => e.id === id))}
           />
         </TabsContent>
 

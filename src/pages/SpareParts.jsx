@@ -13,6 +13,7 @@ import { Plus, Search, Package, Pencil, Trash2, AlertTriangle } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
+import { logAudit } from "@/lib/auditLog";
 
 const categorieLabels = { moteur: "Moteur", freinage: "Freinage", suspension: "Suspension", transmission: "Transmission", electricite: "Électricité", carrosserie: "Carrosserie", filtres: "Filtres", pneumatiques: "Pneumatiques", autre: "Autre" };
 const categorieColors = { moteur: "bg-red-500/10 text-red-600", freinage: "bg-orange-500/10 text-orange-600", suspension: "bg-yellow-500/10 text-yellow-700", transmission: "bg-blue-500/10 text-blue-600", electricite: "bg-purple-500/10 text-purple-600", carrosserie: "bg-slate-500/10 text-slate-600", filtres: "bg-green-500/10 text-green-600", pneumatiques: "bg-cyan-500/10 text-cyan-600", autre: "bg-muted text-muted-foreground" };
@@ -49,24 +50,28 @@ export default function SpareParts() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const { error } = await supabase.from("spare_parts").insert({ id: crypto.randomUUID(), ...data });
+      const id = crypto.randomUUID();
+      const { error } = await supabase.from("spare_parts").insert({ id, ...data });
       if (error) throw error;
+      await logAudit("Pièce détachée", id, "create", data);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["spareParts"] }); closeDialog(); toast.success("Pièce ajoutée"); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
+    mutationFn: async ({ id, data, oldData }) => {
       const { error } = await supabase.from("spare_parts").update(data).eq("id", id);
       if (error) throw error;
+      await logAudit("Pièce détachée", id, "update", data, oldData, Object.keys(data));
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["spareParts"] }); closeDialog(); toast.success("Pièce modifiée"); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("spare_parts").delete().eq("id", id);
+    mutationFn: async (part) => {
+      const { error } = await supabase.from("spare_parts").delete().eq("id", part.id);
       if (error) throw error;
+      await logAudit("Pièce détachée", part.id, "delete", null, part);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["spareParts"] }); toast.success("Pièce supprimée"); },
   });
@@ -77,12 +82,12 @@ export default function SpareParts() {
 
   const handleSave = () => {
     const data = { ...form, quantite_stock: Number(form.quantite_stock || 0), quantite_min: Number(form.quantite_min || 1), prix_unitaire: Number(form.prix_unitaire || 0) };
-    if (editingPart) updateMutation.mutate({ id: editingPart.id, data });
+    if (editingPart) updateMutation.mutate({ id: editingPart.id, data, oldData: editingPart });
     else createMutation.mutate(data);
   };
 
   const handleDelete = async (p) => {
-    if (await confirm(`Supprimer la pièce "${p.designation}" ?`)) deleteMutation.mutate(p.id);
+    if (await confirm(`Supprimer la pièce "${p.designation}" ?`)) deleteMutation.mutate(p);
   };
 
   const filtered = parts.filter(p => {
