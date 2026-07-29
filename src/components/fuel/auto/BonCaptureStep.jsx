@@ -1,57 +1,40 @@
-import React, { useState, useRef } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Camera, RefreshCw, CheckCircle2, ArrowRight } from "lucide-react";
-import BonSlot from "./BonSlot";
+import { CheckCircle2, Clock, ArrowRight, Info } from "lucide-react";
+import { getPendingBonGroupForVehicle } from "@/lib/refuelRules";
 
 const REQUIRED_BONS = 3;
-const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la capture des photos
 
-// Image placeholder utilisée en mode démo
-const DEMO_PREVIEW = "https://placehold.co/320x200/e2e8f0/64748b?text=BON+DEMO";
-
+// Les bons ne sont plus saisis/scannés ici par le chauffeur : ils sont déjà
+// enregistrés (et confirmés) depuis le module Campagnes > Rotations. Cet
+// écran se contente de les afficher avec leur statut, et n'autorise la suite
+// du rechargement que lorsque les 3 sont confirmés.
 export default function BonCaptureStep({ drivers, vehicles, rotations, onDone, preselectedDriver = null, preselectedVehicle = null }) {
   const isDriverMode = !!(preselectedDriver && preselectedVehicle);
   const [driverId, setDriverId] = useState(preselectedDriver?.id || "");
   const [vehicleId, setVehicleId] = useState(preselectedVehicle?.id || "");
-  const [bons, setBons] = useState(Array(REQUIRED_BONS).fill(null)); // null | {file, previewUrl}
-  const [activatingSlot, setActivatingSlot] = useState(null);
 
   const driver = preselectedDriver || drivers.find(d => d.id === driverId);
   const vehicle = preselectedVehicle || vehicles.find(v => v.id === vehicleId);
-  const allCaptured = DEMO_MODE || bons.every(b => b !== null);
-  const canProceed = (isDriverMode || (driverId && vehicleId)) && allCaptured;
 
-  const handleCapture = (slotIdx, file, previewUrl) => {
-    setBons(prev => {
-      const next = [...prev];
-      next[slotIdx] = { file, previewUrl };
-      return next;
-    });
-    setActivatingSlot(null);
-  };
+  const group = useMemo(() => (
+    vehicle ? getPendingBonGroupForVehicle(rotations, vehicle.id) : null
+  ), [rotations, vehicle]);
 
-  const handleRemove = (slotIdx) => {
-    setBons(prev => {
-      const next = [...prev];
-      next[slotIdx] = null;
-      return next;
-    });
-  };
+  const confirmedCount = group ? group.filter(r => r.bon_physique_recu).length : 0;
+  const allConfirmed = group ? confirmedCount === REQUIRED_BONS : false;
+  const canProceed = (isDriverMode || (driverId && vehicleId)) && allConfirmed;
 
   const handleNext = () => {
-    const demoBons = Array(REQUIRED_BONS).fill(null).map((_, i) => ({
-      file: null,
-      previewUrl: DEMO_PREVIEW,
+    const bons = group.map((r, i) => ({
+      rotation: r,
+      ocrNumber: r.numero_bon_client || null,
+      previewUrl: r.bon_physique_scan_url || null,
       slotIndex: i,
-      ocrNumber: null,
     }));
-    onDone({
-      bons: DEMO_MODE ? demoBons : bons.map((b, i) => ({ ...b, slotIndex: i, ocrNumber: null })),
-      driver,
-      vehicle,
-    });
+    onDone({ bons, driver, vehicle });
   };
 
   return (
@@ -104,51 +87,66 @@ export default function BonCaptureStep({ drivers, vehicles, rotations, onDone, p
       )}
 
       {/* Instruction */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-        <p className="text-xs font-semibold text-amber-800">
-          📋 Photographiez vos {REQUIRED_BONS} bons de rotation
-        </p>
-        <p className="text-xs text-amber-700 mt-0.5">
-          Chaque bon doit être lisible et non utilisé
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-start gap-2">
+        <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+        <p className="text-xs text-foreground">
+          Les {REQUIRED_BONS} bons de rotation sont enregistrés depuis le module <strong>Campagnes</strong>. Ils apparaissent ici pour vérification — le rechargement n'est possible qu'une fois les {REQUIRED_BONS} confirmés.
         </p>
       </div>
 
-      {DEMO_MODE && (
-        <div className="bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 text-xs text-amber-800 font-semibold flex items-center gap-1.5">
-          ⚡ MODE DÉMO — Photos non requises, choisissez juste chauffeur + véhicule
+      {/* Statut des bons */}
+      {!vehicle ? (
+        <p className="text-sm text-muted-foreground text-center py-6">Sélectionnez un véhicule pour voir ses bons.</p>
+      ) : !group ? (
+        <div className="border border-dashed border-muted-foreground/30 rounded-xl p-4 text-center text-sm text-muted-foreground">
+          Aucune rotation en attente de rechargement pour ce véhicule pour le moment.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {group.map((r, i) => (
+            <div
+              key={r.id}
+              className={`border rounded-xl p-3 flex items-center gap-3 transition-all ${
+                r.bon_physique_recu ? "border-green-400 bg-green-50/30" : "border-amber-300 bg-amber-50/30"
+              }`}
+            >
+              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-muted-foreground">{i + 1}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">Bon {i + 1}{r.numero_bon_client ? ` — N° ${r.numero_bon_client}` : ""}</p>
+                <p className="text-xs text-muted-foreground">
+                  {r.date_rotation ? new Date(r.date_rotation).toLocaleDateString("fr-FR") : "—"}
+                </p>
+              </div>
+              {r.bon_physique_recu ? (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 shrink-0">
+                  <CheckCircle2 className="w-4 h-4" /> Validé
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 shrink-0">
+                  <Clock className="w-4 h-4" /> Non validé
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Slots bons */}
-      <div className="space-y-3">
-        {bons.map((bon, i) => (
-          <BonSlot
-            key={i}
-            index={i}
-            bon={bon}
-            driver={driver}
-            vehicle={vehicle}
-            active={activatingSlot === i}
-            onActivate={() => setActivatingSlot(i)}
-            onCapture={(file, url) => handleCapture(i, file, url)}
-            onRemove={() => handleRemove(i)}
-            onCancel={() => setActivatingSlot(null)}
-          />
-        ))}
-      </div>
-
       {/* Progression */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 bg-muted rounded-full h-2">
-          <div
-            className="bg-secondary h-2 rounded-full transition-all"
-            style={{ width: `${(bons.filter(Boolean).length / REQUIRED_BONS) * 100}%` }}
-          />
+      {group && (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-muted rounded-full h-2">
+            <div
+              className="bg-secondary h-2 rounded-full transition-all"
+              style={{ width: `${(confirmedCount / REQUIRED_BONS) * 100}%` }}
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {confirmedCount}/{REQUIRED_BONS} validés
+          </span>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {bons.filter(Boolean).length}/{REQUIRED_BONS}
-        </span>
-      </div>
+      )}
 
       <Button
         className="w-full h-12 text-base font-bold bg-secondary hover:bg-secondary/90 text-white"
@@ -156,7 +154,7 @@ export default function BonCaptureStep({ drivers, vehicles, rotations, onDone, p
         onClick={handleNext}
       >
         <ArrowRight className="w-5 h-5 mr-2" />
-        Valider les bons
+        Continuer
       </Button>
     </div>
   );

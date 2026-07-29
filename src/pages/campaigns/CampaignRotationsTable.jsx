@@ -58,8 +58,17 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
     }
   };
 
+  // Les dernières rotations en premier : tri décroissant (date, puis numéro)
+  // avant le regroupement par jour, pour que les journées ET les rotations
+  // d'une même journée s'affichent des plus récentes aux plus anciennes.
+  const sortedRotations = [...rotations].sort((a, b) => {
+    const dateDiff = new Date(b.date_rotation || 0) - new Date(a.date_rotation || 0);
+    if (dateDiff !== 0) return dateDiff;
+    return (b.numero_rotation || 0) - (a.numero_rotation || 0);
+  });
+
   // Group by date
-  const grouped = rotations.reduce((acc, r) => {
+  const grouped = sortedRotations.reduce((acc, r) => {
     const day = r.date_rotation ? new Date(r.date_rotation).toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : "Sans date";
     if (!acc[day]) acc[day] = [];
     acc[day].push(r);

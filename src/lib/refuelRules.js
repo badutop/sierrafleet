@@ -26,6 +26,35 @@ export function countExistingForClientVehicle(existingRotations, clientId, vehic
 //   rechargement auto (qui créera le vrai fuel_entries via scan des bons).
 // Une fois la recharge réellement effectuée, fuel_entry_id est renseigné sur
 // le checkpoint (voir PumpPhotoStep) et il disparaît de cette liste.
+// Groupe de 3 rotations (même client) le plus ancien encore en attente de
+// rechargement pour un véhicule donné, que les 3 bons soient déjà confirmés
+// ou non — sert à l'écran de rechargement chauffeur (self-service) : les
+// bons y sont uniquement affichés (avec leur statut de confirmation), plus
+// jamais saisis/scannés par le chauffeur — la confirmation d'un bon se fait
+// en amont, dans le module Campagnes > Rotations.
+export function getPendingBonGroupForVehicle(allRotations, vehicleId) {
+  const byClient = new Map();
+  allRotations.forEach(r => {
+    if (r.vehicle_id !== vehicleId || !r.client_id) return;
+    if (!byClient.has(r.client_id)) byClient.set(r.client_id, []);
+    byClient.get(r.client_id).push(r);
+  });
+
+  let best = null;
+  byClient.forEach(list => {
+    const sorted = [...list].sort((a, b) => (a.numero_rotation || 0) - (b.numero_rotation || 0));
+    for (let i = 2; i < sorted.length; i += 3) {
+      const chunk = sorted.slice(i - 2, i + 1);
+      if (chunk[2].fuel_entry_id) continue; // déjà rechargé, groupe suivant
+      if (!best || new Date(chunk[0].date_rotation || 0) < new Date(best[0].date_rotation || 0)) {
+        best = chunk;
+      }
+      break; // un seul groupe "en cours" par client à la fois
+    }
+  });
+  return best; // [rotation1, rotation2, rotation3] | null
+}
+
 export function getRefuelCheckpoints(allRotations) {
   const pairs = new Map();
   allRotations.forEach(r => {
