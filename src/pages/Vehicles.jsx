@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Truck, Pencil, Trash2, FileText, User } from "lucide-react";
+import { Plus, Search, Truck, Pencil, Trash2, FileText, User, IdCard, Settings2, CalendarClock, ArrowLeft, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import VehicleDocuments from "@/components/vehicles/VehicleDocuments";
@@ -218,55 +218,86 @@ export default function Vehicles() {
       />
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingVehicle ? "Modifier le véhicule" : "Nouveau véhicule"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            {[["code_camion","Code camion (CT)"],["immatriculation","Immatriculation"],["marque","Marque"],["modele","Modèle"]].map(([key, label]) => (
-              <div key={key}>
-                <Label className="text-xs">{label}</Label>
-                <Input className="mt-1" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })} />
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+          <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+            <Truck className="w-5 h-5 text-secondary shrink-0" />
+            <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
+              {editingVehicle ? "Modifier le véhicule" : "Nouveau véhicule"}
+            </DialogTitle>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            {editingVehicle ? "Mettez à jour les informations de ce véhicule" : "Renseignez les informations du nouveau véhicule"}
+          </p>
+
+          <div className="space-y-3 mt-2">
+            {/* Identification */}
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Identification</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[["code_camion","Code camion (CT)"],["immatriculation","Immatriculation"],["marque","Marque"],["modele","Modèle"]].map(([key, label]) => (
+                  <div key={key}>
+                    <Label className="text-xs">{label}</Label>
+                    <Input className="mt-1 bg-card" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })} />
+                  </div>
+                ))}
               </div>
-            ))}
-            <div>
-              <Label className="text-xs">Type</Label>
-              <Select value={form.type_vehicule || "camion"} onValueChange={v => setForm({ ...form, type_vehicule: v })}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-              </Select>
             </div>
-            <div>
-              <Label className="text-xs">Statut</Label>
-              <Select value={form.statut || "disponible"} onValueChange={v => setForm({ ...form, statut: v })}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            {[["annee","Année"],["couleur","Couleur"],["km_actuel","Km actuel"]].map(([key, label]) => (
-              <div key={key}>
-                <Label className="text-xs">{label}</Label>
-                <Input className="mt-1" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })} />
+
+            {/* Caractéristiques */}
+            <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Settings2 className="w-3.5 h-3.5" />Caractéristiques</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Type</Label>
+                  <Select value={form.type_vehicule || "camion"} onValueChange={v => setForm({ ...form, type_vehicule: v })}>
+                    <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Statut</Label>
+                  <Select value={form.statut || "disponible"} onValueChange={v => setForm({ ...form, statut: v })}>
+                    <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                {[["annee","Année"],["couleur","Couleur"],["km_actuel","Km actuel"]].map(([key, label]) => (
+                  <div key={key}>
+                    <Label className="text-xs">{label}</Label>
+                    <Input className="mt-1 bg-card" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })} />
+                  </div>
+                ))}
+                {form.type_vehicule !== "remorque" && (
+                  <div>
+                    <Label className="text-xs">Capacité (tonnes)</Label>
+                    <Input className="mt-1 bg-card" value={form.capacite_charge_tonnes || ""} onChange={e => setForm({ ...form, capacite_charge_tonnes: e.target.value })} />
+                  </div>
+                )}
               </div>
-            ))}
-            {form.type_vehicule !== "remorque" && (
-              <div>
-                <Label className="text-xs">Capacité (tonnes)</Label>
-                <Input className="mt-1" value={form.capacite_charge_tonnes || ""} onChange={e => setForm({ ...form, capacite_charge_tonnes: e.target.value })} />
+            </div>
+
+            {/* Documents & échéances */}
+            <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5" />Documents & échéances</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Date assurance</Label>
+                  <Input type="date" className="mt-1 bg-card" value={form.date_assurance || ""} onChange={e => setForm({ ...form, date_assurance: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Visite technique</Label>
+                  <Input type="date" className="mt-1 bg-card" value={form.date_visite_technique || ""} onChange={e => setForm({ ...form, date_visite_technique: e.target.value })} />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Carte grise</Label>
+                  <Input type="date" className="mt-1 bg-card" value={form.date_carte_grise || ""} onChange={e => setForm({ ...form, date_carte_grise: e.target.value })} />
+                </div>
               </div>
-            )}
-            <div>
-              <Label className="text-xs">Date assurance</Label>
-              <Input type="date" className="mt-1" value={form.date_assurance || ""} onChange={e => setForm({ ...form, date_assurance: e.target.value })} />
             </div>
+
+            {/* Affectation */}
             <div>
-              <Label className="text-xs">Visite technique</Label>
-              <Input type="date" className="mt-1" value={form.date_visite_technique || ""} onChange={e => setForm({ ...form, date_visite_technique: e.target.value })} />
-            </div>
-            <div>
-              <Label className="text-xs">Carte grise</Label>
-              <Input type="date" className="mt-1" value={form.date_carte_grise || ""} onChange={e => setForm({ ...form, date_carte_grise: e.target.value })} />
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Chauffeur affecté</Label>
+              <Label className="text-xs flex items-center gap-1"><User className="w-3 h-3" />Chauffeur affecté</Label>
               <Select value={form.driver_id || "none"} onValueChange={v => setForm({ ...form, driver_id: v === "none" ? "" : v })}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Aucun chauffeur" /></SelectTrigger>
                 <SelectContent>
@@ -276,9 +307,13 @@ export default function Vehicles() {
               </Select>
             </div>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending}>
+
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
+              <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
+            </Button>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending}>
+              <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>

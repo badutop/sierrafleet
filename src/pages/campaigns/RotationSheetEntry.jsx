@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useMutation } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Fuel, Save, Eye, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Fuel, Save, Eye, ArrowLeft, CheckCircle2, AlertTriangle, Ship } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { consoLitresPourClient, countExistingForClientVehicle } from "@/lib/refuelRules";
@@ -54,14 +54,15 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
 
   return (
     <>
-      <DialogHeader>
-        <DialogTitle className="text-base font-bold uppercase tracking-wide">
+      <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+        <Ship className="w-5 h-5 text-secondary shrink-0" />
+        <DialogTitle className="text-base font-bold text-primary-foreground uppercase tracking-wide leading-none">
           Fiche de débarquement — {campaign?.nom_campagne}
         </DialogTitle>
-        <p className="text-xs text-muted-foreground mt-1">
-          {campaign?.type_marchandise} · Navire : {campaign?.navire || "—"}
-        </p>
-      </DialogHeader>
+      </div>
+      <p className="text-xs text-muted-foreground -mt-1">
+        {campaign?.type_marchandise} · Navire : {campaign?.navire || "—"}
+      </p>
 
       <div className="flex items-center gap-4 mt-2">
         <div>
@@ -177,10 +178,12 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
         </div>
       )}
 
-      <div className="flex gap-2 mt-4">
-        <Button variant="outline" className="flex-1" onClick={onClose}>Annuler</Button>
+      <div className="flex gap-3 mt-4">
+        <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={onClose}>
+          <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
+        </Button>
         <Button
-          className="flex-1 bg-primary hover:bg-primary/90"
+          className="flex-1 h-12 rounded-xl text-base font-bold bg-primary hover:bg-primary/90"
           onClick={onPreview}
           disabled={validRows.length === 0 || tonnageDepassement}
         >
@@ -211,19 +214,18 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
 
   return (
     <>
-      <DialogHeader>
-        <div className="flex items-center gap-2">
-          <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <DialogTitle className="text-base font-bold uppercase tracking-wide">
-            Validation — Fiche du {dateFormatee}
-          </DialogTitle>
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          Vérifiez les informations avant de confirmer l'enregistrement définitif.
-        </p>
-      </DialogHeader>
+      <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+        <button onClick={onBack} className="text-primary-foreground/70 hover:text-primary-foreground transition-colors shrink-0">
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <Ship className="w-5 h-5 text-secondary shrink-0" />
+        <DialogTitle className="text-base font-bold text-primary-foreground uppercase tracking-wide leading-none">
+          Validation — Fiche du {dateFormatee}
+        </DialogTitle>
+      </div>
+      <p className="text-xs text-muted-foreground -mt-1">
+        Vérifiez les informations avant de confirmer l'enregistrement définitif.
+      </p>
 
       {/* En-tête de la fiche comme le document papier */}
       <div className="mt-3 border border-primary/40 rounded-xl overflow-hidden">
@@ -324,12 +326,12 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
         <span>Après validation, les rotations seront définitivement enregistrées et les compteurs mis à jour. Cette action est irréversible.</span>
       </div>
 
-      <div className="flex gap-2 mt-4">
-        <Button variant="outline" className="flex-1" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Modifier
+      <div className="flex gap-3 mt-4">
+        <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={onBack}>
+          <ArrowLeft className="w-4 h-4 mr-2" /> Modifier
         </Button>
         <Button
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="flex-1 h-12 rounded-xl text-base font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
           onClick={onConfirm}
           disabled={isPending || tonnageDepassement}
         >
@@ -429,7 +431,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
         {step === "saisie" ? (
           <SheetSaisie
             date={date} setDate={setDate}

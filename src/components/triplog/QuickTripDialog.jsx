@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Autocomplete from "@/components/ui/autocomplete";
-import { Zap } from "lucide-react";
+import { Zap, Route, ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import { logAudit } from "@/lib/auditLog";
 
@@ -116,103 +116,96 @@ export default function QuickTripDialog({ open, onClose }) {
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-secondary" />
-            Saisie rapide — Carnet de bord
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-lg [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+        <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+          <Zap className="w-5 h-5 text-secondary shrink-0" />
+          <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">Saisie rapide — Carnet de bord</DialogTitle>
+        </div>
+        <p className="text-xs text-muted-foreground -mt-2">Enregistrez un trajet en quelques champs</p>
 
-        <div className="grid grid-cols-2 gap-3 mt-2">
-          {/* Véhicule */}
-          <div className="col-span-2">
-            <Label className="text-xs">Véhicule *</Label>
-            <Autocomplete
-              className="mt-1"
-              placeholder="Immatriculation ou code camion..."
-              value={form.vehicle_text}
-              onChange={v => set("vehicle_text", v)}
-              onSelect={handleSelectVehicle}
-              options={vehicleOptions}
-            />
+        <div className="space-y-3 mt-2">
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Zap className="w-3.5 h-3.5" />Trajet</p>
+            <div>
+              <Label className="text-xs">Véhicule *</Label>
+              <Autocomplete
+                className="mt-1"
+                placeholder="Immatriculation ou code camion..."
+                value={form.vehicle_text}
+                onChange={v => set("vehicle_text", v)}
+                onSelect={handleSelectVehicle}
+                options={vehicleOptions}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Chauffeur *</Label>
+              <Autocomplete
+                className="mt-1"
+                placeholder="Nom du chauffeur..."
+                value={form.driver_text}
+                onChange={v => set("driver_text", v)}
+                onSelect={handleSelectDriver}
+                options={driverOptions}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Mission *</Label>
+              <Input className="mt-1 bg-card" placeholder="Ex: Livraison client, transport marchandises..." value={form.mission} onChange={e => set("mission", e.target.value)} />
+            </div>
           </div>
 
-          {/* Chauffeur */}
-          <div className="col-span-2">
-            <Label className="text-xs">Chauffeur *</Label>
-            <Autocomplete
-              className="mt-1"
-              placeholder="Nom du chauffeur..."
-              value={form.driver_text}
-              onChange={v => set("driver_text", v)}
-              onSelect={handleSelectDriver}
-              options={driverOptions}
-            />
+          <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Route className="w-3.5 h-3.5" />Itinéraire & horaires</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Destination</Label>
+                <Input className="mt-1 bg-card" placeholder="Lieu d'arrivée" value={form.destination} onChange={e => set("destination", e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Département / Zone</Label>
+                <Input className="mt-1 bg-card" placeholder="Ex: Dakar, Thiès..." value={form.departement} onChange={e => set("departement", e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Date départ</Label>
+                <Input type="date" className="mt-1 bg-card" value={form.date_depart} onChange={e => set("date_depart", e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Heure départ</Label>
+                <Input type="time" className="mt-1 bg-card" value={form.heure_depart} onChange={e => set("heure_depart", e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Km compteur départ</Label>
+                <Input type="number" className="mt-1 bg-card" placeholder="Kilométrage actuel" value={form.km_depart} onChange={e => set("km_depart", e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Statut</Label>
+                <Select value={form.statut} onValueChange={v => set("statut", v)}>
+                  <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en_cours">En cours</SelectItem>
+                    <SelectItem value="termine">Terminé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
-          {/* Mission */}
-          <div className="col-span-2">
-            <Label className="text-xs">Mission *</Label>
-            <Input className="mt-1" placeholder="Ex: Livraison client, transport marchandises..." value={form.mission} onChange={e => set("mission", e.target.value)} />
-          </div>
-
-          {/* Destination */}
           <div>
-            <Label className="text-xs">Destination</Label>
-            <Input className="mt-1" placeholder="Lieu d'arrivée" value={form.destination} onChange={e => set("destination", e.target.value)} />
-          </div>
-
-          {/* Département */}
-          <div>
-            <Label className="text-xs">Département / Zone</Label>
-            <Input className="mt-1" placeholder="Ex: Dakar, Thiès..." value={form.departement} onChange={e => set("departement", e.target.value)} />
-          </div>
-
-          {/* Date */}
-          <div>
-            <Label className="text-xs">Date départ</Label>
-            <Input type="date" className="mt-1" value={form.date_depart} onChange={e => set("date_depart", e.target.value)} />
-          </div>
-
-          {/* Heure */}
-          <div>
-            <Label className="text-xs">Heure départ</Label>
-            <Input type="time" className="mt-1" value={form.heure_depart} onChange={e => set("heure_depart", e.target.value)} />
-          </div>
-
-          {/* Km départ */}
-          <div>
-            <Label className="text-xs">Km compteur départ</Label>
-            <Input type="number" className="mt-1" placeholder="Kilométrage actuel" value={form.km_depart} onChange={e => set("km_depart", e.target.value)} />
-          </div>
-
-          {/* Statut */}
-          <div>
-            <Label className="text-xs">Statut</Label>
-            <Select value={form.statut} onValueChange={v => set("statut", v)}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en_cours">En cours</SelectItem>
-                <SelectItem value="termine">Terminé</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Observations */}
-          <div className="col-span-2">
             <Label className="text-xs">Observations</Label>
             <Input className="mt-1" placeholder="Notes optionnelles..." value={form.observations} onChange={e => set("observations", e.target.value)} />
           </div>
         </div>
 
-        <div className="flex gap-2 mt-4">
-          <Button variant="outline" className="flex-1" onClick={onClose}>Annuler</Button>
+        <div className="flex gap-3 mt-4">
+          <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={onClose}>
+            <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
+          </Button>
           <Button
-            className="flex-1 bg-secondary hover:bg-secondary/90"
+            className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground"
             onClick={handleSubmit}
             disabled={createMutation.isPending}
           >
+            <Save className="w-4 h-4 mr-2" />
             {createMutation.isPending ? "Enregistrement..." : "Enregistrer le trajet"}
           </Button>
         </div>

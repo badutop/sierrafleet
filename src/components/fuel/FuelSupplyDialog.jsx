@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Fuel, Camera, X, Image } from "lucide-react";
+import { Fuel, Camera, X, Coins, ArrowLeft, Save } from "lucide-react";
 import { getFuelPricePerLitre } from "@/pages/SettingsPage";
 import { uploadFile } from "@/lib/storage";
 
@@ -75,80 +75,82 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md w-full mx-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <Fuel className="w-4 h-4 text-secondary" />
+      <DialogContent className="max-w-md w-full mx-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+        <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+          <Fuel className="w-5 h-5 text-secondary shrink-0" />
+          <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
             {entry ? "Modifier l'approvisionnement" : "Nouvel approvisionnement"}
           </DialogTitle>
-        </DialogHeader>
+        </div>
 
-        <div className="space-y-4 mt-2">
-          {/* Véhicule */}
-          <div>
-            <Label className="text-sm font-medium">Véhicule *</Label>
-            <Select value={form.vehicle_id} onValueChange={v => set("vehicle_id", v)}>
-              <SelectTrigger className="mt-1.5 h-12 text-sm">
-                <SelectValue placeholder="Sélectionner un véhicule" />
-              </SelectTrigger>
-              <SelectContent>
-                {vehicles.map(v => (
-                  <SelectItem key={v.id} value={v.id} className="py-3 text-sm">
-                    {v.immatriculation} — {v.marque} {v.modele}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Date + Station */}
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3 mt-2">
+          {/* Véhicule & station */}
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Fuel className="w-3.5 h-3.5" />Véhicule & station</p>
             <div>
-              <Label className="text-sm font-medium">Date *</Label>
-              <Input type="date" className="mt-1.5 h-12 text-sm" value={form.date} onChange={e => set("date", e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Station</Label>
-              <Select value={form.station} onValueChange={v => set("station", v)}>
-                <SelectTrigger className="mt-1.5 h-12 text-sm">
-                  <SelectValue placeholder="Choisir" />
+              <Label className="text-sm font-medium">Véhicule *</Label>
+              <Select value={form.vehicle_id} onValueChange={v => set("vehicle_id", v)}>
+                <SelectTrigger className="mt-1.5 h-12 text-sm bg-card">
+                  <SelectValue placeholder="Sélectionner un véhicule" />
                 </SelectTrigger>
                 <SelectContent>
-                  {stations.map(s => (
-                    <SelectItem key={s.value} value={s.value} className="py-3 text-sm">{s.label}</SelectItem>
+                  {vehicles.map(v => (
+                    <SelectItem key={v.id} value={v.id} className="py-3 text-sm">
+                      {v.immatriculation} — {v.marque} {v.modele}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          {/* Litres + Km */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-sm font-medium">Litres *</Label>
-              <Input
-                type="number" inputMode="decimal" min="0"
-                className="mt-1.5 h-12 text-sm"
-                placeholder="Ex: 150"
-                value={form.litres}
-                onChange={e => set("litres", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Km compteur</Label>
-              <Input
-                type="number" inputMode="numeric" min="0"
-                className="mt-1.5 h-12 text-sm"
-                placeholder="Optionnel"
-                value={form.km_compteur}
-                onChange={e => set("km_compteur", e.target.value)}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm font-medium">Date *</Label>
+                <Input type="date" className="mt-1.5 h-12 text-sm bg-card" value={form.date} onChange={e => set("date", e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Station</Label>
+                <Select value={form.station} onValueChange={v => set("station", v)}>
+                  <SelectTrigger className="mt-1.5 h-12 text-sm bg-card">
+                    <SelectValue placeholder="Choisir" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stations.map(s => (
+                      <SelectItem key={s.value} value={s.value} className="py-3 text-sm">{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          {/* Montant */}
-          <div className="bg-muted/60 rounded-lg px-4 py-3 flex items-center justify-end text-sm">
-            Montant : <span className="font-bold text-secondary text-base ml-2">{montantCalc > 0 ? montantCalc.toLocaleString("fr-FR") + " FCFA" : "—"}</span>
+          {/* Quantité & montant */}
+          <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5"><Coins className="w-3.5 h-3.5" />Quantité & montant</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm font-medium">Litres *</Label>
+                <Input
+                  type="number" inputMode="decimal" min="0"
+                  className="mt-1.5 h-12 text-sm bg-card"
+                  placeholder="Ex: 150"
+                  value={form.litres}
+                  onChange={e => set("litres", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Km compteur</Label>
+                <Input
+                  type="number" inputMode="numeric" min="0"
+                  className="mt-1.5 h-12 text-sm bg-card"
+                  placeholder="Optionnel"
+                  value={form.km_compteur}
+                  onChange={e => set("km_compteur", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="bg-card rounded-lg px-4 py-3 flex items-center justify-end text-sm border border-emerald-500/20">
+              Montant : <span className="font-bold text-emerald-700 text-base ml-2">{montantCalc > 0 ? montantCalc.toLocaleString("fr-FR") + " FCFA" : "—"}</span>
+            </div>
           </div>
 
           {/* Photo reçu */}
@@ -191,13 +193,16 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
           </div>
         </div>
 
-        <div className="flex gap-2 mt-4">
-          <Button variant="outline" className="flex-1 h-11" onClick={() => onOpenChange(false)}>Annuler</Button>
+        <div className="flex gap-3 mt-4">
+          <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={() => onOpenChange(false)}>
+            <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
+          </Button>
           <Button
-            className="flex-1 h-11 bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+            className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground"
             onClick={() => onSave({ ...form, prix_litre: prixLitre, _montant: montantCalc })}
             disabled={!isValid || isPending || uploadingPhoto}
           >
+            <Save className="w-4 h-4 mr-2" />
             {isPending ? "Enregistrement..." : uploadingPhoto ? "Photo en cours..." : "Enregistrer"}
           </Button>
         </div>

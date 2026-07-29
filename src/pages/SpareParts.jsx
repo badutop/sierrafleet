@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Package, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Search, Package, Pencil, Trash2, AlertTriangle, IdCard, Boxes, Coins, ArrowLeft, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
@@ -195,43 +195,69 @@ export default function SpareParts() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingPart ? "Modifier la pièce" : "Nouvelle pièce détachée"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <div className="col-span-2">
-              <Label className="text-xs">Désignation *</Label>
-              <Input className="mt-1" value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} />
-            </div>
-            <div><Label className="text-xs">Référence</Label><Input className="mt-1" value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></div>
-            <div>
-              <Label className="text-xs">Catégorie</Label>
-              <Select value={form.categorie} onValueChange={v => setForm({ ...form, categorie: v })}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(categorieLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">État</Label>
-              <Select value={form.etat} onValueChange={v => setForm({ ...form, etat: v })}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(etatLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label className="text-xs">Stock actuel</Label><Input type="number" className="mt-1" value={form.quantite_stock} onChange={e => setForm({ ...form, quantite_stock: e.target.value })} /></div>
-            <div><Label className="text-xs">Seuil min.</Label><Input type="number" className="mt-1" value={form.quantite_min} onChange={e => setForm({ ...form, quantite_min: e.target.value })} /></div>
-            <div className="col-span-2"><Label className="text-xs">Prix unitaire (FCFA)</Label><Input type="number" className="mt-1" value={form.prix_unitaire} onChange={e => setForm({ ...form, prix_unitaire: e.target.value })} /></div>
-            <div className="col-span-2">
-              <Label className="text-xs">Fournisseur</Label>
-              <Select value={form.supplier_id || ""} onValueChange={v => setForm({ ...form, supplier_id: v })}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner un fournisseur..." /></SelectTrigger>
-                <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.nom}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-2"><Label className="text-xs">Notes</Label><Input className="mt-1" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+          <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+            <Package className="w-5 h-5 text-secondary shrink-0" />
+            <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
+              {editingPart ? "Modifier la pièce" : "Nouvelle pièce détachée"}
+            </DialogTitle>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.designation}>
+          <p className="text-xs text-muted-foreground -mt-2">
+            {editingPart ? "Mettez à jour les informations de cette pièce" : "Renseignez les informations de la nouvelle pièce"}
+          </p>
+
+          <div className="space-y-3 mt-2">
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Identification</p>
+              <div><Label className="text-xs">Désignation *</Label><Input className="mt-1 bg-card" value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Référence</Label><Input className="mt-1 bg-card" value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></div>
+                <div>
+                  <Label className="text-xs">Catégorie</Label>
+                  <Select value={form.categorie} onValueChange={v => setForm({ ...form, categorie: v })}>
+                    <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.entries(categorieLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Boxes className="w-3.5 h-3.5" />Stock & état</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">État</Label>
+                  <Select value={form.etat} onValueChange={v => setForm({ ...form, etat: v })}>
+                    <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.entries(etatLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div><Label className="text-xs">Stock actuel</Label><Input type="number" className="mt-1 bg-card" value={form.quantite_stock} onChange={e => setForm({ ...form, quantite_stock: e.target.value })} /></div>
+                <div><Label className="text-xs">Seuil min.</Label><Input type="number" className="mt-1 bg-card" value={form.quantite_min} onChange={e => setForm({ ...form, quantite_min: e.target.value })} /></div>
+              </div>
+            </div>
+
+            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5"><Coins className="w-3.5 h-3.5" />Tarification & fournisseur</p>
+              <div><Label className="text-xs">Prix unitaire (FCFA)</Label><Input type="number" className="mt-1 bg-card" value={form.prix_unitaire} onChange={e => setForm({ ...form, prix_unitaire: e.target.value })} /></div>
+              <div>
+                <Label className="text-xs">Fournisseur</Label>
+                <Select value={form.supplier_id || ""} onValueChange={v => setForm({ ...form, supplier_id: v })}>
+                  <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Sélectionner un fournisseur..." /></SelectTrigger>
+                  <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.nom}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div><Label className="text-xs">Notes</Label><Input className="mt-1" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          </div>
+
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
+              <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
+            </Button>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.designation}>
+              <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>

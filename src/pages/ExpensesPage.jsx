@@ -5,9 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Receipt, Pencil, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Search, Receipt, Pencil, Trash2, CheckCircle, XCircle, FileStack, Truck, ArrowLeft, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ExpenseValidationPanel from "@/components/expenses/ExpenseValidationPanel";
@@ -264,80 +264,101 @@ export default function ExpensesPage() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{viewOnly ? "Consulter le frais" : editingExpense ? "Modifier le frais" : "Nouveau frais"}</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <div>
-              <Label className="text-xs">Type de frais {!viewOnly && "*"}</Label>
-              <Select
-                value={form.type_frais}
-                onValueChange={v => !viewOnly && setForm(f => ({
-                  ...f,
-                  type_frais: v,
-                  // "Autre" ne se rapporte pas nécessairement à un véhicule —
-                  // on efface l'affectation véhicule/chauffeur en changeant vers ce type.
-                  ...(v === "autre" ? { vehicle_id: "", driver_id: "" } : {}),
-                }))}
-                disabled={viewOnly}
-              >
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(typeLabelsForm).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Date {!viewOnly && "*"}</Label>
-              <Input type="date" className="mt-1" value={form.date_frais} onChange={e => setForm({ ...form, date_frais: e.target.value })} disabled={viewOnly} />
-            </div>
-            <div>
-              <Label className="text-xs">Montant (FCFA) {!viewOnly && "*"}</Label>
-              <Input type="number" className="mt-1" value={form.montant} onChange={e => setForm({ ...form, montant: e.target.value })} disabled={viewOnly} />
-            </div>
-            <div>
-              <Label className="text-xs">Statut</Label>
-              <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-muted/50 text-sm">
-                <span className={cn(statutColors[form.statut], "px-2 py-0.5 rounded text-xs font-medium")}>{statutLabels[form.statut] || "-"}</span>
-              </div>
-            </div>
-            {form.type_frais !== "autre" && (
-              <>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+          <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+            <Receipt className="w-5 h-5 text-secondary shrink-0" />
+            <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
+              {viewOnly ? "Consulter le frais" : editingExpense ? "Modifier le frais" : "Nouveau frais"}
+            </DialogTitle>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            {viewOnly ? "Détails de ce frais déjà validé" : editingExpense ? "Mettez à jour ce frais" : "Renseignez les informations du nouveau frais"}
+          </p>
+
+          <div className="space-y-3 mt-2">
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><FileStack className="w-3.5 h-3.5" />Détails du frais</p>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Véhicule</Label>
+                  <Label className="text-xs">Type de frais {!viewOnly && "*"}</Label>
                   <Select
-                    value={form.vehicle_id || "none"}
-                    onValueChange={v => {
-                      if (viewOnly) return;
-                      const vehicleId = v === "none" ? "" : v;
-                      const vehicle = vehicles.find(x => x.id === vehicleId);
-                      setForm(f => ({ ...f, vehicle_id: vehicleId, driver_id: vehicle?.driver_id || "" }));
-                    }}
+                    value={form.type_frais}
+                    onValueChange={v => !viewOnly && setForm(f => ({
+                      ...f,
+                      type_frais: v,
+                      // "Autre" ne se rapporte pas nécessairement à un véhicule —
+                      // on efface l'affectation véhicule/chauffeur en changeant vers ce type.
+                      ...(v === "autre" ? { vehicle_id: "", driver_id: "" } : {}),
+                    }))}
                     disabled={viewOnly}
                   >
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">-- Aucun --</SelectItem>
-                      {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}</SelectItem>)}
-                    </SelectContent>
+                    <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.entries(typeLabelsForm).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs">Chauffeur <span className="font-normal text-muted-foreground">(auto — véhicule)</span></Label>
-                  <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-muted/50 text-sm text-muted-foreground">
-                    {form.vehicle_id ? (driverMap[form.driver_id] || "Aucun chauffeur affecté à ce véhicule") : "Sélectionnez d'abord un véhicule"}
+                  <Label className="text-xs">Date {!viewOnly && "*"}</Label>
+                  <Input type="date" className="mt-1 bg-card" value={form.date_frais} onChange={e => setForm({ ...form, date_frais: e.target.value })} disabled={viewOnly} />
+                </div>
+                <div>
+                  <Label className="text-xs">Montant (FCFA) {!viewOnly && "*"}</Label>
+                  <Input type="number" className="mt-1 bg-card" value={form.montant} onChange={e => setForm({ ...form, montant: e.target.value })} disabled={viewOnly} />
+                </div>
+                <div>
+                  <Label className="text-xs">Statut</Label>
+                  <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-card text-sm">
+                    <span className={cn(statutColors[form.statut], "px-2 py-0.5 rounded text-xs font-medium")}>{statutLabels[form.statut] || "-"}</span>
                   </div>
                 </div>
-              </>
+              </div>
+            </div>
+
+            {form.type_frais !== "autre" && (
+              <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Truck className="w-3.5 h-3.5" />Affectation</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Véhicule</Label>
+                    <Select
+                      value={form.vehicle_id || "none"}
+                      onValueChange={v => {
+                        if (viewOnly) return;
+                        const vehicleId = v === "none" ? "" : v;
+                        const vehicle = vehicles.find(x => x.id === vehicleId);
+                        setForm(f => ({ ...f, vehicle_id: vehicleId, driver_id: vehicle?.driver_id || "" }));
+                      }}
+                      disabled={viewOnly}
+                    >
+                      <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">-- Aucun --</SelectItem>
+                        {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Chauffeur <span className="font-normal text-muted-foreground">(auto — véhicule)</span></Label>
+                    <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-card text-sm text-muted-foreground">
+                      {form.vehicle_id ? (driverMap[form.driver_id] || "Aucun chauffeur affecté à ce véhicule") : "Sélectionnez d'abord un véhicule"}
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
-            <div className="col-span-2">
+
+            <div>
               <Label className="text-xs">Description</Label>
               <Input className="mt-1" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} disabled={viewOnly} />
             </div>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button variant="outline" className="flex-1" onClick={closeDialog}>{viewOnly ? "Fermer" : "Annuler"}</Button>
+
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
+              <ArrowLeft className="w-4 h-4 mr-2" /> {viewOnly ? "Fermer" : "Annuler"}
+            </Button>
             {!viewOnly && (
-              <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.montant || !form.date_frais}>
+              <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.montant || !form.date_frais}>
+                <Save className="w-4 h-4 mr-2" />
                 {isPending ? "Enregistrement..." : "Enregistrer"}
               </Button>
             )}

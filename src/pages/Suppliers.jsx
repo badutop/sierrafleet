@@ -5,10 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Building2, Factory, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Building2, Factory, Pencil, Trash2, Phone, Mail, MapPin, ArrowLeft, Save, IdCard } from "lucide-react";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 
@@ -150,29 +150,51 @@ export default function Suppliers() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingSupplier ? "Modifier le fournisseur" : "Nouveau fournisseur"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <div className="col-span-2">
-              <Label className="text-xs">Nom du fournisseur *</Label>
-              <Input className="mt-1" value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} placeholder="ex: Pièces Auto Dakar" />
+        <DialogContent className="max-w-lg [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+          <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+            <Factory className="w-5 h-5 text-secondary shrink-0" />
+            <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
+              {editingSupplier ? "Modifier le fournisseur" : "Nouveau fournisseur"}
+            </DialogTitle>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            {editingSupplier ? "Mettez à jour les informations de ce fournisseur" : "Renseignez les informations du nouveau fournisseur"}
+          </p>
+
+          <div className="space-y-3 mt-2">
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Identification</p>
+              <div>
+                <Label className="text-xs">Nom du fournisseur *</Label>
+                <Input className="mt-1" value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} placeholder="ex: Pièces Auto Dakar" />
+              </div>
             </div>
-            <div>
-              <Label className="text-xs">Téléphone</Label>
-              <Input className="mt-1" value={form.telephone} onChange={e => setForm({ ...form, telephone: e.target.value })} placeholder="+221 77 123 45 67" />
-            </div>
-            <div>
-              <Label className="text-xs">Email</Label>
-              <Input className="mt-1" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="contact@fournisseur.sn" />
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Adresse</Label>
-              <Input className="mt-1" value={form.adresse} onChange={e => setForm({ ...form, adresse: e.target.value })} placeholder="123 Rue du Commerce, Dakar" />
+
+            <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />Coordonnées</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs flex items-center gap-1"><Phone className="w-3 h-3" />Téléphone</Label>
+                  <Input className="mt-1 bg-card" value={form.telephone} onChange={e => setForm({ ...form, telephone: e.target.value })} placeholder="+221 77 123 45 67" />
+                </div>
+                <div>
+                  <Label className="text-xs flex items-center gap-1"><Mail className="w-3 h-3" />Email</Label>
+                  <Input className="mt-1 bg-card" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="contact@fournisseur.sn" />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs flex items-center gap-1"><MapPin className="w-3 h-3" />Adresse</Label>
+                  <Input className="mt-1 bg-card" value={form.adresse} onChange={e => setForm({ ...form, adresse: e.target.value })} placeholder="123 Rue du Commerce, Dakar" />
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.nom.trim()}>
+
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
+              <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
+            </Button>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.nom.trim()}>
+              <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,16 +115,16 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-2">
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-secondary" />
-              Commande pièce garage
-            </DialogTitle>
-            <Badge className={cn("text-[10px]", STATUT_BADGE[order.statut])}>{STATUT_LABEL[order.statut]}</Badge>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+        <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <FileText className="w-5 h-5 text-secondary shrink-0" />
+            <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">Commande pièce garage</DialogTitle>
           </div>
-        </DialogHeader>
+        </div>
+        <div className="flex justify-end -mt-1">
+          <Badge className={cn("text-[10px]", STATUT_BADGE[order.statut])}>{STATUT_LABEL[order.statut]}</Badge>
+        </div>
 
         {/* Stepper */}
         {!isCancelled && (
@@ -173,15 +173,15 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 mt-4">
-            <div className="bg-muted/50 rounded-lg px-3 py-2 text-xs">
+            <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
               <span className="text-muted-foreground">Pièce</span>
               <p className="font-semibold text-sm mt-0.5">{order.designation}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg px-3 py-2 text-xs">
+            <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
               <span className="text-muted-foreground">Quantité</span>
               <p className="font-semibold text-sm mt-0.5">{order.quantite}</p>
             </div>
-            <div className="col-span-2 bg-muted/50 rounded-lg px-3 py-2 text-xs">
+            <div className="col-span-2 bg-muted/50 rounded-2xl px-3 py-3 text-xs">
               <span className="text-muted-foreground">Véhicule</span>
               <p className="font-semibold text-sm mt-0.5">
                 {vehicle ? `${vehicle.code_camion ? `[${vehicle.code_camion}] ` : ""}${vehicle.immatriculation}` : "—"}
@@ -228,19 +228,19 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
         {/* Infos commande une fois lancée */}
         {order.statut !== "en_attente" && !isCancelled && (
           <div className="grid grid-cols-2 gap-3 mt-3 border-t border-border pt-3">
-            <div className="bg-muted/50 rounded-lg px-3 py-2 text-xs">
+            <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
               <span className="text-muted-foreground">Fournisseur</span>
               <p className="font-semibold text-sm mt-0.5">{supplierMap[order.supplier_id]?.nom || "—"}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg px-3 py-2 text-xs">
+            <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
               <span className="text-muted-foreground">Date commande</span>
               <p className="font-semibold text-sm mt-0.5">{order.date_commande || "—"}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg px-3 py-2 text-xs">
+            <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
               <span className="text-muted-foreground">Livraison prévue</span>
               <p className="font-semibold text-sm mt-0.5">{order.date_livraison_prevue || "—"}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg px-3 py-2 text-xs">
+            <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
               <span className="text-muted-foreground">Montant total</span>
               <p className="font-semibold text-sm mt-0.5">{(order.montant_total || 0).toLocaleString("fr-FR")} FCFA</p>
             </div>
@@ -281,15 +281,15 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
         {/* Facture reçue — échéance de paiement */}
         {order.statut === "facture_recue" && (
           <div className="border-t border-border pt-3 mt-3 grid grid-cols-2 gap-3">
-            <div className="bg-muted/50 rounded-lg px-3 py-2 text-xs">
+            <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
               <span className="text-muted-foreground">Date facture</span>
               <p className="font-semibold text-sm mt-0.5">{order.date_facture || "—"}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg px-3 py-2 text-xs">
+            <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
               <span className="text-muted-foreground">Montant facture</span>
               <p className="font-semibold text-sm mt-0.5">{(order.montant_facture || 0).toLocaleString("fr-FR")} FCFA</p>
             </div>
-            <div className={cn("col-span-2 rounded-lg px-3 py-2 text-xs border", echeanceClass)}>
+            <div className={cn("col-span-2 rounded-2xl px-3 py-3 text-xs border", echeanceClass)}>
               <span className="opacity-70">Échéance de paiement</span>
               <p className="font-bold text-sm mt-0.5">
                 {order.date_echeance ? new Date(order.date_echeance).toLocaleDateString("fr-FR") : "—"} {echeanceDaysLabel}
@@ -310,40 +310,40 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
         )}
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-2 mt-4">
+        <div className="flex flex-wrap gap-3 mt-4">
           {(order.statut === "en_attente" || order.statut === "commandee") && (
-            <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => onCancel(order.id)} disabled={isPending}>
+            <Button variant="outline" className="h-11 rounded-xl font-bold text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => onCancel(order.id)} disabled={isPending}>
               <XCircle className="w-3.5 h-3.5 mr-1.5" /> Annuler commande
             </Button>
           )}
           {order.statut === "en_attente" && (
-            <Button variant="outline" className="gap-1.5" onClick={handleSaveDraft} disabled={isPending}>
+            <Button variant="outline" className="h-11 rounded-xl font-bold gap-1.5" onClick={handleSaveDraft} disabled={isPending}>
               <Save className="w-3.5 h-3.5" /> Enregistrer
             </Button>
           )}
-          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>Fermer</Button>
+          <Button variant="outline" className="flex-1 h-11 rounded-xl font-bold" onClick={() => onOpenChange(false)}>Fermer</Button>
           {order.statut === "en_attente" && (
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-1.5" onClick={handleLaunch} disabled={!form.supplier_id || isPending}>
+            <Button className="flex-1 h-11 rounded-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-1.5" onClick={handleLaunch} disabled={!form.supplier_id || isPending}>
               <Send className="w-3.5 h-3.5" /> {isPending ? "Enregistrement..." : "Lancer la commande"} <ChevronRight className="w-3 h-3" />
             </Button>
           )}
           {order.statut === "commandee" && (
-            <Button className="flex-1 bg-purple-600 hover:bg-purple-700 text-white gap-1.5" onClick={() => onConfirm(order.id)} disabled={isPending}>
+            <Button className="flex-1 h-11 rounded-xl font-bold bg-purple-600 hover:bg-purple-700 text-white gap-1.5" onClick={() => onConfirm(order.id)} disabled={isPending}>
               <CheckCircle2 className="w-3.5 h-3.5" /> {isPending ? "Enregistrement..." : "Marquer confirmée"}
             </Button>
           )}
           {order.statut === "confirmee" && (
-            <Button className="flex-1 bg-teal-600 hover:bg-teal-700 text-white gap-1.5" onClick={() => onReceive(order.id)} disabled={isPending}>
+            <Button className="flex-1 h-11 rounded-xl font-bold bg-teal-600 hover:bg-teal-700 text-white gap-1.5" onClick={() => onReceive(order.id)} disabled={isPending}>
               <Package className="w-3.5 h-3.5" /> {isPending ? "Enregistrement..." : "Marquer reçue"}
             </Button>
           )}
           {order.statut === "recue" && (
-            <Button className="flex-1 bg-orange-600 hover:bg-orange-700 text-white gap-1.5" onClick={handleConfirmInvoice} disabled={!invoiceForm.date_facture || !invoiceForm.montant_facture || isPending}>
+            <Button className="flex-1 h-11 rounded-xl font-bold bg-orange-600 hover:bg-orange-700 text-white gap-1.5" onClick={handleConfirmInvoice} disabled={!invoiceForm.date_facture || !invoiceForm.montant_facture || isPending}>
               <Receipt className="w-3.5 h-3.5" /> {isPending ? "Enregistrement..." : "Confirmer réception facture"}
             </Button>
           )}
           {order.statut === "facture_recue" && (
-            <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5" onClick={() => onPaid(order.id)} disabled={isPending}>
+            <Button className="flex-1 h-11 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5" onClick={() => onPaid(order.id)} disabled={isPending}>
               <Banknote className="w-3.5 h-3.5" /> {isPending ? "Enregistrement..." : "Marquer payée"}
             </Button>
           )}

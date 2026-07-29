@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, User, Users, Pencil, Trash2, Upload, ExternalLink, Loader2, X, Camera, Search } from "lucide-react";
+import { Plus, User, Users, Pencil, Trash2, Upload, ExternalLink, Loader2, X, Camera, Search, IdCard, FileStack, PhoneCall, ArrowLeft, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
@@ -266,44 +266,62 @@ export default function Drivers() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingDriver ? "Modifier le chauffeur" : "Nouveau chauffeur"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <DriverPhotoField value={form.photo_url} onUploaded={(url) => setForm(f => ({ ...f, photo_url: url }))} />
-            {[["prenom","Prénom"],["nom","Nom"],["telephone","Téléphone"],["numero_permis","N° Permis"],["categorie_permis","Catégorie permis"]].map(([k, l]) => (
-              <div key={k}><Label className="text-xs">{l}</Label><Input className="mt-1" value={form[k] || ""} onChange={e => setForm({ ...form, [k]: e.target.value })} /></div>
-            ))}
-            <div>
-              <Label className="text-xs">Expiration permis</Label>
-              <Input type="date" className="mt-1" value={form.date_expiration_permis || ""} onChange={e => setForm({ ...form, date_expiration_permis: e.target.value })} />
-            </div>
-            <div>
-              <Label className="text-xs">Date d'embauche</Label>
-              <Input type="date" className="mt-1" value={form.date_embauche || ""} onChange={e => setForm({ ...form, date_embauche: e.target.value })} />
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+          <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+            <Users className="w-5 h-5 text-secondary shrink-0" />
+            <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
+              {editingDriver ? "Modifier le chauffeur" : "Nouveau chauffeur"}
+            </DialogTitle>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            {editingDriver ? "Mettez à jour les informations de ce chauffeur" : "Renseignez les informations du nouveau chauffeur"}
+          </p>
+
+          <div className="space-y-3 mt-2">
+            {/* Identification */}
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Identification</p>
+              <div className="grid grid-cols-2 gap-3">
+                <DriverPhotoField value={form.photo_url} onUploaded={(url) => setForm(f => ({ ...f, photo_url: url }))} />
+                {[["prenom","Prénom"],["nom","Nom"],["telephone","Téléphone"],["numero_permis","N° Permis"],["categorie_permis","Catégorie permis"]].map(([k, l]) => (
+                  <div key={k}><Label className="text-xs">{l}</Label><Input className="mt-1 bg-card" value={form[k] || ""} onChange={e => setForm({ ...form, [k]: e.target.value })} /></div>
+                ))}
+                <div>
+                  <Label className="text-xs">Expiration permis</Label>
+                  <Input type="date" className="mt-1 bg-card" value={form.date_expiration_permis || ""} onChange={e => setForm({ ...form, date_expiration_permis: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Date d'embauche</Label>
+                  <Input type="date" className="mt-1 bg-card" value={form.date_embauche || ""} onChange={e => setForm({ ...form, date_embauche: e.target.value })} />
+                </div>
+              </div>
             </div>
 
-            {/* Documents obligatoires */}
-            <div className="col-span-2 border-t border-border pt-3">
-              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Documents d'identité</p>
-            </div>
-            <div className="col-span-2 grid grid-cols-1 gap-3">
-              <DocUploadField label="Scan Permis de conduire" value={form.doc_permis_url} fieldKey="doc_permis_url" onUploaded={handleDocUploaded} />
-              <DocUploadField label="Scan CNI (Carte Nationale d'Identité)" value={form.doc_cni_url} fieldKey="doc_cni_url" onUploaded={handleDocUploaded} />
+            {/* Documents d'identité */}
+            <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><FileStack className="w-3.5 h-3.5" />Documents d'identité</p>
+              <div className="grid grid-cols-1 gap-3">
+                <DocUploadField label="Scan Permis de conduire" value={form.doc_permis_url} fieldKey="doc_permis_url" onUploaded={handleDocUploaded} />
+                <DocUploadField label="Scan CNI (Carte Nationale d'Identité)" value={form.doc_cni_url} fieldKey="doc_cni_url" onUploaded={handleDocUploaded} />
+              </div>
             </div>
 
             {/* Contact urgence */}
-            <div className="col-span-2 border-t border-border pt-3">
-              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Contact d'urgence</p>
+            <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5"><PhoneCall className="w-3.5 h-3.5" />Contact d'urgence</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Nom du contact</Label>
+                  <Input className="mt-1 bg-card" placeholder="Nom & prénom" value={form.contact_urgence_nom || ""} onChange={e => setForm({ ...form, contact_urgence_nom: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Téléphone urgence</Label>
+                  <Input className="mt-1 bg-card" placeholder="+221..." value={form.contact_urgence_telephone || ""} onChange={e => setForm({ ...form, contact_urgence_telephone: e.target.value })} />
+                </div>
+              </div>
             </div>
+
             <div>
-              <Label className="text-xs">Nom du contact</Label>
-              <Input className="mt-1" placeholder="Nom & prénom" value={form.contact_urgence_nom || ""} onChange={e => setForm({ ...form, contact_urgence_nom: e.target.value })} />
-            </div>
-            <div>
-              <Label className="text-xs">Téléphone urgence</Label>
-              <Input className="mt-1" placeholder="+221..." value={form.contact_urgence_telephone || ""} onChange={e => setForm({ ...form, contact_urgence_telephone: e.target.value })} />
-            </div>
-            <div className="col-span-2">
               <Label className="text-xs">Statut</Label>
               <Select value={form.statut || "actif"} onValueChange={v => setForm({ ...form, statut: v })}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
@@ -311,9 +329,13 @@ export default function Drivers() {
               </Select>
             </div>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending}>
+
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
+              <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
+            </Button>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending}>
+              <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>

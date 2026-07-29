@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserCog, Mail, Pencil, Trash2, UserPlus, Truck } from "lucide-react";
+import { UserCog, Mail, Pencil, Trash2, UserPlus, Truck, IdCard, ShieldCheck, ArrowLeft, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ModuleSelector, { ALL_MODULES } from "@/components/users/ModuleSelector";
@@ -287,78 +287,44 @@ export default function UsersPage() {
 
       {/* Create User Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Créer un utilisateur</DialogTitle></DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div>
-              <Label className="text-xs">Nom complet</Label>
-              <Input className="mt-1" placeholder="Ex: Amadou Diop" value={inviteFullName} onChange={e => setInviteFullName(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Adresse email *</Label>
-              <Input type="email" className="mt-1" placeholder="utilisateur@exemple.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Mot de passe * (8 caractères min.)</Label>
-              <Input type="password" className="mt-1" placeholder="Mot de passe" value={invitePassword} onChange={e => setInvitePassword(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Rôle</Label>
-              <Select value={inviteRole} onValueChange={setInviteRole}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            {inviteRole === "chauffeur" ? (
-              <div>
-                <Label className="text-xs">Chauffeur associé</Label>
-                <Select value={inviteDriverId} onValueChange={setInviteDriverId}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner un chauffeur..." /></SelectTrigger>
-                  <SelectContent>
-                    {drivers.filter(d => d.statut !== "inactif").map(d => (
-                      <SelectItem key={d.id} value={d.id}>{d.prenom} {d.nom}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">Le chauffeur et son véhicule seront affichés automatiquement.</p>
-              </div>
-            ) : inviteRole !== "admin" && (
-              <div>
-                <Label className="text-xs mb-2 block">Modules autorisés</Label>
-                <div className="border border-border rounded-lg p-3 bg-muted/30">
-                  <ModuleSelector selected={inviteModules} onChange={setInviteModules} />
-                </div>
-              </div>
-            )}
+        <DialogContent className="max-w-lg [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+          <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+            <UserPlus className="w-5 h-5 text-secondary shrink-0" />
+            <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">Créer un utilisateur</DialogTitle>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button variant="outline" className="flex-1" onClick={() => setInviteOpen(false)}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleCreateUser} disabled={inviting || !inviteEmail || invitePassword.length < 8}>
-              {inviting ? "Création..." : "Créer l'utilisateur"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+          <p className="text-xs text-muted-foreground -mt-2">Renseignez les identifiants et les droits d'accès du nouvel utilisateur</p>
 
-      {/* Edit Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Modifier l'accès</DialogTitle></DialogHeader>
-          {editingUser && (
-            <div className="space-y-4 mt-2">
-              <p className="text-sm text-muted-foreground">{editingUser.full_name} — {editingUser.email}</p>
+          <div className="space-y-3 mt-2">
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Identification</p>
+              <div>
+                <Label className="text-xs">Nom complet</Label>
+                <Input className="mt-1 bg-card" placeholder="Ex: Amadou Diop" value={inviteFullName} onChange={e => setInviteFullName(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Adresse email *</Label>
+                <Input type="email" className="mt-1 bg-card" placeholder="utilisateur@exemple.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Mot de passe * (8 caractères min.)</Label>
+                <Input type="password" className="mt-1 bg-card" placeholder="Mot de passe" value={invitePassword} onChange={e => setInvitePassword(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" />Rôle & accès</p>
               <div>
                 <Label className="text-xs">Rôle</Label>
-                <Select value={editRole} onValueChange={setEditRole}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <Select value={inviteRole} onValueChange={setInviteRole}>
+                  <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              {editRole === "chauffeur" ? (
+              {inviteRole === "chauffeur" ? (
                 <div>
                   <Label className="text-xs">Chauffeur associé</Label>
-                  <Select value={editDriverId} onValueChange={setEditDriverId}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner un chauffeur..." /></SelectTrigger>
+                  <Select value={inviteDriverId} onValueChange={setInviteDriverId}>
+                    <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Sélectionner un chauffeur..." /></SelectTrigger>
                     <SelectContent>
                       {drivers.filter(d => d.statut !== "inactif").map(d => (
                         <SelectItem key={d.id} value={d.id}>{d.prenom} {d.nom}</SelectItem>
@@ -367,17 +333,86 @@ export default function UsersPage() {
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">Le chauffeur et son véhicule seront affichés automatiquement.</p>
                 </div>
-              ) : editRole !== "admin" && (
+              ) : inviteRole !== "admin" && (
                 <div>
                   <Label className="text-xs mb-2 block">Modules autorisés</Label>
-                  <div className="border border-border rounded-lg p-3 bg-muted/30">
-                    <ModuleSelector selected={editModules} onChange={setEditModules} />
+                  <div className="border border-border rounded-lg p-3 bg-card">
+                    <ModuleSelector selected={inviteModules} onChange={setInviteModules} />
                   </div>
                 </div>
               )}
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setEditOpen(false)}>Annuler</Button>
-                <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSaveEdit} disabled={updateMutation.isPending}>
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={() => setInviteOpen(false)}>
+              <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
+            </Button>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleCreateUser} disabled={inviting || !inviteEmail || invitePassword.length < 8}>
+              <Save className="w-4 h-4 mr-2" />
+              {inviting ? "Création..." : "Créer l'utilisateur"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+          <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+            <Pencil className="w-5 h-5 text-secondary shrink-0" />
+            <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">Modifier l'accès</DialogTitle>
+          </div>
+          {editingUser && (
+            <div className="space-y-3 mt-2">
+              <div className="bg-muted/40 border border-border rounded-2xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <UserCog className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">{editingUser.full_name || "—"}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{editingUser.email}</p>
+                </div>
+              </div>
+
+              <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
+                <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" />Rôle & accès</p>
+                <div>
+                  <Label className="text-xs">Rôle</Label>
+                  <Select value={editRole} onValueChange={setEditRole}>
+                    <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                {editRole === "chauffeur" ? (
+                  <div>
+                    <Label className="text-xs">Chauffeur associé</Label>
+                    <Select value={editDriverId} onValueChange={setEditDriverId}>
+                      <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Sélectionner un chauffeur..." /></SelectTrigger>
+                      <SelectContent>
+                        {drivers.filter(d => d.statut !== "inactif").map(d => (
+                          <SelectItem key={d.id} value={d.id}>{d.prenom} {d.nom}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">Le chauffeur et son véhicule seront affichés automatiquement.</p>
+                  </div>
+                ) : editRole !== "admin" && (
+                  <div>
+                    <Label className="text-xs mb-2 block">Modules autorisés</Label>
+                    <div className="border border-border rounded-lg p-3 bg-card">
+                      <ModuleSelector selected={editModules} onChange={setEditModules} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={() => setEditOpen(false)}>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
+                </Button>
+                <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSaveEdit} disabled={updateMutation.isPending}>
+                  <Save className="w-4 h-4 mr-2" />
                   {updateMutation.isPending ? "Enregistrement..." : "Enregistrer"}
                 </Button>
               </div>

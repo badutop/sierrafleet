@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Ship, Pencil, Trash2, ArrowRight, Package, Rows3, Archive } from "lucide-react";
+import { Plus, Search, Ship, Pencil, Trash2, ArrowRight, Package, Rows3, Archive, Users, MapPinned, CalendarClock, ArrowLeft, Save } from "lucide-react";
 import TruckAssignmentBoard from "@/components/campaigns/TruckAssignmentBoard";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -342,27 +342,59 @@ export default function CampaignsList() {
       ) : null}
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingCampaign ? "Modifier la campagne" : "Nouvelle campagne"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <div className="col-span-2">
-              <Label className="text-xs">Nom de la campagne *</Label>
-              <Input className="mt-1" value={form.nom_campagne} onChange={e => setForm({ ...form, nom_campagne: e.target.value })} />
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+          <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+            <Ship className="w-5 h-5 text-secondary shrink-0" />
+            <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
+              {editingCampaign ? "Modifier la campagne" : "Nouvelle campagne"}
+            </DialogTitle>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            {editingCampaign ? "Mettez à jour les informations de cette campagne" : "Renseignez les informations de la nouvelle campagne"}
+          </p>
+
+          <div className="space-y-3 mt-2">
+            {/* Campagne */}
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Ship className="w-3.5 h-3.5" />Campagne</p>
+              <div>
+                <Label className="text-xs">Nom de la campagne *</Label>
+                <Input className="mt-1 bg-card" value={form.nom_campagne} onChange={e => setForm({ ...form, nom_campagne: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Navire *</Label>
+                  <Input className="mt-1 bg-card" value={form.navire || ""} onChange={e => setForm({ ...form, navire: e.target.value })} placeholder="Nom du navire" />
+                </div>
+                <div>
+                  <Label className="text-xs">Type de marchandise *</Label>
+                  <Select value={form.type_marchandise || "none"} onValueChange={v => setForm({ ...form, type_marchandise: v === "none" ? "" : v })}>
+                    <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- Sélectionner --</SelectItem>
+                      {cerealTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Clients * <span className="text-muted-foreground font-normal">(un bateau peut être partagé par plusieurs clients)</span></Label>
-              <div className="space-y-2 mt-1">
+
+            {/* Clients & tonnage */}
+            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />Clients & tonnage</p>
+              <p className="text-[11px] text-muted-foreground -mt-2">Un bateau peut être partagé par plusieurs clients</p>
+              <div className="space-y-2">
                 {form.clients.map((row, i) => (
                   <div key={i} className="flex gap-2 items-start">
                     <Select value={row.client_id || "none"} onValueChange={v => updateClientRow(i, "client_id", v === "none" ? "" : v)}>
-                      <SelectTrigger className="flex-1"><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
+                      <SelectTrigger className="flex-1 bg-card"><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">-- Sélectionner --</SelectItem>
                         {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <Input
-                      type="number" placeholder="Tonnage (T)" className="w-32"
+                      type="number" placeholder="Tonnage (T)" className="w-32 bg-card"
                       value={row.tonnage_prevu}
                       onChange={e => updateClientRow(i, "tonnage_prevu", e.target.value)}
                     />
@@ -375,93 +407,94 @@ export default function CampaignsList() {
                   </div>
                 ))}
               </div>
-              <Button type="button" size="sm" variant="outline" className="mt-2 h-8 text-xs" onClick={addClientRow}>
+              <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={addClientRow}>
                 <Plus className="w-3.5 h-3.5 mr-1" /> Ajouter un client
               </Button>
             </div>
-            <div>
-              <Label className="text-xs">Navire *</Label>
-              <Input className="mt-1" value={form.navire || ""} onChange={e => setForm({ ...form, navire: e.target.value })} placeholder="Nom du navire" />
-            </div>
-            <div>
-              <Label className="text-xs">Type de marchandise *</Label>
-              <Select value={form.type_marchandise || "none"} onValueChange={v => setForm({ ...form, type_marchandise: v === "none" ? "" : v })}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- Sélectionner --</SelectItem>
-                  {cerealTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Point de départ *</Label>
-              <Select value={form.point_origine || "none"} onValueChange={v => setForm({ ...form, point_origine: v === "none" ? "" : v })}>
-                <SelectTrigger className="mt-1 h-9">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- Sélectionner --</SelectItem>
-                  {/* Dépôts du client */}
-                  {depots.filter(d => selectedClientIds.includes(d.client_id)).length > 0 && (
-                    <>
-                      <SelectItem disabled value="depots-label">Dépôts du client</SelectItem>
-                      {depots.filter(d => selectedClientIds.includes(d.client_id)).map(d => (
-                        <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
+
+            {/* Itinéraire */}
+            <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><MapPinned className="w-3.5 h-3.5" />Itinéraire</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Point de départ *</Label>
+                  <Select value={form.point_origine || "none"} onValueChange={v => setForm({ ...form, point_origine: v === "none" ? "" : v })}>
+                    <SelectTrigger className="mt-1 h-9 bg-card">
+                      <SelectValue placeholder="Sélectionner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- Sélectionner --</SelectItem>
+                      {/* Dépôts du client */}
+                      {depots.filter(d => selectedClientIds.includes(d.client_id)).length > 0 && (
+                        <>
+                          <SelectItem disabled value="depots-label">Dépôts du client</SelectItem>
+                          {depots.filter(d => selectedClientIds.includes(d.client_id)).map(d => (
+                            <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
+                          ))}
+                        </>
+                      )}
+                      {/* Môles du Port de Dakar */}
+                      <SelectItem disabled value="moles-label">Môles du Port de Dakar</SelectItem>
+                      {portMoles.map(m => (
+                        <SelectItem key={m.id} value={m.id}>{m.nom}</SelectItem>
                       ))}
-                    </>
-                  )}
-                  {/* Môles du Port de Dakar */}
-                  <SelectItem disabled value="moles-label">Môles du Port de Dakar</SelectItem>
-                  {portMoles.map(m => (
-                    <SelectItem key={m.id} value={m.id}>{m.nom}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Destination *</Label>
-              <Select value={form.depot_destination_id || "none"} onValueChange={v => setForm({ ...form, depot_destination_id: v === "none" ? "" : v })}>
-                <SelectTrigger className="mt-1 h-9">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- Sélectionner --</SelectItem>
-                  {/* Dépôts du client */}
-                  {depots.filter(d => selectedClientIds.includes(d.client_id)).length > 0 && (
-                    <>
-                      <SelectItem disabled value="depots-label">Dépôts du client</SelectItem>
-                      {depots.filter(d => selectedClientIds.includes(d.client_id)).map(d => (
-                        <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Destination *</Label>
+                  <Select value={form.depot_destination_id || "none"} onValueChange={v => setForm({ ...form, depot_destination_id: v === "none" ? "" : v })}>
+                    <SelectTrigger className="mt-1 h-9 bg-card">
+                      <SelectValue placeholder="Sélectionner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- Sélectionner --</SelectItem>
+                      {/* Dépôts du client */}
+                      {depots.filter(d => selectedClientIds.includes(d.client_id)).length > 0 && (
+                        <>
+                          <SelectItem disabled value="depots-label">Dépôts du client</SelectItem>
+                          {depots.filter(d => selectedClientIds.includes(d.client_id)).map(d => (
+                            <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
+                          ))}
+                        </>
+                      )}
+                      {/* Môles du Port de Dakar */}
+                      <SelectItem disabled value="moles-label">Môles du Port de Dakar</SelectItem>
+                      {portMoles.map(m => (
+                        <SelectItem key={m.id} value={m.id}>{m.nom}</SelectItem>
                       ))}
-                    </>
-                  )}
-                  {/* Môles du Port de Dakar */}
-                  <SelectItem disabled value="moles-label">Môles du Port de Dakar</SelectItem>
-                  {portMoles.map(m => (
-                    <SelectItem key={m.id} value={m.id}>{m.nom}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div>
-              <Label className="text-xs">Date début</Label>
-              <Input
-                type="date"
-                className="mt-1"
-                value={form.date_debut}
-                onChange={e => setForm(prev => recalc({ ...prev, date_debut: e.target.value }))}
-              />
+
+            {/* Planification */}
+            <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5" />Planification</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Date début</Label>
+                  <Input
+                    type="date"
+                    className="mt-1 bg-card"
+                    value={form.date_debut}
+                    onChange={e => setForm(prev => recalc({ ...prev, date_debut: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Durée prévue (jours) *</Label>
+                  <Input
+                    type="number"
+                    className="mt-1 bg-card"
+                    value={form.duree_prevue_jours}
+                    onChange={e => setForm(prev => recalc({ ...prev, duree_prevue_jours: e.target.value }))}
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <Label className="text-xs">Durée prévue (jours) *</Label>
-              <Input
-                type="number"
-                className="mt-1"
-                value={form.duree_prevue_jours}
-                onChange={e => setForm(prev => recalc({ ...prev, duree_prevue_jours: e.target.value }))}
-              />
-            </div>
-            <div className="col-span-2 rounded-xl border-2 border-secondary bg-secondary/10 p-3">
+
+            <div className="rounded-2xl border-2 border-secondary bg-secondary/10 p-4">
               <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">Prévisions (calculées automatiquement)</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Tonnage total</span><span className="font-semibold">{totalTonnage || 0} T</span></div>
@@ -477,18 +510,22 @@ export default function CampaignsList() {
               </p>
             </div>
 
-            <div className="col-span-2">
+            <div>
               <Label className="text-xs">Statut</Label>
               <Select value={form.statut} onValueChange={v => setForm({ ...form, statut: v })} disabled={!editingCampaign}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(statutLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="col-span-2"><Label className="text-xs">Observations</Label><Input className="mt-1" value={form.observations} onChange={e => setForm({ ...form, observations: e.target.value })} /></div>
+            <div><Label className="text-xs">Observations</Label><Input className="mt-1" value={form.observations} onChange={e => setForm({ ...form, observations: e.target.value })} /></div>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button variant="outline" className="flex-1" onClick={closeDialog}>Annuler</Button>
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={isPending || !form.nom_campagne || !selectedClientIds.length || !totalTonnage || !form.type_marchandise || !form.point_origine || !form.depot_destination_id}>
+
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
+              <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
+            </Button>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.nom_campagne || !selectedClientIds.length || !totalTonnage || !form.type_marchandise || !form.point_origine || !form.depot_destination_id}>
+              <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>

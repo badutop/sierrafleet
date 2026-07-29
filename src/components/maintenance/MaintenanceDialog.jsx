@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Wrench, AlertTriangle, Plus, X, ShoppingCart } from "lucide-react";
+import { Wrench, AlertTriangle, Plus, X, ShoppingCart, IdCard, Package, CalendarClock, ArrowLeft, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -155,20 +155,22 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wrench className="w-4 h-4 text-secondary" />
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+        <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+          <Wrench className="w-5 h-5 text-secondary shrink-0" />
+          <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
             {entry ? "Détail de l'intervention" : "Nouvelle intervention"}
           </DialogTitle>
-        </DialogHeader>
+        </div>
 
-        <div className="grid grid-cols-2 gap-3 mt-2">
+        <div className="space-y-3 mt-2">
+        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
+          <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Intervention</p>
           {/* Véhicule */}
-          <div className="col-span-2">
+          <div>
             <Label className="text-xs">Véhicule *</Label>
             <Select value={form.vehicle_id || ""} onValueChange={v => set("vehicle_id", v)}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder="— Sélectionner un véhicule —" /></SelectTrigger>
+              <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="— Sélectionner un véhicule —" /></SelectTrigger>
               <SelectContent>
                 {vehicles.map(v => (
                   <SelectItem key={v.id} value={v.id}>
@@ -180,30 +182,35 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
             {!form.vehicle_id && <p className="text-[11px] text-destructive mt-1">Véhicule requis pour enregistrer</p>}
           </div>
 
-          {/* Catégorie */}
-          <div>
-            <Label className="text-xs">Catégorie *</Label>
-            <Select value={form.categorie} onValueChange={v => set("categorie", v)}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(categorieLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Catégorie */}
+            <div>
+              <Label className="text-xs">Catégorie *</Label>
+              <Select value={form.categorie} onValueChange={v => set("categorie", v)}>
+                <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(categorieLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Type */}
-          <div>
-            <Label className="text-xs">Type d'intervention *</Label>
-            <Select value={form.type_entretien} onValueChange={v => set("type_entretien", v)}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            {/* Type */}
+            <div>
+              <Label className="text-xs">Type d'intervention *</Label>
+              <Select value={form.type_entretien} onValueChange={v => set("type_entretien", v)}>
+                <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+        </div>
 
+        <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+          <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Package className="w-3.5 h-3.5" />Pièces & coût</p>
           {/* Pièces */}
-          <div className="col-span-2">
+          <div>
             <Label className="text-xs">Pièces remplacées</Label>
             {!isReadOnly && (
               <div className="flex gap-2 mt-1">
@@ -270,84 +277,85 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
           </div>
 
           {/* Coût — provient du prix catalogue des pièces, jamais saisi ici */}
-          <div className="col-span-2 bg-muted/50 rounded-lg px-3 py-2 flex justify-between items-center text-xs">
+          <div className="bg-card rounded-lg px-3 py-2 flex justify-between items-center text-xs border border-border">
             <span className="text-muted-foreground">Coût pièces (prix catalogue)</span>
             <span className="font-bold text-secondary text-sm">{coutTotal.toLocaleString("fr-FR")} FCFA</span>
           </div>
 
           {/* Désignation — générée automatiquement */}
-          <div className="col-span-2 bg-muted/50 rounded-lg px-3 py-2 text-xs">
+          <div className="bg-card rounded-lg px-3 py-2 text-xs border border-border">
             <span className="text-muted-foreground">Désignation / Titre (générée)</span>
             <p className="font-semibold text-foreground text-sm mt-0.5">{form.designation || "—"}</p>
           </div>
+        </div>
 
-          {/* Gravité (corrective only) */}
-          {isCorrective && (
-            <div>
-              <Label className="text-xs">Gravité</Label>
-              <Select value={form.gravite} onValueChange={v => set("gravite", v)}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(graviteLabels).map(([k, v]) => (
-                    <SelectItem key={k} value={k}><span className={graviteColors[k]}>{v}</span></SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {isCorrective && (
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" />Détails de la panne</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Gravité</Label>
+                <Select value={form.gravite} onValueChange={v => set("gravite", v)}>
+                  <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(graviteLabels).map(([k, v]) => (
+                      <SelectItem key={k} value={k}><span className={graviteColors[k]}>{v}</span></SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Immobilisation (jours)</Label>
+                <Input type="number" min="0" className="mt-1 bg-card" placeholder="0" value={form.duree_immobilisation_jours} onChange={e => set("duree_immobilisation_jours", e.target.value)} />
+              </div>
             </div>
-          )}
-
-          {/* Description panne (corrective) */}
-          {isCorrective && (
-            <div className="col-span-2">
+            <div>
               <Label className="text-xs">Description du problème</Label>
-              <Textarea className="mt-1 text-sm" rows={2} placeholder="Décrivez la panne ou le dysfonctionnement observé..." value={form.description_panne} onChange={e => set("description_panne", e.target.value)} />
+              <Textarea className="mt-1 text-sm bg-card" rows={2} placeholder="Décrivez la panne ou le dysfonctionnement observé..." value={form.description_panne} onChange={e => set("description_panne", e.target.value)} />
             </div>
-          )}
-
-          {/* Dates */}
-          <div>
-            <Label className="text-xs">Date intervention *</Label>
-            <Input type="date" className="mt-1" value={form.date_entretien} onChange={e => set("date_entretien", e.target.value)} />
           </div>
-          {/* Immobilisation */}
-          {isCorrective && (
+        )}
+
+        <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+          <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5" />Planification & suivi</p>
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Immobilisation (jours)</Label>
-              <Input type="number" min="0" className="mt-1" placeholder="0" value={form.duree_immobilisation_jours} onChange={e => set("duree_immobilisation_jours", e.target.value)} />
+              <Label className="text-xs">Date intervention *</Label>
+              <Input type="date" className="mt-1 bg-card" value={form.date_entretien} onChange={e => set("date_entretien", e.target.value)} />
             </div>
-          )}
-
-          {/* Km */}
-          <div>
-            <Label className="text-xs">Km au compteur</Label>
-            <Input type="number" min="0" className="mt-1" value={form.km_entretien} onChange={e => set("km_entretien", e.target.value)} />
-          </div>
-
-          {/* Prochaine maintenance */}
-          <div>
-            <Label className="text-xs">Prochaine date prévue</Label>
-            <Input type="date" className="mt-1" value={form.prochaine_date} onChange={e => set("prochaine_date", e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs">Prochain Km</Label>
-            <Input type="number" min="0" className="mt-1" value={form.prochain_km} onChange={e => set("prochain_km", e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs">Déclencher après N rotations</Label>
-            <Input type="number" min="0" className="mt-1" placeholder="Ex: 50" value={form.prochain_nb_rotations} onChange={e => set("prochain_nb_rotations", e.target.value)} />
-          </div>
-
-          {/* Observations */}
-          <div className="col-span-2">
-            <Label className="text-xs">Observations</Label>
-            <Textarea className="mt-1 text-sm" rows={2} placeholder="Notes complémentaires..." value={form.observations} onChange={e => set("observations", e.target.value)} />
+            <div>
+              <Label className="text-xs">Km au compteur</Label>
+              <Input type="number" min="0" className="mt-1 bg-card" value={form.km_entretien} onChange={e => set("km_entretien", e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Prochaine date prévue</Label>
+              <Input type="date" className="mt-1 bg-card" value={form.prochaine_date} onChange={e => set("prochaine_date", e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Prochain Km</Label>
+              <Input type="number" min="0" className="mt-1 bg-card" value={form.prochain_km} onChange={e => set("prochain_km", e.target.value)} />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Déclencher après N rotations</Label>
+              <Input type="number" min="0" className="mt-1 bg-card" placeholder="Ex: 50" value={form.prochain_nb_rotations} onChange={e => set("prochain_nb_rotations", e.target.value)} />
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-2 mt-4">
-          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>{entry ? "Fermer" : "Annuler"}</Button>
+        {/* Observations */}
+        <div>
+          <Label className="text-xs">Observations</Label>
+          <Textarea className="mt-1 text-sm" rows={2} placeholder="Notes complémentaires..." value={form.observations} onChange={e => set("observations", e.target.value)} />
+        </div>
+        </div>
+
+        <div className="flex gap-3 mt-4">
+          <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={() => onOpenChange(false)}>
+            <ArrowLeft className="w-4 h-4 mr-2" /> {entry ? "Fermer" : "Annuler"}
+          </Button>
           {!entry && (
-            <Button className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={!isValid || isPending}>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={!isValid || isPending}>
+              <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
           )}

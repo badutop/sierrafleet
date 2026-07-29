@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { uploadFile } from "@/lib/storage";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FileText, Upload, ExternalLink, Trash2, Loader2, FileImage, FileBadge, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -154,13 +154,13 @@ export default function VehicleDocuments({ vehicle, open, onClose }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileImage className="w-5 h-5 text-primary" />
+      <DialogContent className="max-w-md [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+        <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+          <FileImage className="w-5 h-5 text-secondary shrink-0" />
+          <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
             Documents — {vehicle.immatriculation}
           </DialogTitle>
-        </DialogHeader>
+        </div>
         <div className="space-y-3 mt-2">
           {DOCS.map(doc => (
             <DocSlot
