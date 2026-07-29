@@ -36,9 +36,16 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
   const { logout } = useAuth();
 
   // Admin = accès total. Sinon on filtre sur les modules autorisés.
-  const visibleItems = !currentUser || currentUser.role === "admin" || !currentUser.modules?.length
+  const moduleFilteredItems = !currentUser || currentUser.role === "admin" || !currentUser.modules?.length
     ? navItems
     : navItems.filter(item => currentUser.modules.includes(item.module));
+
+  // Clients partage la clé de module "campaigns" avec Campagnes (pas de
+  // distinction possible via les modules) — le Resp. des Opérations ne doit
+  // toutefois jamais voir Clients, d'où ce filtre dédié au rôle.
+  const visibleItems = currentUser?.role === "responsable_operations"
+    ? moduleFilteredItems.filter(item => item.path !== "/clients")
+    : moduleFilteredItems;
 
   return (
     <>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +34,11 @@ const ROTATIONS_PAR_CAMION_JOUR = 3;
 const emptyForm = { nom_campagne: "", clients: [{ client_id: "", tonnage_prevu: "" }], navire: "", type_marchandise: "", point_origine: "", depot_destination_id: "", date_debut: "", date_fin_prevue: "", duree_prevue_jours: "", tonnage_total_prevu: 0, nombre_rotations_prevues: "", nombre_camions: "", statut: "creee", observations: "" };
 
 export default function CampaignsList() {
+  const { user: currentUser } = useAuth();
+  // Le Responsable des Opérations gère l'affectation des camions et la saisie
+  // des rotations, mais ne crée/termine/supprime pas les campagnes et n'a pas
+  // accès aux campagnes archivées (voir aussi CampaignDetail.jsx).
+  const isOpsRestricted = currentUser?.role === "responsable_operations";
   const [search, setSearch] = useState("");
   const [filterStatut, setFilterStatut] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -242,15 +248,19 @@ export default function CampaignsList() {
           <p className="text-sm text-muted-foreground">{campaigns.filter(c => c.statut === "en_cours").length} en cours · {activeCampaigns.length} active{activeCampaigns.length > 1 ? "s" : ""} · {archivedCampaigns.length} archivée{archivedCampaigns.length > 1 ? "s" : ""}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant={view === "archived" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "archived" ? "list" : "archived")}>
-            <Archive className="w-4 h-4 mr-2" /> {view === "archived" ? "Vue liste" : `Archivées (${archivedCampaigns.length})`}
-          </Button>
+          {!isOpsRestricted && (
+            <Button variant={view === "archived" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "archived" ? "list" : "archived")}>
+              <Archive className="w-4 h-4 mr-2" /> {view === "archived" ? "Vue liste" : `Archivées (${archivedCampaigns.length})`}
+            </Button>
+          )}
           <Button variant={view === "board" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "board" ? "list" : "board")}>
             <Rows3 className="w-4 h-4 mr-2" /> {view === "board" ? "Vue liste" : "Affecter camions"}
           </Button>
-          <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-2" /> Nouvelle campagne
-          </Button>
+          {!isOpsRestricted && (
+            <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>
+              <Plus className="w-4 h-4 mr-2" /> Nouvelle campagne
+            </Button>
+          )}
         </div>
       </div>
 
@@ -278,7 +288,7 @@ export default function CampaignsList() {
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>
       ) : view !== "board" ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {(view === "archived" ? filteredArchived : filtered).map(c => {
+          {(view === "archived" && !isOpsRestricted ? filteredArchived : filtered).map(c => {
             const campaignClientNames = campaignClients
               .filter(cc => cc.campaign_id === c.id)
               .map(cc => clientMap[cc.client_id]?.nom)
@@ -325,7 +335,9 @@ export default function CampaignsList() {
                     </Link>
                     {view !== "archived" && (<>
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(c)}><Pencil className="w-3 h-3" /></Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(c)}><Trash2 className="w-3 h-3" /></Button>
+                      {!isOpsRestricted && (
+                        <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(c)}><Trash2 className="w-3 h-3" /></Button>
+                      )}
                     </>)}
                   </div>
                 </CardContent>
@@ -514,7 +526,14 @@ export default function CampaignsList() {
               <Label className="text-xs">Statut</Label>
               <Select value={form.statut} onValueChange={v => setForm({ ...form, statut: v })} disabled={!editingCampaign}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(statutLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {/* Le Resp. Opérations ne peut pas terminer/archiver une campagne
+                      via ce raccourci — ces transitions passent par les boutons
+                      dédiés de CampaignDetail.jsx, réservés aux autres rôles. */}
+                  {Object.entries(statutLabels)
+                    .filter(([k]) => !isOpsRestricted || !["terminee", "clôturée"].includes(k))
+                    .map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div><Label className="text-xs">Observations</Label><Input className="mt-1" value={form.observations} onChange={e => setForm({ ...form, observations: e.target.value })} /></div>

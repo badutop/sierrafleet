@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +22,10 @@ import { logAudit } from "@/lib/auditLog";
 
 export default function CampaignDetail() {
   const { id } = useParams();
+  const { user: currentUser } = useAuth();
+  // Le Responsable des Opérations n'a pas accès aux campagnes archivées et ne
+  // peut pas terminer/archiver une campagne (voir aussi CampaignsList.jsx).
+  const isOpsRestricted = currentUser?.role === "responsable_operations";
   const queryClient = useQueryClient();
   const [rotSheetOpen, setRotSheetOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -141,6 +146,19 @@ export default function CampaignDetail() {
 
   if (!campaign) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>;
 
+  if (isOpsRestricted && campaign.statut === "clôturée") {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
+        <Lock className="w-12 h-12 text-muted-foreground opacity-30" />
+        <h2 className="text-lg font-bold text-foreground">Accès restreint</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          Les campagnes archivées ne sont pas accessibles avec le rôle Responsable des Opérations.
+        </p>
+        <Link to="/campaigns"><Button variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Retour aux campagnes</Button></Link>
+      </div>
+    );
+  }
+
   const bonsSysteme = rotations.length;
   const bonsPhysiques = rotations.filter(r => r.bon_physique_recu).length;
   const ecart = bonsSysteme - bonsPhysiques;
@@ -183,7 +201,7 @@ export default function CampaignDetail() {
               <Play className="w-4 h-4 mr-2" /> Démarrer
             </Button>
           )}
-          {campaign.statut === "en_cours" && (<>
+          {campaign.statut === "en_cours" && !isOpsRestricted && (<>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-md shadow-red-200"
               onClick={async () => { if (await confirm("Terminer définitivement cette campagne ? Cela marquera la campagne comme terminée et générera le rapport de clôture.")) closeCampaign.mutate(); }}
@@ -196,7 +214,10 @@ export default function CampaignDetail() {
             <Button variant="outline" onClick={() => setReportOpen(true)}>
               <FileText className="w-4 h-4 mr-2" /> Voir le rapport
             </Button>
-            {campaignClients.map(cc => cc.client && (
+            {/* Le Resp. des Opérations ne doit jamais voir la facture client,
+                même sur une campagne terminée (les clôturées lui sont déjà
+                inaccessibles via le blocage plus haut). */}
+            {!isOpsRestricted && campaignClients.map(cc => cc.client && (
               <Button
                 key={cc.client_id}
                 variant="outline"
@@ -206,7 +227,7 @@ export default function CampaignDetail() {
                 <FileText className="w-4 h-4 mr-2" /> Facture{!isSingleClient ? ` — ${cc.client.nom}` : ""}
               </Button>
             ))}
-            {campaign.statut === "terminee" && (
+            {campaign.statut === "terminee" && !isOpsRestricted && (
               <Button
                 variant="outline"
                 onClick={async () => { if (await confirm("Archiver cette campagne ? Elle ne sera plus modifiable, seulement consultable dans les campagnes archivées.")) archiveCampaign.mutate(); }}
