@@ -123,6 +123,16 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], che
             if (error) throw error;
           })
         );
+        // Lie le fuel_entries au checkpoint (3ᵉ rotation du groupe, comme pour
+        // le déclenchement depuis Carburant > Validation) pour que ce même
+        // groupe de bons sorte de la liste "en attente" (getPendingBonGroup
+        // ForVehicle / getRefuelCheckpoints) et n'apparaisse plus au chauffeur
+        // ni dans Carburant.
+        const lastBonRotationId = bons[bons.length - 1]?.rotation?.id;
+        if (lastBonRotationId) {
+          const { error: linkError } = await supabase.from("rotations").update({ fuel_entry_id: fuelEntry.id }).eq("id", lastBonRotationId);
+          if (linkError) throw linkError;
+        }
       }
 
       // Envoie la notification WhatsApp (fire & forget)
