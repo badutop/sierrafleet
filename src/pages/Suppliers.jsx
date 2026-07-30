@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -105,9 +104,8 @@ export default function Suppliers() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Fournisseur</TableHead>
-                  <TableHead>Email</TableHead>
                   <TableHead>Téléphone</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <TableHead>Adresse</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -122,9 +120,8 @@ export default function Suppliers() {
                         <span className="font-medium text-sm">{s.nom}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs">{s.email || "-"}</TableCell>
                     <TableCell className="text-xs">{s.telephone || "-"}</TableCell>
-                    <TableCell>{s.actif && <Badge variant="default" className="text-[10px]">Actif</Badge>}</TableCell>
+                    <TableCell className="text-xs">{s.adresse || "-"}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(s)}>
