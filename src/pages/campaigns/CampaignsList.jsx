@@ -336,7 +336,7 @@ export default function CampaignsList() {
                 <CardContent className="space-y-3 text-xs">
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <div className="flex justify-between mb-1"><span className="text-muted-foreground">Tonnage</span><span className="font-medium">{c.tonnage_realise || 0} / {c.tonnage_total_prevu || 0} T</span></div>
+                      <div className="flex justify-between mb-1"><span className="text-muted-foreground">Tonnage</span><span className="font-medium">{Number(c.tonnage_realise || 0).toFixed(2)} / {Number(c.tonnage_total_prevu || 0).toFixed(2)} T</span></div>
                       <div className="h-1.5 bg-muted rounded-full"><div className="h-1.5 bg-secondary rounded-full transition-all" style={{ width: `${progress}%` }} /></div>
                     </div>
                     <div className="flex-1">

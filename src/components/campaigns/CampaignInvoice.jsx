@@ -160,7 +160,7 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
             <td style="color:#9ca3af">${r.numero_rotation || (i + 1)}</td>
             <td>${fmtDate(r.date_rotation)}</td>
             <td>${r.numero_bon_client || "—"}</td>
-            <td style="text-align:right;font-weight:600;color:${THEME_PRIMARY}">${fmt(poids, 3)}</td>
+            <td style="text-align:right;font-weight:600;color:${THEME_PRIMARY}">${fmt(poids, 2)}</td>
             <td style="text-align:right;color:#6b7280">${fmt(prixTonne)}</td>
             <td style="text-align:right;font-weight:700;color:${THEME_PRIMARY}">${fmt(montant)}</td>
           </tr>`;
@@ -169,7 +169,7 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
       <tfoot>
         <tr>
           <td colspan="3">TOTAL — ${rotationsDone.length} rotation${rotationsDone.length > 1 ? "s" : ""}</td>
-          <td style="text-align:right;font-weight:800">${fmt(tonnageTotal, 3)} T</td>
+          <td style="text-align:right;font-weight:800">${fmt(tonnageTotal, 2)} T</td>
           <td></td>
           <td style="text-align:right;font-weight:800">${fmt(montantHT)} FCFA</td>
         </tr>
@@ -338,7 +338,7 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
         String(r.numero_rotation || (i + 1)),
         fmtDate(r.date_rotation),
         r.numero_bon_client || "—",
-        fmt(poids, 3),
+        fmt(poids, 2),
         fmt(prixTonne),
         `${fmt(montant)} FCFA`,
       ];
@@ -361,7 +361,7 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.text(`TOTAL — ${rotationsDone.length} rotation${rotationsDone.length > 1 ? "s" : ""}`, margin + 4, y + 9);
-    doc.text(`${fmt(tonnageTotal, 3)} T`, colX[3] + cols[3] - 4, y + 9, { align: "right" });
+    doc.text(`${fmt(tonnageTotal, 2)} T`, colX[3] + cols[3] - 4, y + 9, { align: "right" });
     doc.text(`${fmt(montantHT)} FCFA`, colX[5] + cols[5] - 4, y + 9, { align: "right" });
     y += lineH + 12;
 
@@ -461,7 +461,7 @@ export default function CampaignInvoice({ campaign, client, rotations, singleCli
         `Campagne : ${campaign.nom_campagne}\n` +
         `Client : ${client?.nom || "—"}\n` +
         `Rotations : ${rotationsDone.length}\n` +
-        `Tonnage total : ${fmt(tonnageTotal, 3)} T\n` +
+        `Tonnage total : ${fmt(tonnageTotal, 2)} T\n` +
         `Montant HT : ${fmt(montantHT)} FCFA\n` +
         `TVA (${tvaPct}%) : ${fmt(montantTVA)} FCFA\n` +
         `*Total TTC : ${fmt(montantTTC)} FCFA*\n\n` +

@@ -50,7 +50,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-foreground capitalize">{day}</h3>
               <div className="text-xs text-muted-foreground">
-                <span className="font-semibold text-secondary">{rots.length} rotations</span> — {totalPoids.toFixed(3)} T
+                <span className="font-semibold text-secondary">{rots.length} rotations</span> — {totalPoids.toFixed(2)} T
               </div>
             </div>
             <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -84,14 +84,14 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                         <TableRow className="bg-muted/40 hover:bg-muted/40">
                           <TableCell colSpan={6} className="py-1.5 text-xs font-bold text-foreground">
                             {vehicle?.code_camion ? `[${vehicle.code_camion}] ` : ""}{vehicle?.immatriculation || "Sans camion"}
-                            <span className="font-normal text-muted-foreground"> — {vRots.length} rotation{vRots.length > 1 ? "s" : ""} — {vPoids.toFixed(3)} T</span>
+                            <span className="font-normal text-muted-foreground"> — {vRots.length} rotation{vRots.length > 1 ? "s" : ""} — {vPoids.toFixed(2)} T</span>
                           </TableCell>
                         </TableRow>
                         {vRots.map(r => (
                           <TableRow key={r.id} className={cn(r.refuel_declenche && "bg-amber-50 dark:bg-amber-950/20")}>
                             <TableCell className="font-bold text-sm">{r.numero_rotation}</TableCell>
                             <TableCell className="text-sm font-mono">{r.numero_bon_client || "—"}</TableCell>
-                            <TableCell className="text-right text-sm font-semibold">{Number(r.poids_charge_tonnes || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</TableCell>
+                            <TableCell className="text-right text-sm font-semibold">{Number(r.poids_charge_tonnes || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                             <TableCell className="text-right text-sm">{r.litres_carburant_alloues || 0}</TableCell>
                             <TableCell>
                               {r.fuel_entry_id ? (
@@ -130,8 +130,8 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                   })}
                   <TableRow className="bg-secondary/10 font-bold">
                     <TableCell colSpan={2} className="text-right text-xs font-bold uppercase text-secondary">Total journée</TableCell>
-                    <TableCell className="text-right text-sm font-bold text-secondary">{totalPoids.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</TableCell>
-                    <TableCell colSpan={3} className="text-xs text-muted-foreground text-right">{totalPoids.toFixed(3)} T</TableCell>
+                    <TableCell className="text-right text-sm font-bold text-secondary">{totalPoids.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell colSpan={3} className="text-xs text-muted-foreground text-right">{totalPoids.toFixed(2)} T</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -144,7 +144,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
       <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl text-sm">
         <div className="flex justify-between font-bold">
           <span>CUMULS DÉBARQUÉS</span>
-          <span className="text-primary">{rotations.length} ROTATIONS → {rotations.reduce((s, r) => s + Number(r.poids_charge_tonnes || 0), 0).toFixed(3)} T</span>
+          <span className="text-primary">{rotations.length} ROTATIONS → {rotations.reduce((s, r) => s + Number(r.poids_charge_tonnes || 0), 0).toFixed(2)} T</span>
         </div>
       </div>
     </div>

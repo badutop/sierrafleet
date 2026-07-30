@@ -220,7 +220,7 @@ export default function CampaignFinancialReport() {
                 <TableCell className="text-xs text-muted-foreground">{row.client?.nom || "—"}</TableCell>
                 <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(row.date_debut)} → {fmtDate(row.date_fin_prevue)}</TableCell>
                 <TableCell className="text-xs text-right">{row.campRotations}</TableCell>
-                <TableCell className="text-xs text-right font-medium">{row.tonnage.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</TableCell>
+                <TableCell className="text-xs text-right font-medium">{row.tonnage.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                 <TableCell className="text-xs text-right font-bold text-primary">
                   {row.tarifManquant ? (
                     <span className="inline-flex items-center gap-1 text-amber-600" title="Tarif par tonne non défini pour ce client">

@@ -5,7 +5,7 @@ import { Printer, X, Truck, RotateCw, Package, MapPin, Calendar, CheckCircle2, A
 import { cn } from "@/lib/utils";
 import { resolveLocationLabel } from "@/lib/campaignLocations";
 
-const fmt = (n) => Number(n || 0).toLocaleString("fr-FR");
+const fmt = (n) => Number(n || 0).toLocaleString("fr-FR", { maximumFractionDigits: 2 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR") : "—";
 
 export default function CampaignReport({ campaign, client, rotations, declarations, vehicles, drivers, depots = [], onClose }) {

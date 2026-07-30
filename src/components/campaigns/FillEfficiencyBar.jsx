@@ -35,8 +35,8 @@ export default function FillEfficiencyBar({ poidsReel, capaciteTheorique, label 
         />
       </div>
       <div className="flex justify-between text-[10px] text-muted-foreground">
-        <span>{(poidsReel / 1000).toFixed(1)} T réel</span>
-        <span>{(capaciteTheorique / 1000).toFixed(1)} T capacité théorique</span>
+        <span>{(poidsReel / 1000).toFixed(2)} T réel</span>
+        <span>{(capaciteTheorique / 1000).toFixed(2)} T capacité théorique</span>
       </div>
     </div>
   );

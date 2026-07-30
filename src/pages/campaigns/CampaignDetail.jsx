@@ -191,7 +191,7 @@ export default function CampaignDetail() {
   const progress = campaign.tonnage_total_prevu > 0 ? Math.min(100, Math.round((campaign.tonnage_realise || 0) / campaign.tonnage_total_prevu * 100)) : 0;
   // poids_charge_tonnes (et tonnage_realise, qui en est la somme) est bien
   // exprimé en tonnes — la fiche du jour saisit directement des tonnes.
-  const tonnageT = (campaign.tonnage_realise || 0).toFixed(3);
+  const tonnageT = (campaign.tonnage_realise || 0).toFixed(2);
   const rotationsPrevues = campaign.nombre_rotations_prevues || 0;
   const rotationsRealisees = campaign.nombre_rotations_realisees || 0;
   const rotationsRestantes = Math.max(0, rotationsPrevues - rotationsRealisees);
@@ -340,7 +340,7 @@ export default function CampaignDetail() {
           <div>
             <div className="flex justify-between text-sm mb-2">
               <span className="text-muted-foreground">Avancement tonnage</span>
-              <span className="font-semibold">{progress}% — {tonnageT} T / {campaign.tonnage_total_prevu || 0} T prévu</span>
+              <span className="font-semibold">{progress}% — {tonnageT} T / {Number(campaign.tonnage_total_prevu || 0).toFixed(2)} T prévu</span>
             </div>
             <div className="h-2.5 bg-muted rounded-full"><div className="h-2.5 bg-secondary rounded-full transition-all" style={{ width: `${progress}%` }} /></div>
           </div>

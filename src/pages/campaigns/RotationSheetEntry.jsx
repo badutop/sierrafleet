@@ -197,7 +197,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
             })}
             <TableRow className="bg-secondary/10">
               <TableCell colSpan={isSingleClient ? 5 : 6} className="text-right text-sm font-bold uppercase tracking-wide text-secondary">TD : {validRows.length} ROTATIONS</TableCell>
-              <TableCell className="text-right text-sm font-bold text-secondary">{totalPoids.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</TableCell>
+              <TableCell className="text-right text-sm font-bold text-secondary">{totalPoids.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
               <TableCell />
             </TableRow>
           </TableBody>
@@ -216,18 +216,18 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
       <div className="mt-3 p-3 bg-muted/50 rounded-lg text-xs space-y-1">
         <div className="flex justify-between">
           <span className="text-muted-foreground">TD (aujourd'hui)</span>
-          <span className="font-bold">{validRows.length} rotations → {totalPoids.toFixed(3)} T</span>
+          <span className="font-bold">{validRows.length} rotations → {totalPoids.toFixed(2)} T</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Cumul après saisie</span>
-          <span className={cn("font-bold", tonnageDepassement && "text-destructive")}>{existingRotationsCount + validRows.length} rotations → {cumulApresSaisie.toFixed(3)} T{campaign?.tonnage_total_prevu ? ` / ${Number(campaign.tonnage_total_prevu).toFixed(3)} T prévues` : ""}</span>
+          <span className={cn("font-bold", tonnageDepassement && "text-destructive")}>{existingRotationsCount + validRows.length} rotations → {cumulApresSaisie.toFixed(2)} T{campaign?.tonnage_total_prevu ? ` / ${Number(campaign.tonnage_total_prevu).toFixed(2)} T prévues` : ""}</span>
         </div>
       </div>
 
       {tonnageDepassement && (
         <div className="mt-2 flex items-start gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded-lg p-2">
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-          <span>Le cumul dépasserait le tonnage prévu de la campagne ({Number(campaign.tonnage_total_prevu).toFixed(3)} T). Réduisez les poids saisis avant de continuer.</span>
+          <span>Le cumul dépasserait le tonnage prévu de la campagne ({Number(campaign.tonnage_total_prevu).toFixed(2)} T). Réduisez les poids saisis avant de continuer.</span>
         </div>
       )}
 
@@ -343,7 +343,7 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
                   <TableCell className="text-xs font-mono font-semibold">{vehicle?.immatriculation || "—"}</TableCell>
                   {!isSingleClient && <TableCell className="text-xs">{clientMap[row.client_id]?.nom || "—"}</TableCell>}
                   <TableCell className="text-xs font-mono">{row.bl || "—"}</TableCell>
-                  <TableCell className="text-right text-xs font-bold">{Number(row.poids_tonnes).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</TableCell>
+                  <TableCell className="text-right text-xs font-bold">{Number(row.poids_tonnes).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                   <TableCell className="text-center text-xs">
                     {isRefuel
                       ? <span className="text-amber-600 font-bold flex items-center justify-center gap-1"><Fuel className="w-3 h-3" />{consoParRotation * 3}L</span>
@@ -359,7 +359,7 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
                 TD : {validRows.length} ROTATIONS
               </TableCell>
               <TableCell className="text-right text-sm font-bold text-secondary">
-                {totalPoids.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}
+                {totalPoids.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </TableCell>
               <TableCell />
             </TableRow>
@@ -369,7 +369,7 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
         {/* Ligne tonnage */}
         <div className="px-4 py-2 border-t border-border bg-muted/30 text-xs font-bold flex justify-between">
           <span>TONNAGE JOURNÉE</span>
-          <span className="text-secondary">{totalPoids.toFixed(3)} T</span>
+          <span className="text-secondary">{totalPoids.toFixed(2)} T</span>
         </div>
       </div>
 
@@ -391,13 +391,13 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
       {/* Cumuls */}
       <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-lg text-xs font-bold flex justify-between">
         <span>CUMULS DÉBARQUÉS APRÈS VALIDATION</span>
-        <span className={cn("text-primary", tonnageDepassement && "text-destructive")}>{existingRotationsCount + validRows.length} ROTATIONS → {cumulApresValidation.toFixed(3)} T{campaign?.tonnage_total_prevu ? ` / ${Number(campaign.tonnage_total_prevu).toFixed(3)} T prévues` : ""}</span>
+        <span className={cn("text-primary", tonnageDepassement && "text-destructive")}>{existingRotationsCount + validRows.length} ROTATIONS → {cumulApresValidation.toFixed(2)} T{campaign?.tonnage_total_prevu ? ` / ${Number(campaign.tonnage_total_prevu).toFixed(2)} T prévues` : ""}</span>
       </div>
 
       {tonnageDepassement && (
         <div className="mt-2 flex items-start gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded-lg p-2">
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-          <span>Le cumul dépasserait le tonnage prévu de la campagne ({Number(campaign.tonnage_total_prevu).toFixed(3)} T). Retournez à la saisie pour réduire les poids.</span>
+          <span>Le cumul dépasserait le tonnage prévu de la campagne ({Number(campaign.tonnage_total_prevu).toFixed(2)} T). Retournez à la saisie pour réduire les poids.</span>
         </div>
       )}
 
@@ -455,7 +455,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
 
       const totalPoidsSaisi = validRows.reduce((s, r) => s + Number(r.poids_tonnes), 0);
       if (campaign?.tonnage_total_prevu > 0 && (campaign.tonnage_realise || 0) + totalPoidsSaisi > campaign.tonnage_total_prevu) {
-        throw new Error(`Le cumul dépasserait le tonnage prévu de la campagne (${Number(campaign.tonnage_total_prevu).toFixed(3)} T)`);
+        throw new Error(`Le cumul dépasserait le tonnage prévu de la campagne (${Number(campaign.tonnage_total_prevu).toFixed(2)} T)`);
       }
 
       // Prédiction (position multiple de 3 par couple client+camion) — stockée
