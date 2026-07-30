@@ -186,10 +186,18 @@ export default function PumpPhotoStep({ driver, vehicle, bons, rotations = [], c
 
       // Relayé côté serveur (whatsapp-notify) — un fetch() direct depuis le
       // navigateur vers api.callmebot.com est bloqué par CORS.
-      const { error } = await supabase.functions.invoke("whatsapp-notify", { body: { message } });
-      if (error) console.error("[whatsapp-notify]", error);
+      // La fonction répond en HTTP 200 même en cas d'échec d'envoi (ex:
+      // bridge Evolution API hors ligne) — { error } du SDK ne couvre que les
+      // erreurs de transport, il faut aussi vérifier data.success pour ne pas
+      // laisser un échec d'envoi totalement silencieux.
+      const { data, error } = await supabase.functions.invoke("whatsapp-notify", { body: { message } });
+      if (error || data?.success === false) {
+        console.error("[whatsapp-notify]", error || data);
+        toast.warning("Rechargement enregistré, mais la notification WhatsApp n'a pas pu être envoyée.");
+      }
     } catch (err) {
       console.error("[whatsapp-notify]", err);
+      toast.warning("Rechargement enregistré, mais la notification WhatsApp n'a pas pu être envoyée.");
     }
   };
 
