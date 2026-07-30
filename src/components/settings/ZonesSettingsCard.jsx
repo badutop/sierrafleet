@@ -16,15 +16,20 @@ export default function ZonesSettingsCard() {
 
   return (
     <>
-      <Card className="border-secondary/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><MapPin className="w-4 h-4 text-secondary" />Zones</CardTitle>
+      <Card className="border-2 border-purple-500/40 shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-3 text-base">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0">
+              <MapPin className="w-5 h-5 text-purple-600" />
+            </div>
+            <span className="font-bold">Zones</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
             {zones.length} zone{zones.length > 1 ? "s" : ""} configurée{zones.length > 1 ? "s" : ""}
           </p>
-          <Button size="sm" variant="outline" className="w-full" onClick={() => setManagerOpen(true)}>
+          <Button className="w-full h-10 rounded-lg font-bold bg-purple-600 hover:bg-purple-700 text-white" onClick={() => setManagerOpen(true)}>
             <Settings2 className="w-4 h-4 mr-2" /> Gérer les zones
           </Button>
         </CardContent>

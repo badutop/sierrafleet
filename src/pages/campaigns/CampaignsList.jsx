@@ -21,6 +21,16 @@ import { PORT_MOLES as portMoles } from "@/lib/campaignLocations";
 
 const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturée: "Clôturée" };
 const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturée: "bg-muted text-muted-foreground" };
+// Bordure de carte teintée par statut — Clôturée (= Archivée, seul statut
+// visible dans la vue "Archivées") s'en distingue clairement d'En cours.
+const statutBorderColors = {
+  creee: "border-blue-400/50 hover:border-blue-500/70",
+  validee_responsable: "border-purple-400/50 hover:border-purple-500/70",
+  validee_operationnel: "border-cyan-400/50 hover:border-cyan-500/70",
+  en_cours: "border-emerald-400/50 hover:border-emerald-500/70",
+  terminee: "border-amber-400/50 hover:border-amber-500/70",
+  clôturée: "border-slate-400/60 hover:border-slate-500/80",
+};
 const cerealTypes = ["Blé", "Maïs", "Riz", "Orge", "Seigle", "Avoine", "Soja", "Tournesol", "Colza"];
 
 // Moyenne de tonnage transporté par rotation de camion — sert de base au
@@ -308,19 +318,19 @@ export default function CampaignsList() {
             const progress = c.tonnage_total_prevu > 0 ? Math.min(100, Math.round((c.tonnage_realise || 0) / c.tonnage_total_prevu * 100)) : 0;
             const rotProgress = c.nombre_rotations_prevues > 0 ? Math.min(100, Math.round((c.nombre_rotations_realisees || 0) / c.nombre_rotations_prevues * 100)) : 0;
             return (
-              <Card key={c.id} className="hover:shadow-lg transition-shadow">
+              <Card key={c.id} className={cn("border-2 hover:shadow-lg transition-all", statutBorderColors[c.statut] || "border-primary/30 hover:border-primary/50")}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
                         <Ship className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <CardTitle className="text-sm">{c.nom_campagne}</CardTitle>
-                        <p className="text-xs text-muted-foreground">{c.reference && `Réf: ${c.reference} · `}{clientsLabel}</p>
+                        <CardTitle className="text-base font-bold">{c.nom_campagne}</CardTitle>
+                        <p className="text-xs text-muted-foreground">{c.reference && `Réf: ${c.reference} · `}Client : {clientsLabel}</p>
                       </div>
                     </div>
-                    <Badge className={cn("text-[10px] shrink-0", statutColors[c.statut])}>{statutLabels[c.statut]}</Badge>
+                    <Badge className={cn("text-sm font-bold px-2.5 py-1 shrink-0", statutColors[c.statut])}>{statutLabels[c.statut]}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-xs">
@@ -335,19 +345,19 @@ export default function CampaignsList() {
                     </div>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
-                    <span className="flex items-center gap-1"><Package className="w-3 h-3" />{c.type_marchandise}</span>
+                    <span className="flex items-center gap-1"><Package className="w-3 h-3" />Produit : {c.type_marchandise}</span>
                     <span>{c.date_debut} → {c.date_fin_prevue || "—"}</span>
                   </div>
                   <div className="flex gap-2 pt-1 border-t border-border">
                     <Link to={`/campaigns/${c.id}`} className="flex-1">
-                      <Button size="sm" variant="default" className="w-full h-7 text-xs bg-primary hover:bg-primary/90">
-                        <ArrowRight className="w-3 h-3 mr-1" /> {effectiveView === "archived" ? "Consulter" : "Gérer"}
+                      <Button size="sm" className="w-full h-9 rounded-lg text-xs font-bold bg-primary hover:bg-primary/90">
+                        <ArrowRight className="w-3.5 h-3.5 mr-1" /> {effectiveView === "archived" ? "Consulter" : "Gérer"}
                       </Button>
                     </Link>
                     {effectiveView !== "archived" && (<>
-                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(c)}><Pencil className="w-3 h-3" /></Button>
+                      <Button size="sm" variant="outline" className="h-9 rounded-lg text-xs border-2" onClick={() => openEdit(c)}><Pencil className="w-3.5 h-3.5" /></Button>
                       {!isOpsRestricted && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(c)}><Trash2 className="w-3 h-3" /></Button>
+                        <Button size="sm" variant="outline" className="h-9 rounded-lg text-xs border-2 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(c)}><Trash2 className="w-3.5 h-3.5" /></Button>
                       )}
                     </>)}
                   </div>

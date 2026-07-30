@@ -22,15 +22,20 @@ export default function WhatsAppNotifCard() {
 
   return (
     <>
-      <Card className="border-secondary/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><MessageCircle className="w-4 h-4 text-secondary" />Notifications WhatsApp</CardTitle>
+      <Card className="border-2 border-emerald-500/40 shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-3 text-base">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+              <MessageCircle className="w-5 h-5 text-emerald-600" />
+            </div>
+            <span className="font-bold">Notifications WhatsApp</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
             {count > 0 ? `${count} numéro${count > 1 ? "s" : ""} configuré${count > 1 ? "s" : ""}` : "Aucun numéro configuré"}
           </p>
-          <Button size="sm" variant="outline" className="w-full" onClick={() => setDialogOpen(true)}>
+          <Button className="w-full h-10 rounded-lg font-bold bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setDialogOpen(true)}>
             <Settings2 className="w-4 h-4 mr-2" /> Gérer les numéros
           </Button>
         </CardContent>
