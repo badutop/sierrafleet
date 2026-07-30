@@ -1,8 +1,41 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, X, RotateCcw } from "lucide-react";
+import { Camera, X, RotateCcw, RotateCw } from "lucide-react";
 
 const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
+
+// Applique une rotation (degrés, quelconque) à l'image capturée et renvoie un
+// nouveau fichier — le canvas est redimensionné à la boîte englobante de
+// l'image tournée pour ne rien couper. Ne dépend que de Canvas/Image (DOM
+// standard), donc portable tel quel dans un futur wrapper mobile (Capacitor/
+// WebView) sans lib supplémentaire.
+function rotateCapturedImage(previewUrl, angleDeg) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const rad = (angleDeg * Math.PI) / 180;
+      const sin = Math.abs(Math.sin(rad));
+      const cos = Math.abs(Math.cos(rad));
+      const w = img.width, h = img.height;
+      const newW = Math.round(w * cos + h * sin);
+      const newH = Math.round(w * sin + h * cos);
+      const canvas = document.createElement("canvas");
+      canvas.width = newW;
+      canvas.height = newH;
+      const ctx = canvas.getContext("2d");
+      ctx.translate(newW / 2, newH / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(img, -w / 2, -h / 2);
+      canvas.toBlob((blob) => {
+        if (!blob) { reject(new Error("Rotation impossible")); return; }
+        const file = new File([blob], "document.jpg", { type: "image/jpeg" });
+        resolve({ file, previewUrl: URL.createObjectURL(blob) });
+      }, "image/jpeg", 0.95);
+    };
+    img.onerror = () => reject(new Error("Image illisible"));
+    img.src = previewUrl;
+  });
+}
 
 export default function DocumentScanner({
   onCapture,
@@ -19,6 +52,13 @@ export default function DocumentScanner({
   const streamRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [captured, setCaptured] = useState(null);
+  // Ajustement post-capture : rotation par quart de tour (orientation) +
+  // redressement fin (léger défaut d'angle à la prise) — combinés avant
+  // validation, appliqués une seule fois via canvas (pas de recadrage
+  // supplémentaire, la capture est déjà cadrée sur le guide).
+  const [orientation, setOrientation] = useState(0);
+  const [straighten, setStraighten] = useState(0);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     startCamera();
@@ -94,13 +134,29 @@ export default function DocumentScanner({
 
   const retake = () => {
     setCaptured(null);
+    setOrientation(0);
+    setStraighten(0);
     setReady(false);
     startCamera();
   };
 
-  const confirm = () => {
-    onCapture(captured.file, captured.previewUrl);
-    onClose();
+  const confirm = async () => {
+    const angle = orientation + straighten;
+    if (angle === 0) {
+      onCapture(captured.file, captured.previewUrl);
+      onClose();
+      return;
+    }
+    setConfirming(true);
+    try {
+      const rotated = await rotateCapturedImage(captured.previewUrl, angle);
+      onCapture(rotated.file, rotated.previewUrl);
+      onClose();
+    } catch {
+      // En cas d'échec de la rotation, on valide quand même la capture d'origine.
+      onCapture(captured.file, captured.previewUrl);
+      onClose();
+    }
   };
 
   return (
@@ -121,7 +177,8 @@ export default function DocumentScanner({
 
             {ready && (
               <div className="absolute inset-0 pointer-events-none">
-                {/* Cadre de guidage — occupe 85% de la largeur */}
+                {/* Cadre de guidage — un seul repère visuel (les coins), pas de
+                    bordure pleine superposée */}
                 <div
                   ref={guideRef}
                   className="absolute"
@@ -132,7 +189,6 @@ export default function DocumentScanner({
                     transform: "translateY(-50%)",
                     aspectRatio: `${guideRatio} / 1`,
                     boxShadow: "0 0 0 9999px rgba(0,0,0,0.60)",
-                    border: "2px solid rgba(255,255,255,0.85)",
                     borderRadius: guideShape === "circle" ? "50%" : "8px",
                     zIndex: 10,
                   }}
@@ -154,16 +210,38 @@ export default function DocumentScanner({
             )}
           </>
         ) : (
-          /* Prévisualisation : uniquement le document recadré */
+          /* Prévisualisation : uniquement le document recadré, ajustable
+             (rotation/redressement) avant validation */
           <img
             src={captured.previewUrl}
             alt="Document capturé"
-            className="max-h-full max-w-full object-contain rounded"
-            style={{ background: "#000" }}
+            className="max-h-full max-w-full object-contain rounded transition-transform duration-150"
+            style={{ background: "#000", transform: `rotate(${orientation + straighten}deg)` }}
           />
         )}
         <canvas ref={canvasRef} className="hidden" />
       </div>
+
+      {/* Ajustement post-capture */}
+      {captured && (
+        <div className="flex items-center justify-center gap-3 px-6 py-3 bg-black/80 border-t border-white/10">
+          <button onClick={() => setOrientation(o => (o - 90 + 360) % 360)} title="Tourner à gauche" className="text-white/80 hover:text-white p-2">
+            <RotateCcw className="w-5 h-5" />
+          </button>
+          <div className="flex flex-col items-center gap-1 w-40">
+            <span className="text-white/70 text-[11px]">Redresser</span>
+            <input
+              type="range" min={-15} max={15} step={1}
+              value={straighten}
+              onChange={e => setStraighten(Number(e.target.value))}
+              className="w-full accent-secondary"
+            />
+          </div>
+          <button onClick={() => setOrientation(o => (o + 90) % 360)} title="Tourner à droite" className="text-white/80 hover:text-white p-2">
+            <RotateCw className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex items-center justify-center gap-4 px-6 py-5 bg-black/80">
@@ -177,11 +255,11 @@ export default function DocumentScanner({
           </button>
         ) : (
           <>
-            <Button variant="outline" onClick={retake} className="bg-white/10 text-white border-white/30 hover:bg-white/20">
+            <Button variant="outline" onClick={retake} disabled={confirming} className="bg-white/10 text-white border-white/30 hover:bg-white/20">
               <RotateCcw className="w-4 h-4 mr-2" /> Reprendre
             </Button>
-            <Button onClick={confirm} className="bg-secondary hover:bg-secondary/90 text-white px-8">
-              Utiliser cette photo
+            <Button onClick={confirm} disabled={confirming} className="bg-secondary hover:bg-secondary/90 text-white px-8">
+              {confirming ? "Traitement..." : "Utiliser cette photo"}
             </Button>
           </>
         )}
