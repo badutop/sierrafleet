@@ -196,7 +196,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
 }
 
 // ── STEP 2 : Aperçu / Validation ─────────────────────────────────────────────
-function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotationsCount, existingRotations, resolveClientId, campaign, client, campaignClients, onBack, onConfirm, isPending }) {
+function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotationsCount, existingRotations, resolveClientId, campaign, client, campaignClients, zones = [], onBack, onConfirm, isPending }) {
   const isSingleClient = campaignClients.length <= 1;
   const validRows = rows.filter(r => r.vehicle_id && r.poids_tonnes && (isSingleClient || r.client_id));
   const totalPoids = validRows.reduce((s, r) => s + Number(r.poids_tonnes), 0);
@@ -458,6 +458,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
             campaign={campaign}
             client={client}
             campaignClients={campaignClients}
+            zones={zones}
             onBack={() => setStep("saisie")}
             onConfirm={() => saveMutation.mutate()}
             isPending={saveMutation.isPending}
