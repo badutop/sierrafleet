@@ -7,13 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Fuel, Save, Eye, ArrowLeft, CheckCircle2, AlertTriangle, Ship } from "lucide-react";
+import { Plus, Trash2, Fuel, Save, Eye, ArrowLeft, CheckCircle2, AlertTriangle, Ship, Camera, CheckCircle, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { consoLitresPourClient, countExistingForClientVehicle } from "@/lib/refuelRules";
+import { uploadFile } from "@/lib/storage";
+import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { logAudit } from "@/lib/auditLog";
 
-const emptyRow = { code_ct: "", vehicle_id: "", bl: "", poids_tonnes: "", client_id: "" };
+const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la vraie caméra, cf. CampaignRotationsTable/PumpPhotoStep
+const DEMO_BON_SCAN_URL = "https://placehold.co/320x200/e2e8f0/64748b?text=BON+SCANNE+DEMO";
+
+const emptyRow = { code_ct: "", vehicle_id: "", bl: "", poids_tonnes: "", client_id: "", bon_scan_url: "" };
 
 // Position (1-based) de chaque ligne dans la séquence de SON couple
 // (client, camion) — combine les rotations déjà enregistrées (existingRotations)
@@ -34,12 +39,31 @@ function computeClientVehiclePositions(rows, resolveClientId, existingRotations)
 
 // ── STEP 1 : Saisie ──────────────────────────────────────────────────────────
 function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicles, consoParRotation, existingRotationsCount, existingRotations, resolveClientId, campaign, campaignClients, onPreview, onClose }) {
+  const [scanningRowIndex, setScanningRowIndex] = useState(null);
   const isSingleClient = campaignClients.length <= 1;
   const totalPoids = rows.reduce((s, r) => s + (Number(r.poids_tonnes) || 0), 0);
-  const validRows = rows.filter(r => r.vehicle_id && r.poids_tonnes && (isSingleClient || r.client_id));
+  // Le bon physique doit désormais être scanné dès la saisie de la fiche
+  // (même action, même validation) — une ligne sans scan n'est pas comptée
+  // comme valide, ce qui bloque naturellement l'aperçu tant qu'il manque.
+  const validRows = rows.filter(r => r.vehicle_id && r.poids_tonnes && r.bon_scan_url && (isSingleClient || r.client_id));
   const positions = computeClientVehiclePositions(rows, resolveClientId, existingRotations);
   const cumulApresSaisie = (campaign?.tonnage_realise || 0) + totalPoids;
   const tonnageDepassement = campaign?.tonnage_total_prevu > 0 && cumulApresSaisie > campaign.tonnage_total_prevu;
+
+  const handleBonCapture = async (file) => {
+    const idx = scanningRowIndex;
+    setScanningRowIndex(null);
+    try {
+      let scanUrl = DEMO_BON_SCAN_URL;
+      if (file) {
+        const { file_url } = await uploadFile(file, "bon-scans");
+        scanUrl = file_url;
+      }
+      updateRow(idx, "bon_scan_url", scanUrl);
+    } catch (err) {
+      toast.error(`Erreur lors de l'envoi du scan : ${err.message}`);
+    }
+  };
 
   // Index des véhicules par code_camion (insensible à la casse)
   const vehicleByCode = Object.fromEntries(
@@ -88,6 +112,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
               <TableHead className="text-primary-foreground font-bold">CAMION (Immat.)</TableHead>
               {!isSingleClient && <TableHead className="text-primary-foreground font-bold w-36">CLIENT</TableHead>}
               <TableHead className="text-primary-foreground font-bold w-28">BL</TableHead>
+              <TableHead className="text-primary-foreground font-bold w-16 text-center">BON</TableHead>
               <TableHead className="text-primary-foreground font-bold w-32 text-right">POIDS (T)</TableHead>
               <TableHead className="w-10"></TableHead>
             </TableRow>
@@ -131,6 +156,28 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
                     <Input className="h-7 text-xs font-mono w-24" placeholder="6693" value={row.bl} onChange={e => updateRow(i, "bl", e.target.value)} />
                   </TableCell>
                   <TableCell>
+                    <div className="flex items-center justify-center gap-1">
+                      {row.bon_scan_url ? (
+                        <>
+                          <span className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shrink-0" title="Bon scanné">
+                            <CheckCircle className="w-3 h-3 text-white" />
+                          </span>
+                          <a href={row.bon_scan_url} target="_blank" rel="noreferrer" title="Voir le scan" className="text-muted-foreground hover:text-secondary">
+                            <ImageIcon className="w-3.5 h-3.5" />
+                          </a>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setScanningRowIndex(i)}
+                          title="Scanner le bon"
+                          className="w-6 h-6 rounded-full border-2 border-muted-foreground hover:border-blue-500 flex items-center justify-center transition-colors shrink-0"
+                        >
+                          <Camera className="w-3 h-3 text-muted-foreground" />
+                        </button>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <Input type="number" step="0.001" className="h-7 text-xs text-right font-semibold w-28" placeholder="37.120" value={row.poids_tonnes} onChange={e => updateRow(i, "poids_tonnes", e.target.value)} />
                   </TableCell>
                   <TableCell>
@@ -147,7 +194,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
               );
             })}
             <TableRow className="bg-secondary/10">
-              <TableCell colSpan={isSingleClient ? 4 : 5} className="text-right text-sm font-bold uppercase tracking-wide text-secondary">TD : {validRows.length} ROTATIONS</TableCell>
+              <TableCell colSpan={isSingleClient ? 5 : 6} className="text-right text-sm font-bold uppercase tracking-wide text-secondary">TD : {validRows.length} ROTATIONS</TableCell>
               <TableCell className="text-right text-sm font-bold text-secondary">{totalPoids.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</TableCell>
               <TableCell />
             </TableRow>
@@ -158,6 +205,10 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
       <div className="flex items-center gap-2 text-xs text-amber-600 mt-1">
         <Fuel className="w-3.5 h-3.5" />
         <span>Fond ambre = 3e rotation d'un même client + même camion — le refuel ne se déclenchera qu'une fois les 3 bons physiques confirmés</span>
+      </div>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+        <Camera className="w-3.5 h-3.5" />
+        <span>Le bon physique doit être scanné pour chaque ligne — la validation du bon par le Responsable de l'Exploitation se fait ensuite dans l'onglet Rotations.</span>
       </div>
 
       <div className="mt-3 p-3 bg-muted/50 rounded-lg text-xs space-y-1">
@@ -191,6 +242,34 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
           Aperçu & Validation ({validRows.length} ligne{validRows.length > 1 ? "s" : ""})
         </Button>
       </div>
+
+      {/* Scan du bon physique — requis pour qu'une ligne compte comme valide */}
+      {scanningRowIndex !== null && (
+        DEMO_MODE ? (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+            <div className="bg-background rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
+              <h3 className="font-bold text-sm text-center">Scanner le bon physique</h3>
+              <div className="bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 text-xs text-amber-800 font-semibold text-center">
+                ⚡ MODE DÉMO — photo non requise
+              </div>
+              <img src={DEMO_BON_SCAN_URL} alt="Bon (démo)" className="w-full h-32 object-cover rounded-lg border" />
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setScanningRowIndex(null)}>Annuler</Button>
+                <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleBonCapture(null)}>
+                  Confirmer le scan
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <DocumentScanner
+            guideRatio={1.4}
+            instructionText="Alignez le bon physique dans le cadre"
+            onCapture={(file) => handleBonCapture(file)}
+            onClose={() => setScanningRowIndex(null)}
+          />
+        )
+      )}
     </>
   );
 }
@@ -198,7 +277,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
 // ── STEP 2 : Aperçu / Validation ─────────────────────────────────────────────
 function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotationsCount, existingRotations, resolveClientId, campaign, client, campaignClients, zones = [], onBack, onConfirm, isPending }) {
   const isSingleClient = campaignClients.length <= 1;
-  const validRows = rows.filter(r => r.vehicle_id && r.poids_tonnes && (isSingleClient || r.client_id));
+  const validRows = rows.filter(r => r.vehicle_id && r.poids_tonnes && r.bon_scan_url && (isSingleClient || r.client_id));
   const totalPoids = validRows.reduce((s, r) => s + Number(r.poids_tonnes), 0);
   const cumulApresValidation = (campaign?.tonnage_realise || 0) + totalPoids;
   const tonnageDepassement = campaign?.tonnage_total_prevu > 0 && cumulApresValidation > campaign.tonnage_total_prevu;
@@ -369,7 +448,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const validRows = rows.filter(r => r.vehicle_id && r.poids_tonnes && (isSingleClient || r.client_id));
+      const validRows = rows.filter(r => r.vehicle_id && r.poids_tonnes && r.bon_scan_url && (isSingleClient || r.client_id));
       if (validRows.length === 0) throw new Error("Aucune ligne valide");
 
       const totalPoidsSaisi = validRows.reduce((s, r) => s + Number(r.poids_tonnes), 0);
@@ -403,6 +482,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
           poids_charge_tonnes: Number(row.poids_tonnes),
           litres_carburant_alloues: rowConso,
           refuel_declenche: positions[idx] !== null && positions[idx] % 3 === 0,
+          bon_physique_scan_url: row.bon_scan_url || null,
           bon_physique_recu: false,
           statut: "livree",
         };

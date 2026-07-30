@@ -191,7 +191,9 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
                                 ) : (
                                   <span className="text-[10px] text-muted-foreground">Non scanné</span>
                                 )}
-                                {r.bon_physique_scan_url && (
+                                {/* Une fois le bon validé, son statut (pastille verte) suffit —
+                                    inutile d'afficher aussi le scan à côté. */}
+                                {r.bon_physique_scan_url && !r.bon_physique_recu && (
                                   <a href={r.bon_physique_scan_url} target="_blank" rel="noreferrer" title="Voir le scan du bon" className="text-muted-foreground hover:text-secondary">
                                     <ImageIcon className="w-3.5 h-3.5" />
                                   </a>
