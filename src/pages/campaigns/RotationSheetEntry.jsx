@@ -301,7 +301,7 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
           {refuelsAVenir.map((row, i) => {
             const vehicle = vehicleMap[row.vehicle_id];
             return (
-              <div key={i} className="ml-5">— {vehicle?.immatriculation || "—"} : {consoLitresPourClient(clientMap[row.client_id] || client) * 3} L, une fois les 3 bons physiques confirmés</div>
+              <div key={i} className="ml-5">— {vehicle?.immatriculation || "—"} : {consoLitresPourClient(clientMap[row.client_id] || client, zones) * 3} L, une fois les 3 bons physiques confirmés</div>
             );
           })}
         </div>
@@ -344,7 +344,7 @@ function SheetPreview({ date, rows, vehicles, consoParRotation, existingRotation
 }
 
 // ── Composant principal ───────────────────────────────────────────────────────
-export default function RotationSheetEntry({ open, onClose, campaign, client, campaignClients = [], vehicles, drivers, existingRotationsCount, existingRotations = [], onSaved }) {
+export default function RotationSheetEntry({ open, onClose, campaign, client, campaignClients = [], vehicles, drivers, existingRotationsCount, existingRotations = [], zones = [], onSaved }) {
   const [step, setStep] = useState("saisie"); // "saisie" | "preview"
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [rows, setRows] = useState([{ ...emptyRow }]);
@@ -361,7 +361,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
   const removeRow = (i) => setRows(prev => prev.filter((_, idx) => idx !== i));
   const updateRow = (i, field, value) => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
-  const consoParRotation = consoLitresPourClient(client);
+  const consoParRotation = consoLitresPourClient(client, zones);
   const isSingleClient = campaignClients.length <= 1;
   const soleClientId = campaignClients[0]?.client_id || campaign?.client_id || null;
   const resolveClientId = (row) => isSingleClient ? soleClientId : row.client_id;
@@ -389,7 +389,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
         const row = validRows[idx];
         rotCount += 1;
         const rowClientId = resolveClientId(row);
-        const rowConso = consoLitresPourClient(clientMap[rowClientId] || client);
+        const rowConso = consoLitresPourClient(clientMap[rowClientId] || client, zones);
         const rotId = crypto.randomUUID();
         const rotData = {
           id: rotId,

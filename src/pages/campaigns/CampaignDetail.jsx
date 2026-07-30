@@ -18,6 +18,7 @@ import CampaignInvoice from "@/components/campaigns/CampaignInvoice";
 import { confirm } from "@/lib/confirm";
 import { stampStatutDate } from "@/lib/campaignStatus";
 import CampaignStatusStepper from "@/components/campaigns/CampaignStatusStepper";
+import { useZones } from "@/hooks/use-zones";
 import { logAudit } from "@/lib/auditLog";
 
 export default function CampaignDetail() {
@@ -113,6 +114,7 @@ export default function CampaignDetail() {
       return data;
     },
   });
+  const { data: zones = [] } = useZones();
 
   const startCampaign = useMutation({
     mutationFn: async () => {
@@ -436,6 +438,7 @@ export default function CampaignDetail() {
         drivers={drivers}
         existingRotationsCount={rotations.length}
         existingRotations={rotations}
+        zones={zones}
         onSaved={() => {
           queryClient.invalidateQueries({ queryKey: ["rotations", id] });
           queryClient.invalidateQueries({ queryKey: ["campaign", id] });

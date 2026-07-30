@@ -15,13 +15,8 @@ import { toast } from "sonner";
 import DepotsEditor from "@/components/clients/DepotsEditor";
 import { confirm } from "@/lib/confirm";
 import { logAudit } from "@/lib/auditLog";
-
-const zoneLabels = { zone1: "Zone 1", zone2: "Zone 2", zone3: "Zone 3", zone4: "Zone 4" };
-const zoneColors = { zone1: "bg-green-500/10 text-green-600", zone2: "bg-blue-500/10 text-blue-600", zone3: "bg-amber-500/10 text-amber-600", zone4: "bg-red-500/10 text-red-600" };
-const zoneConso = { zone1: "8–10 L", zone2: "25 L", zone3: "30 L", zone4: "40 L" };
-// Encadré coloré du formulaire — même famille de couleurs que le badge de
-// zone, en dégradé plus doux pour servir de fond de section.
-const zoneBoxColors = { zone1: "bg-green-500/5 border-green-500/20", zone2: "bg-blue-500/5 border-blue-500/20", zone3: "bg-amber-500/5 border-amber-500/20", zone4: "bg-red-500/5 border-red-500/20" };
+import { useZones } from "@/hooks/use-zones";
+import { getZoneColors } from "@/lib/zoneColors";
 
 const emptyForm = { nom: "", code_client: "", zone: "zone1", contact_nom: "", contact_telephone: "", actif: true };
 
@@ -60,6 +55,8 @@ export default function ClientsPage() {
       return data;
     },
   });
+  const { data: zones = [] } = useZones();
+  const zoneMap = Object.fromEntries(zones.map((z, i) => [z.code, { ...z, colors: getZoneColors(i) }]));
 
   // DepotsEditor ajoute un champ UI "_coords" qui n'existe pas en colonne —
   // à retirer avant tout insert/update Supabase (Postgrest rejette les
@@ -222,7 +219,7 @@ export default function ClientsPage() {
                         {c.contact_nom || "-"}
                         {c.contact_telephone && <p className="text-muted-foreground">{c.contact_telephone}</p>}
                       </TableCell>
-                      <TableCell><Badge className={cn("text-[10px]", zoneColors[c.zone])}><MapPin className="w-2.5 h-2.5 mr-1" />{zoneLabels[c.zone]}</Badge></TableCell>
+                      <TableCell><Badge className={cn("text-[10px]", zoneMap[c.zone]?.colors.badge)}><MapPin className="w-2.5 h-2.5 mr-1" />{zoneMap[c.zone]?.libelle || c.zone}</Badge></TableCell>
                       <TableCell className="text-xs">{clientDepots.length || "-"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
@@ -276,7 +273,7 @@ export default function ClientsPage() {
             </div>
 
             {/* Zone & tarification */}
-            <div className={cn("border-2 rounded-2xl p-4 space-y-3", zoneBoxColors[form.zone] || zoneBoxColors.zone1)}>
+            <div className={cn("border-2 rounded-2xl p-4 space-y-3", zoneMap[form.zone]?.colors.box || "bg-muted/40 border-border")}>
               <p className="text-xs font-semibold flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />Zone & tarification</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -284,8 +281,8 @@ export default function ClientsPage() {
                   <Select value={form.zone || "zone1"} onValueChange={v => setForm({ ...form, zone: v })}>
                     <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(zoneLabels).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v} — {zoneConso[k]}/rotation</SelectItem>
+                      {zones.map(z => (
+                        <SelectItem key={z.code} value={z.code}>{z.libelle} — {Number(z.litrage_approximatif)} L/rotation</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -295,8 +292,8 @@ export default function ClientsPage() {
                   <Input type="number" className="mt-1 bg-card" placeholder="Ex: 15000" value={form.tarif_par_tonne || ""} onChange={e => setForm({ ...form, tarif_par_tonne: e.target.value ? Number(e.target.value) : undefined })} />
                 </div>
               </div>
-              <Badge className={cn("text-[10px]", zoneColors[form.zone || "zone1"])}>
-                <MapPin className="w-2.5 h-2.5 mr-1" />{zoneLabels[form.zone || "zone1"]} — conso. estimée {zoneConso[form.zone || "zone1"]} / rotation
+              <Badge className={cn("text-[10px]", zoneMap[form.zone]?.colors.badge)}>
+                <MapPin className="w-2.5 h-2.5 mr-1" />{zoneMap[form.zone]?.libelle || form.zone} — conso. estimée {Number(zoneMap[form.zone]?.litrage_approximatif) || 0} L / rotation
               </Badge>
             </div>
 
@@ -316,7 +313,7 @@ export default function ClientsPage() {
             </div>
 
             <div className="border-t border-border pt-3">
-              <DepotsEditor depots={depots} onChange={setDepots} />
+              <DepotsEditor depots={depots} onChange={setDepots} zones={zones} />
             </div>
           </div>
 

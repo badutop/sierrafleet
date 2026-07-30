@@ -4,17 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Fuel, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const zoneConsoVal = { zone1: 9, zone2: 25, zone3: 30, zone4: 40 };
-const zoneLabels = { zone1: "Zone 1 (8–10L)", zone2: "Zone 2 (25L)", zone3: "Zone 3 (30L)", zone4: "Zone 4 (40L)" };
-
-export default function FuelCampaignTab({ campaigns, rotations, entries, clients, vehicles, formatCFA }) {
+export default function FuelCampaignTab({ campaigns, rotations, entries, clients, vehicles, zones = [], formatCFA }) {
   const clientMap = useMemo(() => Object.fromEntries(clients.map(c => [c.id, c])), [clients]);
+  const zoneMap = useMemo(() => Object.fromEntries(zones.map(z => [z.code, z])), [zones]);
 
   const data = useMemo(() => {
     return campaigns.map(campaign => {
       const client = clientMap[campaign.client_id];
       const zone = client?.zone || "zone1";
-      const consoZone = zoneConsoVal[zone] || 9;
+      const consoZone = Number(zoneMap[zone]?.litrage_approximatif) || 9;
 
       const campRotations = rotations.filter(r => r.campaign_id === campaign.id);
       const nbRotations = campRotations.length;
@@ -29,7 +27,7 @@ export default function FuelCampaignTab({ campaigns, rotations, entries, clients
 
       return { campaign, client, zone, consoZone, nbRotations, consoTheorique, litresReels, coutReel, ecart, ecartPct };
     }).filter(d => d.nbRotations > 0 || d.litresReels > 0);
-  }, [campaigns, rotations, entries, clientMap]);
+  }, [campaigns, rotations, entries, clientMap, zoneMap]);
 
   if (data.length === 0) {
     return (
@@ -43,7 +41,7 @@ export default function FuelCampaignTab({ campaigns, rotations, entries, clients
   return (
     <div className="space-y-4">
       <div className="bg-muted/40 border border-border rounded-lg px-4 py-3 text-xs text-muted-foreground">
-        <strong>Consommation par zone :</strong> Zone 1 → 8–10 L/rot · Zone 2 → 25 L/rot · Zone 3 → 30 L/rot · Zone 4 → 40 L/rot
+        <strong>Consommation par zone :</strong> {zones.map(z => `${z.libelle} → ${Number(z.litrage_approximatif)} L/rot`).join(" · ")}
       </div>
 
       <div className="bg-card rounded-xl border border-border overflow-x-auto">
@@ -66,7 +64,7 @@ export default function FuelCampaignTab({ campaigns, rotations, entries, clients
                 <TableCell className="text-xs font-semibold">{campaign.nom_campagne}</TableCell>
                 <TableCell className="text-xs">
                   <div className="font-medium">{client?.nom || "—"}</div>
-                  <div className="text-muted-foreground">{zoneLabels[zone] || zone}</div>
+                  <div className="text-muted-foreground">{zoneMap[zone] ? `${zoneMap[zone].libelle} (${Number(zoneMap[zone].litrage_approximatif)}L)` : zone}</div>
                 </TableCell>
                 <TableCell className="text-xs text-right font-medium">{nbRotations}</TableCell>
                 <TableCell className="text-xs text-right text-muted-foreground">{consoTheorique.toLocaleString("fr-FR")}</TableCell>

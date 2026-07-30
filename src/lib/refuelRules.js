@@ -5,10 +5,12 @@
 // Table), le camion devient éligible dans Carburant > Validation ; le vrai
 // fuel_entries n'est créé qu'au déclenchement du Rechargement Auto (scan des
 // bons + de la pompe), pas automatiquement.
-export const ZONE_CONSO_LITRES = { zone1: 9, zone2: 25, zone3: 30, zone4: 40 };
-
-export function consoLitresPourClient(client) {
-  return client ? (ZONE_CONSO_LITRES[client.zone] || 9) : 9;
+// Litrage approximatif par zone — désormais paramétrable (module Paramètres,
+// table public.zones, voir hooks/use-zones.jsx) plutôt que codé en dur ici.
+export function consoLitresPourClient(client, zones = []) {
+  if (!client) return 9;
+  const zone = zones.find(z => z.code === client.zone);
+  return zone ? Number(zone.litrage_approximatif) : 9;
 }
 
 // Nombre de rotations déjà enregistrées pour ce couple (client, camion) dans

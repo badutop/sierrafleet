@@ -4,15 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, MapPin, Navigation } from "lucide-react";
-
-const zoneLabels = { zone1: "Zone 1", zone2: "Zone 2", zone3: "Zone 3", zone4: "Zone 4" };
-const zoneConso  = { zone1: "8–10 L", zone2: "25 L", zone3: "30 L", zone4: "40 L" };
-const zoneColors = {
-  zone1: "bg-green-500/10 text-green-700 border-green-500/30",
-  zone2: "bg-blue-500/10 text-blue-700 border-blue-500/30",
-  zone3: "bg-amber-500/10 text-amber-700 border-amber-500/30",
-  zone4: "bg-red-500/10 text-red-700 border-red-500/30",
-};
+import { getZoneColors } from "@/lib/zoneColors";
 
 const emptyDepot = () => ({ nom_depot: "", adresse: "", latitude: "", longitude: "", zone: "zone1", _coords: "" });
 
@@ -27,7 +19,8 @@ const parseCoords = (str) => {
   return { latitude: "", longitude: "" };
 };
 
-export default function DepotsEditor({ depots, onChange }) {
+export default function DepotsEditor({ depots, onChange, zones = [] }) {
+  const zoneMap = Object.fromEntries(zones.map((z, i) => [z.code, { ...z, colors: getZoneColors(i) }]));
   const add = () => onChange([...depots, emptyDepot()]);
 
   const remove = (i) => onChange(depots.filter((_, idx) => idx !== i));
@@ -102,10 +95,10 @@ export default function DepotsEditor({ depots, onChange }) {
               <Select value={depot.zone} onValueChange={v => update(i, "zone", v)}>
                 <SelectTrigger className="mt-0.5 h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(zoneLabels).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>
-                      <span>{v}</span>
-                      <span className="ml-2 text-muted-foreground text-[10px]">({zoneConso[k]}/rot.)</span>
+                  {zones.map(z => (
+                    <SelectItem key={z.code} value={z.code}>
+                      <span>{z.libelle}</span>
+                      <span className="ml-2 text-muted-foreground text-[10px]">({Number(z.litrage_approximatif)}L/rot.)</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -114,9 +107,9 @@ export default function DepotsEditor({ depots, onChange }) {
           </div>
 
           {/* Badge zone info */}
-          <div className={`inline-flex items-center gap-1.5 text-[10px] font-medium px-2 py-0.5 rounded-full border ${zoneColors[depot.zone]}`}>
+          <div className={`inline-flex items-center gap-1.5 text-[10px] font-medium px-2 py-0.5 rounded-full border ${zoneMap[depot.zone]?.colors.border} ${zoneMap[depot.zone]?.colors.badge}`}>
             <MapPin className="w-2.5 h-2.5" />
-            {zoneLabels[depot.zone]} — conso. estimée {zoneConso[depot.zone]} / rotation
+            {zoneMap[depot.zone]?.libelle || depot.zone} — conso. estimée {Number(zoneMap[depot.zone]?.litrage_approximatif) || 0} L / rotation
           </div>
 
           {/* Adresse */}

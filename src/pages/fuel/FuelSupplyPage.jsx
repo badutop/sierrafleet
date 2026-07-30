@@ -13,6 +13,7 @@ import FuelSupplyDialog from "@/components/fuel/FuelSupplyDialog";
 import FuelCampaignTab from "@/components/fuel/FuelCampaignTab";
 import FuelVehiclePerformance from "@/components/fuel/FuelVehiclePerformance";
 import FuelAlertsTab from "@/components/fuel/FuelAlertsTab";
+import { useZones } from "@/hooks/use-zones";
 import { logAudit } from "@/lib/auditLog";
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
@@ -66,6 +67,7 @@ export default function FuelSupplyPage() {
       return data;
     },
   });
+  const { data: zones = [] } = useZones();
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -229,6 +231,7 @@ export default function FuelSupplyPage() {
             entries={entries}
             clients={clients}
             vehicles={vehicles}
+            zones={zones}
             formatCFA={formatCFA}
           />
         </TabsContent>

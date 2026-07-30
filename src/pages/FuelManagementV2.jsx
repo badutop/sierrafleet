@@ -15,6 +15,7 @@ import FuelCostBreakdown from "@/components/fuel/FuelCostBreakdown";
 import FuelValidationTab from "@/components/fuel/FuelValidationTab";
 import FuelMonthlyChart from "@/components/fuel/FuelMonthlyChart";
 import { getRefuelCheckpoints } from "@/lib/refuelRules";
+import { useZones } from "@/hooks/use-zones";
 import { logAudit } from "@/lib/auditLog";
 import { startOfMonth, startOfYear, subMonths } from "date-fns";
 
@@ -113,6 +114,7 @@ export default function FuelManagementV2() {
       return data;
     },
   });
+  const { data: zones = [] } = useZones();
 
   // Mutations
   const createMutation = useMutation({
@@ -407,6 +409,7 @@ export default function FuelManagementV2() {
             rotations={rotations}
             vehicles={vehicles}
             clients={clients}
+            zones={zones}
             onLaunchRecharge={(vehicle, checkpointId) => {
               setRechargeVehicle(vehicle);
               setRechargeDriver(drivers.find(d => d.id === vehicle?.driver_id) || null);

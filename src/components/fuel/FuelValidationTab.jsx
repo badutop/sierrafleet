@@ -17,7 +17,7 @@ import { logAudit } from "@/lib/auditLog";
 // avec les 3 bons physiques confirmés (voir CampaignRotationsTable). La
 // validation ne fait que marquer le camion prêt ; le vrai rechargement (et
 // son fuel_entries) se fait ensuite via le module Rechargement Auto.
-export default function FuelValidationTab({ rotations, vehicles, clients = [], onLaunchRecharge }) {
+export default function FuelValidationTab({ rotations, vehicles, clients = [], zones = [], onLaunchRecharge }) {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   const vMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
@@ -60,7 +60,7 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], o
   const renderCard = (item) => {
     const vehicle = vMap[item.vehicleId];
     const client = clientMap[item.clientId];
-    const conso = consoLitresPourClient(client) * 3;
+    const conso = consoLitresPourClient(client, zones) * 3;
     const dernierBon = item.checkpoint.date_rotation ? format(new Date(item.checkpoint.date_rotation), "d MMM yyyy", { locale: fr }) : "—";
 
     return (
