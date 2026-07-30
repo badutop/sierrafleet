@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,15 +10,6 @@ import { Fuel, Camera, Upload, X, Coins, ArrowLeft, Save } from "lucide-react";
 import { getFuelPricePerLitre } from "@/pages/SettingsPage";
 import { uploadFile } from "@/lib/storage";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
-
-const stations = [
-  { label: "Star Oil - Pompier", value: "Star Oil - Pompier" },
-  { label: "Star Oil - SIPS", value: "Star Oil - SIPS" },
-  { label: "Star Oil - Sangalkam", value: "Star Oil - Sangalkam" },
-  { label: "Elton", value: "Elton" },
-  { label: "TOTAL", value: "TOTAL" },
-  { label: "SHELL", value: "SHELL" },
-];
 
 const emptyForm = {
   vehicle_id: "",
@@ -28,6 +21,16 @@ const emptyForm = {
 };
 
 export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, onSave, isPending }) {
+  // Liste des stations paramétrée dans Paramètres > Les Stations d'essence
+  // (voir FuelStationsManagerDialog.jsx) au lieu d'une liste figée dans le code.
+  const { data: stations = [] } = useQuery({
+    queryKey: ["fuel_stations"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("fuel_stations").select("*").order("nom", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
   const [form, setForm] = useState(emptyForm);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -119,9 +122,13 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
                     <SelectValue placeholder="Choisir" />
                   </SelectTrigger>
                   <SelectContent>
-                    {stations.map(s => (
-                      <SelectItem key={s.value} value={s.value} className="py-3 text-sm">{s.label}</SelectItem>
-                    ))}
+                    {stations.length === 0 ? (
+                      <SelectItem value="none" disabled className="py-3 text-sm">Aucune station configurée (Paramètres)</SelectItem>
+                    ) : (
+                      stations.map(s => (
+                        <SelectItem key={s.id} value={s.nom} className="py-3 text-sm">{s.nom}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
