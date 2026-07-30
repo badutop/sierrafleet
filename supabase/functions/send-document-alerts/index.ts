@@ -28,7 +28,7 @@
 // EVOLUTION_INSTANCE_NAME (voir ../_shared/evolution.ts).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendWhatsAppMessage } from '../_shared/evolution.ts';
+import { sendWhatsAppMessageToAll } from '../_shared/evolution.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -128,10 +128,10 @@ Deno.serve(async (req) => {
     alerts.join('\n') +
     `\n\n_Merci de traiter ces points rapidement._`;
 
-  const result = await sendWhatsAppMessage(waPhone, message);
-  if (!result.success) {
-    console.error(`[send-document-alerts] échec: ${result.error}`);
-    return jsonResponse({ sent: false, alerts_count: alerts.length, error: result.error }, 200);
+  const { success, results } = await sendWhatsAppMessageToAll(waPhone, message);
+  if (!success) {
+    console.error(`[send-document-alerts] échec pour tous les numéros: ${JSON.stringify(results)}`);
+    return jsonResponse({ sent: false, alerts_count: alerts.length, results }, 200);
   }
 
   console.log(`[send-document-alerts] ${alerts.length} alerte(s) envoyée(s) avec succès`);

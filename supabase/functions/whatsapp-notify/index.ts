@@ -25,7 +25,7 @@
 // app_settings_select_authenticated).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendWhatsAppMessage } from '../_shared/evolution.ts';
+import { sendWhatsAppMessageToAll } from '../_shared/evolution.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -89,12 +89,14 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'message est requis' }, 400);
   }
 
-  // --- Numéro destinataire : transmis dans le payload (le client le
-  // connaît déjà, il l'affiche), sinon relu depuis app_settings.
+  // --- Numéro(s) destinataire(s) : transmis dans le payload (le client le
+  // connaît déjà, il l'affiche), sinon relus depuis app_settings — un ou
+  // plusieurs numéros séparés par des virgules, paramétrables depuis
+  // Paramètres > Notifications WhatsApp (ex: Responsable de l'Exploitation).
   // wa_alert_apikey n'existe plus : l'authentification Evolution API se
   // fait au niveau de l'instance (EVOLUTION_API_KEY), pas par destinataire.
-  let phone = body.phone;
-  if (!phone) {
+  let phones = body.phone;
+  if (!phones) {
     const { data: setting, error: settingsError } = await callerClient
       .from('app_settings')
       .select('value')
@@ -104,20 +106,20 @@ Deno.serve(async (req) => {
       console.error(`[whatsapp-notify] lecture app_settings échouée: ${settingsError.message}`);
       return jsonResponse({ error: 'Paramètres WhatsApp indisponibles' }, 500);
     }
-    phone = setting?.value;
+    phones = setting?.value;
   }
 
-  if (!phone) {
+  if (!phones) {
     console.log(`[whatsapp-notify] appelant=${callerData.user.id} — numéro non configuré, notification ignorée`);
     return jsonResponse({ error: 'Notification WhatsApp non configurée (wa_alert_phone manquant)' }, 200);
   }
 
-  const result = await sendWhatsAppMessage(phone, message);
-  if (!result.success) {
-    console.error(`[whatsapp-notify] appelant=${callerData.user.id} échec: ${result.error}`);
-    return jsonResponse({ success: false, error: result.error }, 200);
+  const { success, results } = await sendWhatsAppMessageToAll(phones, message);
+  if (!success) {
+    console.error(`[whatsapp-notify] appelant=${callerData.user.id} échec pour tous les numéros: ${JSON.stringify(results)}`);
+    return jsonResponse({ success: false, results }, 200);
   }
 
-  console.log(`[whatsapp-notify] appelant=${callerData.user.id} notification envoyée avec succès`);
-  return jsonResponse({ success: true });
+  console.log(`[whatsapp-notify] appelant=${callerData.user.id} notification envoyée (${results.filter(r => r.success).length}/${results.length} numéros)`);
+  return jsonResponse({ success: true, results });
 });

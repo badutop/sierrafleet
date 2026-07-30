@@ -4,6 +4,7 @@ import FuelPriceCard from "@/components/settings/FuelPriceCard";
 import InvoiceSettingsCard from "@/components/settings/InvoiceSettingsCard";
 import AlertThresholdsCard from "@/components/settings/AlertThresholdsCard";
 import ZonesSettingsCard from "@/components/settings/ZonesSettingsCard";
+import WhatsAppNotifCard from "@/components/settings/WhatsAppNotifCard";
 
 export const FUEL_PRICE_KEY = "sierra_fuel_price_per_litre";
 export function getFuelPricePerLitre() {
@@ -35,6 +36,7 @@ export default function SettingsPage() {
         <InvoiceSettingsCard />
         <AlertThresholdsCard />
         <ZonesSettingsCard />
+        <WhatsAppNotifCard />
       </div>
     </div>
   );

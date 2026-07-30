@@ -13,6 +13,29 @@ const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL');
 const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
 const EVOLUTION_INSTANCE_NAME = Deno.env.get('EVOLUTION_INSTANCE_NAME');
 
+// app_settings.wa_alert_phone stocke un ou plusieurs numéros séparés par des
+// virgules (paramétrable depuis Paramètres > Notifications WhatsApp, voir
+// WhatsAppNotifCard.jsx côté front) — ces deux helpers centralisent le
+// parsing et l'envoi à tous les numéros pour whatsapp-notify et
+// send-document-alerts, qui partagent ce même réglage.
+export function parsePhoneNumbers(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return value.split(',').map((n) => n.trim()).filter(Boolean);
+}
+
+export async function sendWhatsAppMessageToAll(
+  numbersCsv: string,
+  text: string
+): Promise<{ success: boolean; results: { number: string; success: boolean; error?: string }[] }> {
+  const numbers = parsePhoneNumbers(numbersCsv);
+  const results: { number: string; success: boolean; error?: string }[] = [];
+  for (const number of numbers) {
+    const result = await sendWhatsAppMessage(number, text);
+    results.push({ number, ...result });
+  }
+  return { success: results.some((r) => r.success), results };
+}
+
 export async function sendWhatsAppMessage(
   number: string,
   text: string
