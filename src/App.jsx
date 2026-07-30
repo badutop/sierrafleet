@@ -55,6 +55,8 @@ function App() {
             </Route>
 
             <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+              {/* Espace Chauffeur — page autonome, sans le menu latéral / layout principal. */}
+              <Route path="/refuel" element={<DriverRefuelPage />} />
               <Route element={<AppLayout />}>
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="/journal" element={<Journal />} />
@@ -73,7 +75,6 @@ function App() {
                 <Route path="/campaigns" element={<CampaignsList />} />
                 <Route path="/campaigns/:id" element={<CampaignDetail />} />
                 <Route path="/clients" element={<ClientsPage />} />
-                <Route path="/refuel" element={<DriverRefuelPage />} />
                 <Route path="/audit-log" element={<AuditLogPage />} />
                 <Route path="/deversement" element={<DeversementPage />} />
               </Route>
