@@ -30,8 +30,10 @@ import DriverRefuelPage from '@/pages/DriverRefuelPage';
 import AuditLogPage from '@/pages/AuditLogPage';
 import LandingPage from '@/pages/LandingPage';
 import DeversementPage from '@/pages/DeversementPage';
+import { useViewportHeight } from '@/hooks/use-viewport-height';
 
 function App() {
+  useViewportHeight();
 
   return (
     <AuthProvider>

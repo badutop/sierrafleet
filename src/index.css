@@ -90,11 +90,14 @@
 /* Hauteur de viewport fiable sur mobile : 100vh inclut la zone masquée par la
    barre d'adresse du navigateur (Safari/Chrome mobile), ce qui pousse le pied
    de page hors de l'écran visible même quand le contenu tient sans défiler.
-   100dvh (hauteur réellement visible) corrige ça — 100vh reste en repli pour
-   les navigateurs qui ne le supportent pas (ex. iOS 12 Safari) : la
-   déclaration invalide est simplement ignorée, celle du dessus s'applique. */
-.h-viewport { height: 100vh; height: 100dvh; }
-.min-h-viewport { min-height: 100vh; min-height: 100dvh; }
+   Trois replis progressifs, du moins au plus précis (chaque déclaration
+   valide écrase la précédente, une déclaration non supportée est simplement
+   ignorée) : 100vh (repli universel) → calc(--app-vh * 100), la vraie hauteur
+   mesurée en JS (voir hooks/use-viewport-height.jsx) pour les navigateurs
+   sans support de dvh comme iOS 12 Safari → 100dvh, natif et toujours à jour,
+   sur les navigateurs qui le supportent. */
+.h-viewport { height: 100vh; height: calc(var(--app-vh, 1vh) * 100); height: 100dvh; }
+.min-h-viewport { min-height: 100vh; min-height: calc(var(--app-vh, 1vh) * 100); min-height: 100dvh; }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; }
