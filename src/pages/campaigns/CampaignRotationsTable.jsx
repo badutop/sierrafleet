@@ -1,76 +1,20 @@
-import React, { useState } from "react";
-import { useAuth } from "@/lib/AuthContext";
-import { supabase } from "@/lib/supabaseClient";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, Fuel, RotateCw, ImageIcon, Camera, Clock, ShieldCheck } from "lucide-react";
+import { CheckCircle, Fuel, RotateCw, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { uploadFile } from "@/lib/storage";
-import DocumentScanner from "@/components/drivers/DocumentScanner";
-import { logAudit } from "@/lib/auditLog";
 
-const DEMO_MODE = false; // scan réel via DocumentScanner (voir RotationSheetEntry)
-const DEMO_BON_SCAN_URL = "https://placehold.co/320x200/e2e8f0/64748b?text=BON+SCANNE+DEMO";
-
-export default function CampaignRotationsTable({ rotations, vehicles, drivers, campaignId }) {
-  const { user: currentUser } = useAuth();
-  const queryClient = useQueryClient();
+// Ce tableau est désormais purement consultatif pour les bons physiques : le
+// scan se fait à la saisie de la fiche du jour (RotationSheetEntry) et la
+// validation se fait exclusivement dans Carburant > Validation (Responsable
+// Exploitation ou Admin, par groupe de 3 rotations — voir
+// FuelValidationTab.jsx et refuelRules.getRefuelCheckpoints). Un bon reste
+// "À valider" ici sans aucune action possible tant que cette validation
+// carburant n'a pas eu lieu ; c'est seulement à ce moment que le chauffeur
+// peut voir ses bons dans son espace et recharger (bon_physique_recu).
+export default function CampaignRotationsTable({ rotations, vehicles, drivers }) {
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const driverMap = Object.fromEntries(drivers.map(d => [d.id, `${d.prenom} ${d.nom}`]));
-  const [scanningRotId, setScanningRotId] = useState(null);
-
-  // Le scan du bon (preuve physique) et sa validation sont deux étapes
-  // distinctes portées par deux rôles différents : le Responsable des
-  // Opérations scanne le bon (bon_physique_scan_url), le Responsable
-  // Exploitation valide ensuite (bon_physique_recu) — c'est seulement à ce
-  // moment que le bon compte pour les 3 bons d'un couple client+camion (voir
-  // refuelRules.getRefuelCheckpoints).
-  const canScan = currentUser?.role === "admin" || currentUser?.role === "responsable_operations";
-  const canValidate = currentUser?.role === "admin" || currentUser?.role === "responsable_exploitation";
-
-  const scanBon = useMutation({
-    mutationFn: async ({ rotId, scanUrl }) => {
-      const { error } = await supabase.from("rotations").update({ bon_physique_scan_url: scanUrl }).eq("id", rotId);
-      if (error) throw error;
-      await logAudit("Rotation", rotId, "update", { bon_physique_scan_url: scanUrl }, null, ["bon_physique_scan_url"]);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rotations", campaignId] });
-      toast.success("Bon scanné — en attente de validation (Resp. Exploitation)");
-    },
-    onError: (err) => toast.error(`Erreur : ${err.message}`),
-  });
-
-  const validateBon = useMutation({
-    mutationFn: async (rotId) => {
-      const { error } = await supabase.from("rotations").update({ bon_physique_recu: true }).eq("id", rotId);
-      if (error) throw error;
-      await logAudit("Rotation", rotId, "update", { bon_physique_recu: true }, null, ["bon_physique_recu"]);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rotations", campaignId] });
-      toast.success("Bon validé");
-    },
-    onError: (err) => toast.error(`Erreur : ${err.message}`),
-  });
-
-  const handleBonCapture = async (file) => {
-    const rotId = scanningRotId;
-    setScanningRotId(null);
-    try {
-      let scanUrl = DEMO_BON_SCAN_URL;
-      if (file) {
-        const { file_url } = await uploadFile(file, "bon-scans");
-        scanUrl = file_url;
-      }
-      scanBon.mutate({ rotId, scanUrl });
-    } catch (err) {
-      toast.error(`Erreur lors de l'envoi du scan : ${err.message}`);
-    }
-  };
 
   // Les dernières rotations en premier : tri décroissant (date, puis numéro)
   // avant le regroupement par jour, pour que les journées ET les rotations
@@ -163,36 +107,15 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
                                 {r.bon_physique_recu ? (
                                   <span
                                     title="Bon validé — définitif"
-                                    className="w-6 h-6 rounded-full bg-emerald-500 border-2 border-emerald-500 flex items-center justify-center shrink-0"
+                                    className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"
                                   >
                                     <CheckCircle className="w-3 h-3 text-white" />
                                   </span>
-                                ) : r.bon_physique_scan_url ? (
-                                  canValidate ? (
-                                    <Button
-                                      size="sm" variant="outline" className="h-6 text-[10px] px-2 gap-1 border-blue-400 text-blue-700 hover:bg-blue-50"
-                                      onClick={() => validateBon.mutate(r.id)} disabled={validateBon.isPending}
-                                    >
-                                      <ShieldCheck className="w-3 h-3" /> Valider
-                                    </Button>
-                                  ) : (
-                                    <span className="text-[10px] text-blue-600 font-medium flex items-center gap-1" title="Scanné — en attente de validation par le Resp. Exploitation">
-                                      <Clock className="w-3 h-3" /> En attente
-                                    </span>
-                                  )
-                                ) : canScan ? (
-                                  <button
-                                    onClick={() => setScanningRotId(r.id)}
-                                    title="Scanner le bon"
-                                    className="w-6 h-6 rounded-full border-2 border-muted-foreground hover:border-blue-500 flex items-center justify-center transition-colors shrink-0"
-                                  >
-                                    <Camera className="w-3 h-3 text-muted-foreground" />
-                                  </button>
                                 ) : (
-                                  <span className="text-[10px] text-muted-foreground">Non scanné</span>
+                                  <Badge className="bg-amber-500/10 text-amber-600 text-[10px]" title="Validation effectuée dans Carburant > Validation">
+                                    À valider
+                                  </Badge>
                                 )}
-                                {/* Une fois le bon validé, son statut (pastille verte) suffit —
-                                    inutile d'afficher aussi le scan à côté. */}
                                 {r.bon_physique_scan_url && !r.bon_physique_recu && (
                                   <a href={r.bon_physique_scan_url} target="_blank" rel="noreferrer" title="Voir le scan du bon" className="text-muted-foreground hover:text-secondary">
                                     <ImageIcon className="w-3.5 h-3.5" />
@@ -224,34 +147,6 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, c
           <span className="text-primary">{rotations.length} ROTATIONS → {rotations.reduce((s, r) => s + Number(r.poids_charge_tonnes || 0), 0).toFixed(3)} T</span>
         </div>
       </div>
-
-      {/* Scan du bon physique — requis pour confirmer un bon comme reçu */}
-      {scanningRotId && (
-        DEMO_MODE ? (
-          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-            <div className="bg-background rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
-              <h3 className="font-bold text-sm text-center">Scanner le bon physique</h3>
-              <div className="bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 text-xs text-amber-800 font-semibold text-center">
-                ⚡ MODE DÉMO — photo non requise
-              </div>
-              <img src={DEMO_BON_SCAN_URL} alt="Bon (démo)" className="w-full h-32 object-cover rounded-lg border" />
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setScanningRotId(null)} disabled={scanBon.isPending}>Annuler</Button>
-                <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleBonCapture(null)} disabled={scanBon.isPending}>
-                  Confirmer le scan
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <DocumentScanner
-            guideRatio={1.4}
-            instructionText="Alignez le bon physique dans le cadre"
-            onCapture={(file) => handleBonCapture(file)}
-            onClose={() => setScanningRotId(null)}
-          />
-        )
-      )}
     </div>
   );
 }

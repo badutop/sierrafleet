@@ -28,8 +28,10 @@ export default function CampaignDetail() {
   // archivées, ni ne peuvent terminer/archiver une campagne ou voir la
   // facture client (voir aussi CampaignsList.jsx). Resp. Exploitation, en
   // plus, ne gère ni l'affectation des camions ni la saisie des rotations —
-  // c'est le rôle de Resp. Opérations. Resp. Exploitation valide en revanche
-  // les bons scannés par Resp. Opérations (voir CampaignRotationsTable.jsx).
+  // c'est le rôle de Resp. Opérations. La validation des bons physiques ne se
+  // fait plus ici (Campagnes > Rotations n'affiche qu'un statut "À valider"
+  // passif) mais exclusivement dans Carburant > Validation, par Resp.
+  // Exploitation ou Admin (voir FuelValidationTab.jsx).
   // Finances, à l'inverse, n'a accès qu'aux campagnes archivées et n'y voit
   // que les factures clients (aucun KPI, aucune fiche de rotation, aucune
   // affectation de camions).

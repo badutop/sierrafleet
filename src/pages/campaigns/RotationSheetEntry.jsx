@@ -210,7 +210,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
         <Camera className="w-3.5 h-3.5" />
-        <span>Le bon physique doit être scanné pour chaque ligne — la validation du bon par le Responsable de l'Exploitation se fait ensuite dans l'onglet Rotations.</span>
+        <span>Le bon physique doit être scanné pour chaque ligne — la validation du bon se fait ensuite dans Carburant &gt; Validation.</span>
       </div>
 
       <div className="mt-3 p-3 bg-muted/50 rounded-lg text-xs space-y-1">

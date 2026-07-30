@@ -8,9 +8,10 @@ import { getPendingBonGroupForVehicle } from "@/lib/refuelRules";
 const REQUIRED_BONS = 3;
 
 // Les bons ne sont plus saisis/scannés ici par le chauffeur : ils sont déjà
-// enregistrés (et confirmés) depuis le module Campagnes > Rotations. Cet
+// scannés à la saisie de la fiche du jour (Campagnes > Rotations), puis
+// validés dans Carburant > Validation (Resp. Exploitation ou Admin). Cet
 // écran se contente de les afficher avec leur statut, et n'autorise la suite
-// du rechargement que lorsque les 3 sont confirmés.
+// du rechargement que lorsque les 3 sont validés.
 export default function BonCaptureStep({ drivers, vehicles, rotations, onDone, preselectedDriver = null, preselectedVehicle = null }) {
   const isDriverMode = !!(preselectedDriver && preselectedVehicle);
   const [driverId, setDriverId] = useState(preselectedDriver?.id || "");
@@ -90,7 +91,7 @@ export default function BonCaptureStep({ drivers, vehicles, rotations, onDone, p
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-start gap-2">
         <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
         <p className="text-xs text-foreground">
-          Les {REQUIRED_BONS} bons de rotation sont enregistrés depuis le module <strong>Campagnes</strong>. Ils apparaissent ici pour vérification — le rechargement n'est possible qu'une fois les {REQUIRED_BONS} confirmés.
+          Les {REQUIRED_BONS} bons de rotation sont scannés depuis le module <strong>Campagnes</strong> puis validés dans <strong>Carburant</strong>. Ils apparaissent ici pour vérification — le rechargement n'est possible qu'une fois les {REQUIRED_BONS} validés.
         </p>
       </div>
 

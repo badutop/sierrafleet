@@ -1,10 +1,12 @@
 // Règle du refuel automatique : 3 rotations d'un même client ET d'un même
-// camion, dont les 3 bons physiques ont été effectivement collectés. La
-// prédiction (position multiple de 3) se calcule à la saisie de la fiche du
-// jour (RotationSheetEntry). Une fois les 3 bons confirmés (CampaignRotations
-// Table), le camion devient éligible dans Carburant > Validation ; le vrai
-// fuel_entries n'est créé qu'au déclenchement du Rechargement Auto (scan des
-// bons + de la pompe), pas automatiquement.
+// camion, dont les 3 bons physiques ont été scannés à la saisie de la fiche
+// du jour (RotationSheetEntry — la prédiction, position multiple de 3, s'y
+// calcule aussi). Le camion devient alors éligible dans Carburant >
+// Validation, seul endroit où la validation des bons (bon_physique_recu) se
+// fait désormais, par le Responsable Exploitation ou Admin — Campagnes >
+// Rotations n'affiche plus qu'un statut "À valider" passif, sans action
+// possible. Le vrai fuel_entries n'est créé qu'au déclenchement du
+// Rechargement Auto (scan de la pompe), pas automatiquement.
 // Litrage approximatif par zone — désormais paramétrable (module Paramètres,
 // table public.zones, voir hooks/use-zones.jsx) plutôt que codé en dur ici.
 export function consoLitresPourClient(client, zones = []) {
@@ -20,20 +22,22 @@ export function countExistingForClientVehicle(existingRotations, clientId, vehic
 }
 
 // Renvoie tous les groupes de 3 rotations (même client + même camion) dont
-// les 3 bons physiques sont confirmés et dont la recharge réelle n'a pas
+// les 3 bons physiques sont scannés et dont la recharge réelle n'a pas
 // encore eu lieu (checkpoint.fuel_entry_id vide) — pilote l'écran Carburant >
 // Validation :
-// - validated=false → camion éligible, en attente de validation
+// - validated=false → camion éligible, en attente de validation (Resp.
+//   Exploitation ou Admin) — c'est cette validation qui renseigne
+//   bon_physique_recu sur les 3 rotations du groupe, pas Campagnes > Rotations.
 // - validated=true  → camion validé, en attente de déclenchement du
-//   rechargement auto (qui créera le vrai fuel_entries via scan des bons).
+//   rechargement auto (qui créera le vrai fuel_entries via scan de la pompe).
 // Une fois la recharge réellement effectuée, fuel_entry_id est renseigné sur
 // le checkpoint (voir PumpPhotoStep) et il disparaît de cette liste.
 // Groupe de 3 rotations (même client) le plus ancien encore en attente de
-// rechargement pour un véhicule donné, que les 3 bons soient déjà confirmés
+// rechargement pour un véhicule donné, que les 3 bons soient déjà validés
 // ou non — sert à l'écran de rechargement chauffeur (self-service) : les
-// bons y sont uniquement affichés (avec leur statut de confirmation), plus
-// jamais saisis/scannés par le chauffeur — la confirmation d'un bon se fait
-// en amont, dans le module Campagnes > Rotations.
+// bons y sont uniquement affichés (avec leur statut de validation), le
+// chauffeur ne peut poursuivre que lorsque les 3 sont validés (voir
+// Carburant > Validation, seul endroit où cette validation se fait).
 export function getPendingBonGroupForVehicle(allRotations, vehicleId) {
   const byClient = new Map();
   allRotations.forEach(r => {
@@ -72,7 +76,7 @@ export function getRefuelCheckpoints(allRotations) {
       .sort((a, b) => (a.numero_rotation || 0) - (b.numero_rotation || 0));
     for (let i = 2; i < group.length; i += 3) {
       const chunk = group.slice(i - 2, i + 1);
-      if (chunk.every(r => r.bon_physique_recu) && !chunk[2].fuel_entry_id) {
+      if (chunk.every(r => r.bon_physique_scan_url) && !chunk[2].fuel_entry_id) {
         checkpoints.push({ clientId, vehicleId, rotations: chunk, checkpoint: chunk[2], validated: !!chunk[2].refuel_effectue });
       }
     }

@@ -15,9 +15,13 @@ import { logAudit } from "@/lib/auditLog";
 
 // Ne montre plus la liste brute des fuel_entries / rotations saisies : un
 // camion n'apparaît ici que lorsqu'il a réalisé 3 rotations d'un même client
-// avec les 3 bons physiques confirmés (voir CampaignRotationsTable). La
-// validation ne fait que marquer le camion prêt ; le vrai rechargement (et
-// son fuel_entries) se fait ensuite via le module Rechargement Auto.
+// avec les 3 bons physiques scannés (à la saisie de la fiche du jour, voir
+// RotationSheetEntry). C'est ici, et uniquement ici, que les bons sont
+// validés (bon_physique_recu, sur les 3 rotations à la fois) — Campagnes >
+// Rotations n'affiche plus qu'un statut passif "À valider". C'est seulement
+// après cette validation que le chauffeur peut voir ses bons dans son espace
+// et recharger. Le vrai rechargement (et son fuel_entries) se fait ensuite
+// via le module Rechargement Auto.
 export default function FuelValidationTab({ rotations, vehicles, clients = [], zones = [], onLaunchRecharge }) {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
@@ -25,25 +29,28 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c]));
 
   // Seuls Admin et Resp. Exploitation peuvent valider un camion pour
-  // rechargement (Finances n'y a pas accès) — c'est aussi lui qui peut
-  // ajuster le litrage théorique avant de valider (voir CheckpointCard). Le
-  // déclenchement du rechargement auto lui-même est réservé à Admin — Resp.
-  // Exploitation se limite à valider les bons/camions, sans pouvoir
-  // déclencher le rechargement (voir aussi CampaignRotationsTable.jsx pour la
-  // validation des bons physiques).
+  // rechargement (Finances et Resp. Opérations n'y ont pas accès) — c'est
+  // aussi lui qui peut ajuster le litrage théorique avant de valider (voir
+  // CheckpointCard). Le déclenchement du rechargement auto lui-même reste
+  // réservé à Admin.
   const canValidateRecharge = currentUser?.role === "admin" || currentUser?.role === "responsable_exploitation";
   const canTriggerRecharge = currentUser?.role === "admin";
 
   const validateMutation = useMutation({
-    mutationFn: async ({ checkpointId, litres }) => {
+    mutationFn: async ({ item, litres }) => {
+      // Valide les 3 bons du groupe d'un coup — c'est la seule étape qui
+      // renseigne bon_physique_recu désormais (plus dans Campagnes > Rotations).
+      const rotationIds = item.rotations.map(r => r.id);
+      const { error: bonError } = await supabase.from("rotations").update({ bon_physique_recu: true }).in("id", rotationIds);
+      if (bonError) throw bonError;
       const payload = { refuel_effectue: true, litres_valides: Number(litres) || 0 };
-      const { error } = await supabase.from("rotations").update(payload).eq("id", checkpointId);
+      const { error } = await supabase.from("rotations").update(payload).eq("id", item.checkpoint.id);
       if (error) throw error;
-      await logAudit("Carburant", checkpointId, "update", payload, null, Object.keys(payload));
+      await logAudit("Carburant", item.checkpoint.id, "update", { ...payload, bon_physique_recu: true }, null, [...Object.keys(payload), "bon_physique_recu"]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rotations"] });
-      toast.success("Camion validé pour rechargement");
+      toast.success("Bons validés — camion prêt pour rechargement");
     },
     onError: (err) => toast.error(`Erreur : ${err.message}`),
   });
@@ -55,7 +62,7 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
   if (checkpoints.length === 0) {
     return (
       <p className="text-sm text-muted-foreground text-center py-10">
-        Aucun camion éligible pour l'instant — un camion apparaît ici après 3 rotations d'un même client avec les 3 bons physiques confirmés.
+        Aucun camion éligible pour l'instant — un camion apparaît ici après 3 rotations d'un même client avec les 3 bons physiques scannés.
       </p>
     );
   }
@@ -70,7 +77,7 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
       canValidateRecharge={canValidateRecharge}
       canTriggerRecharge={canTriggerRecharge}
       isValidating={validateMutation.isPending}
-      onValidate={(checkpointId, litres) => validateMutation.mutate({ checkpointId, litres })}
+      onValidate={(item, litres) => validateMutation.mutate({ item, litres })}
       onLaunchRecharge={onLaunchRecharge}
     />
   );
@@ -95,8 +102,8 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
 
 function CheckpointCard({ item, vehicle, client, zones, canValidateRecharge, canTriggerRecharge, isValidating, onValidate, onLaunchRecharge }) {
   const theorique = consoLitresPourClient(client, zones) * 3;
-  // Litrage ajusté par le Resp. Exploitation avant validation — pré-rempli
-  // avec le théorique (zone × 3), modifiable tant que non validé.
+  // Litrage ajusté par le Resp. Exploitation (ou Admin) avant validation —
+  // pré-rempli avec le théorique (zone × 3), modifiable tant que non validé.
   const [litresDraft, setLitresDraft] = useState(() => String(item.checkpoint.litres_valides ?? theorique));
   const litresValides = Number(item.checkpoint.litres_valides ?? theorique);
   const dernierBon = item.checkpoint.date_rotation ? format(new Date(item.checkpoint.date_rotation), "d MMM yyyy", { locale: fr }) : "—";
@@ -151,7 +158,7 @@ function CheckpointCard({ item, vehicle, client, zones, canValidateRecharge, can
               <Button
                 size="sm"
                 className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2"
-                onClick={() => onValidate(item.checkpoint.id, litresDraft)}
+                onClick={() => onValidate(item, litresDraft)}
                 disabled={isValidating}
               >
                 <CheckCircle className="w-3.5 h-3.5 mr-1" /> Valider
