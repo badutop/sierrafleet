@@ -22,7 +22,7 @@ export default function AppLayout() {
   }, [currentUser]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-viewport bg-background">
       <Sidebar
         collapsed={collapsed}
         setCollapsed={setCollapsed}
@@ -31,7 +31,7 @@ export default function AppLayout() {
         currentUser={currentUser}
       />
       <div className={cn(
-        "transition-all duration-300 ease-in-out min-h-screen flex flex-col",
+        "transition-all duration-300 ease-in-out min-h-viewport flex flex-col",
         collapsed ? "lg:ml-[72px]" : "lg:ml-[260px]"
       )}>
         <header className="sticky top-0 z-30 h-14 bg-sidebar border-b border-sidebar-border flex items-center px-4 lg:px-6 gap-3 shrink-0">

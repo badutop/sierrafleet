@@ -54,7 +54,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
       <aside className={cn(
-        "fixed top-0 left-0 h-screen z-50 flex flex-col transition-all duration-300 ease-in-out",
+        "fixed top-0 left-0 h-viewport z-50 flex flex-col transition-all duration-300 ease-in-out",
         "bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
         collapsed ? "w-[72px]" : "w-[260px]",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
