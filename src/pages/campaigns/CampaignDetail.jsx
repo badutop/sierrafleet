@@ -383,9 +383,19 @@ export default function CampaignDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="camions">
-        <TabsList>
-          <TabsTrigger value="camions"><Truck className="w-3.5 h-3.5 mr-1" />Camions affectés</TabsTrigger>
-          <TabsTrigger value="rotations">Rotations ({rotations.length})</TabsTrigger>
+        <TabsList className="bg-transparent p-0 h-auto gap-3 flex-wrap">
+          <TabsTrigger
+            value="camions"
+            className="h-12 px-5 rounded-xl text-sm sm:text-base font-bold gap-2 border-2 border-primary/30 bg-primary/5 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-md"
+          >
+            <Truck className="w-5 h-5" /> Camions affectés
+          </TabsTrigger>
+          <TabsTrigger
+            value="rotations"
+            className="h-12 px-5 rounded-xl text-sm sm:text-base font-bold gap-2 border-2 border-secondary/30 bg-secondary/5 text-secondary-foreground data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground data-[state=active]:border-secondary data-[state=active]:shadow-md"
+          >
+            <RotateCw className="w-5 h-5" /> Rotations ({rotations.length})
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="camions" className="mt-4">
           <CampaignTruckAssignmentTable campaignId={id} readOnly={isArchived || isExploitation} />

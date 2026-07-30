@@ -373,14 +373,20 @@ export default function FuelManagementV2() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-muted/60 flex-wrap h-auto gap-1">
-          <TabsTrigger value="approvisionnements" className="flex items-center gap-1.5 text-xs">
-            <Fuel className="w-3.5 h-3.5" /> Approvisionnements
+        <TabsList className="bg-transparent p-0 h-auto gap-3 flex-wrap">
+          <TabsTrigger
+            value="approvisionnements"
+            className="h-12 px-5 rounded-xl text-sm sm:text-base font-bold gap-2 border-2 border-primary/30 bg-primary/5 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-md"
+          >
+            <Fuel className="w-5 h-5" /> Approvisionnements
           </TabsTrigger>
-          <TabsTrigger value="validation" className="flex items-center gap-1.5 text-xs">
-            <ShieldCheck className="w-3.5 h-3.5" /> Validation
+          <TabsTrigger
+            value="validation"
+            className="h-12 px-5 rounded-xl text-sm sm:text-base font-bold gap-2 border-2 border-secondary/30 bg-secondary/5 text-secondary-foreground data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground data-[state=active]:border-secondary data-[state=active]:shadow-md"
+          >
+            <ShieldCheck className="w-5 h-5" /> Validation
             {pendingValidationCount > 0 && (
-              <span className="ml-1 bg-amber-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">
+              <span className="ml-1 bg-amber-500 text-white text-xs font-bold rounded-full px-2 py-0.5 leading-none">
                 {pendingValidationCount}
               </span>
             )}
