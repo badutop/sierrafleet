@@ -15,7 +15,9 @@ import { uploadFile } from "@/lib/storage";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { logAudit } from "@/lib/auditLog";
 
-const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la vraie caméra, cf. CampaignRotationsTable/PumpPhotoStep
+// Scan réel de la caméra (DocumentScanner) — cadré et recadré sur la zone du
+// bon via son cadre de guidage, comme pour les autres scans de l'app.
+const DEMO_MODE = false;
 const DEMO_BON_SCAN_URL = "https://placehold.co/320x200/e2e8f0/64748b?text=BON+SCANNE+DEMO";
 
 const emptyRow = { code_ct: "", vehicle_id: "", bl: "", poids_tonnes: "", client_id: "", bon_scan_url: "" };
