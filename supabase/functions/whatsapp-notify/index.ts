@@ -25,7 +25,7 @@
 // app_settings_select_authenticated).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendWhatsAppMessageToAll } from '../_shared/evolution.ts';
+import { sendWhatsAppMessageToAll, sendWhatsAppMediaToAll } from '../_shared/evolution.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -77,14 +77,14 @@ Deno.serve(async (req) => {
   }
 
   // --- Validation du payload ---
-  let body: { phone?: string; message?: string };
+  let body: { phone?: string; message?: string; mediaUrl?: string };
   try {
     body = await req.json();
   } catch {
     return jsonResponse({ error: 'Corps de requête JSON invalide' }, 400);
   }
 
-  const { message } = body;
+  const { message, mediaUrl } = body;
   if (!message) {
     return jsonResponse({ error: 'message est requis' }, 400);
   }
@@ -114,7 +114,11 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Notification WhatsApp non configurée (wa_alert_phone manquant)' }, 200);
   }
 
-  const { success, results } = await sendWhatsAppMessageToAll(phones, message);
+  // mediaUrl (photo de la pompe, voir PumpPhotoStep.jsx) fait basculer sur un
+  // envoi média avec le message en légende plutôt qu'un simple texte.
+  const { success, results } = mediaUrl
+    ? await sendWhatsAppMediaToAll(phones, mediaUrl, message)
+    : await sendWhatsAppMessageToAll(phones, message);
   if (!success) {
     console.error(`[whatsapp-notify] appelant=${callerData.user.id} échec pour tous les numéros: ${JSON.stringify(results)}`);
     return jsonResponse({ success: false, results }, 200);

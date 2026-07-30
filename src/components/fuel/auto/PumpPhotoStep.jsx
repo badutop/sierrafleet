@@ -150,8 +150,9 @@ export default function PumpPhotoStep({ driver, vehicle, bons, rotations = [], c
         }
       }
 
-      // Envoie la notification WhatsApp (fire & forget)
-      sendWhatsAppConfirmation({ driver, vehicle, bons, station, litres, gps, fuelEntry, heure: heureRecharge });
+      // Envoie la notification WhatsApp (fire & forget), avec la photo de la
+      // pompe prise par le chauffeur en pièce jointe.
+      sendWhatsAppConfirmation({ driver, vehicle, bons, station, litres, gps, fuelEntry, heure: heureRecharge, pumpUrl });
 
       const transaction = {
         id: fuelEntry.id,
@@ -171,7 +172,7 @@ export default function PumpPhotoStep({ driver, vehicle, bons, rotations = [], c
     }
   };
 
-  const sendWhatsAppConfirmation = async ({ driver, vehicle, bons, station, litres, gps, fuelEntry, heure }) => {
+  const sendWhatsAppConfirmation = async ({ driver, vehicle, bons, station, litres, gps, fuelEntry, heure, pumpUrl }) => {
     try {
       const message =
         `✅ *Rechargement Effectué*\n\n` +
@@ -185,12 +186,15 @@ export default function PumpPhotoStep({ driver, vehicle, bons, rotations = [], c
         `🆔 Tx : ${fuelEntry.id?.slice(0, 8)}`;
 
       // Relayé côté serveur (whatsapp-notify) — un fetch() direct depuis le
-      // navigateur vers api.callmebot.com est bloqué par CORS.
+      // navigateur vers api.callmebot.com est bloqué par CORS. mediaUrl (la
+      // photo de la pompe, déjà hébergée publiquement sur Supabase Storage)
+      // fait basculer la fonction sur un envoi média avec légende plutôt
+      // qu'un simple texte.
       // La fonction répond en HTTP 200 même en cas d'échec d'envoi (ex:
       // bridge Evolution API hors ligne) — { error } du SDK ne couvre que les
       // erreurs de transport, il faut aussi vérifier data.success pour ne pas
       // laisser un échec d'envoi totalement silencieux.
-      const { data, error } = await supabase.functions.invoke("whatsapp-notify", { body: { message } });
+      const { data, error } = await supabase.functions.invoke("whatsapp-notify", { body: { message, mediaUrl: pumpUrl } });
       if (error || data?.success === false) {
         console.error("[whatsapp-notify]", error || data);
         toast.warning("Rechargement enregistré, mais la notification WhatsApp n'a pas pu être envoyée.");
