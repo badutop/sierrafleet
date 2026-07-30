@@ -47,17 +47,26 @@ export default function PumpPhotoStep({ driver, vehicle, bons, rotations = [], c
     );
   }, []);
 
-  // Litrage à recharger = allocation validée par le Responsable de
-  // l'Exploitation (somme de litres_carburant_alloues des 3 rotations du
-  // checkpoint, déjà figée à la saisie de la fiche du jour) — non modifiable
-  // par le chauffeur, d'où un champ verrouillé plutôt qu'une reconduction éditable.
+  // Litrage à recharger = celui ajusté et validé par le Responsable de
+  // l'Exploitation dans Carburant > Validation avant de valider le checkpoint
+  // (rotations.litres_valides, sur la 3ᵉ rotation du groupe) ; à défaut (pas
+  // encore validé), on retombe sur la somme des litres_carburant_alloues
+  // théoriques des 3 rotations — non modifiable par le chauffeur, d'où un
+  // champ verrouillé plutôt qu'une saisie libre.
   useEffect(() => {
     let allocated = null;
     if (checkpointRotationId) {
       const cp = getRefuelCheckpoints(rotations).find(c => c.checkpoint.id === checkpointRotationId);
-      if (cp) allocated = cp.rotations.reduce((s, r) => s + (Number(r.litres_carburant_alloues) || 0), 0);
+      if (cp) {
+        allocated = cp.checkpoint.litres_valides != null
+          ? Number(cp.checkpoint.litres_valides)
+          : cp.rotations.reduce((s, r) => s + (Number(r.litres_carburant_alloues) || 0), 0);
+      }
     } else if (bons.length) {
-      allocated = bons.reduce((s, b) => s + (Number(b.rotation?.litres_carburant_alloues) || 0), 0);
+      const checkpointRotation = bons[bons.length - 1]?.rotation;
+      allocated = checkpointRotation?.litres_valides != null
+        ? Number(checkpointRotation.litres_valides)
+        : bons.reduce((s, b) => s + (Number(b.rotation?.litres_carburant_alloues) || 0), 0);
     }
     if (allocated != null) setLitres(String(allocated));
   }, [checkpointRotationId, rotations, bons]);

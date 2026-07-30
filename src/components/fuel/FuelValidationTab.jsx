@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { CheckCircle, Fuel, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -24,19 +25,21 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c]));
 
   // Seuls Admin et Resp. Exploitation peuvent valider un camion pour
-  // rechargement (Finances n'y a pas accès). Le déclenchement du
-  // rechargement auto lui-même est réservé à Admin — Resp. Exploitation se
-  // limite à valider les bons/camions, sans pouvoir déclencher le
-  // rechargement (voir aussi CampaignRotationsTable.jsx pour la validation
-  // des bons physiques).
+  // rechargement (Finances n'y a pas accès) — c'est aussi lui qui peut
+  // ajuster le litrage théorique avant de valider (voir CheckpointCard). Le
+  // déclenchement du rechargement auto lui-même est réservé à Admin — Resp.
+  // Exploitation se limite à valider les bons/camions, sans pouvoir
+  // déclencher le rechargement (voir aussi CampaignRotationsTable.jsx pour la
+  // validation des bons physiques).
   const canValidateRecharge = currentUser?.role === "admin" || currentUser?.role === "responsable_exploitation";
   const canTriggerRecharge = currentUser?.role === "admin";
 
   const validateMutation = useMutation({
-    mutationFn: async (checkpointId) => {
-      const { error } = await supabase.from("rotations").update({ refuel_effectue: true }).eq("id", checkpointId);
+    mutationFn: async ({ checkpointId, litres }) => {
+      const payload = { refuel_effectue: true, litres_valides: Number(litres) || 0 };
+      const { error } = await supabase.from("rotations").update(payload).eq("id", checkpointId);
       if (error) throw error;
-      await logAudit("Carburant", checkpointId, "update", { refuel_effectue: true }, null, ["refuel_effectue"]);
+      await logAudit("Carburant", checkpointId, "update", payload, null, Object.keys(payload));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rotations"] });
@@ -57,67 +60,20 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
     );
   }
 
-  const renderCard = (item) => {
-    const vehicle = vMap[item.vehicleId];
-    const client = clientMap[item.clientId];
-    const conso = consoLitresPourClient(client, zones) * 3;
-    const dernierBon = item.checkpoint.date_rotation ? format(new Date(item.checkpoint.date_rotation), "d MMM yyyy", { locale: fr }) : "—";
-
-    return (
-      <Card key={item.checkpoint.id} className="border">
-        <CardContent className="pt-4 pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-9 h-9 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
-                <Fuel className="w-4 h-4 text-secondary" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-sm">{vehicle?.immatriculation || "—"}</p>
-                <p className="text-xs text-muted-foreground">
-                  {client?.nom || "—"} · 3 rotations · dernier bon le {dernierBon}
-                </p>
-              </div>
-            </div>
-
-            <div className="text-center shrink-0">
-              <p className="text-xs text-muted-foreground">Conso. théorique</p>
-              <p className="font-bold">{conso} L</p>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {item.validated ? (
-                <>
-                  <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px]"><CheckCircle className="w-3 h-3 mr-1" />Validé</Badge>
-                  {canTriggerRecharge ? (
-                    <Button
-                      size="sm"
-                      className="h-7 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground px-2"
-                      onClick={() => onLaunchRecharge(vehicle, item.checkpoint.id)}
-                    >
-                      <Zap className="w-3.5 h-3.5 mr-1" /> Déclencher le rechargement auto
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground italic">En attente de déclenchement</span>
-                  )}
-                </>
-              ) : canValidateRecharge ? (
-                <Button
-                  size="sm"
-                  className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2"
-                  onClick={() => validateMutation.mutate(item.checkpoint.id)}
-                  disabled={validateMutation.isPending}
-                >
-                  <CheckCircle className="w-3.5 h-3.5 mr-1" /> Valider
-                </Button>
-              ) : (
-                <span className="text-xs text-muted-foreground italic">En attente de validation</span>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
+  const renderCard = (item) => (
+    <CheckpointCard
+      key={item.checkpoint.id}
+      item={item}
+      vehicle={vMap[item.vehicleId]}
+      client={clientMap[item.clientId]}
+      zones={zones}
+      canValidateRecharge={canValidateRecharge}
+      canTriggerRecharge={canTriggerRecharge}
+      isValidating={validateMutation.isPending}
+      onValidate={(checkpointId, litres) => validateMutation.mutate({ checkpointId, litres })}
+      onLaunchRecharge={onLaunchRecharge}
+    />
+  );
 
   return (
     <div className="space-y-5">
@@ -134,5 +90,78 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
         </div>
       )}
     </div>
+  );
+}
+
+function CheckpointCard({ item, vehicle, client, zones, canValidateRecharge, canTriggerRecharge, isValidating, onValidate, onLaunchRecharge }) {
+  const theorique = consoLitresPourClient(client, zones) * 3;
+  // Litrage ajusté par le Resp. Exploitation avant validation — pré-rempli
+  // avec le théorique (zone × 3), modifiable tant que non validé.
+  const [litresDraft, setLitresDraft] = useState(() => String(item.checkpoint.litres_valides ?? theorique));
+  const litresValides = Number(item.checkpoint.litres_valides ?? theorique);
+  const dernierBon = item.checkpoint.date_rotation ? format(new Date(item.checkpoint.date_rotation), "d MMM yyyy", { locale: fr }) : "—";
+
+  return (
+    <Card className="border">
+      <CardContent className="pt-4 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+              <Fuel className="w-4 h-4 text-secondary" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-sm">{vehicle?.immatriculation || "—"}</p>
+              <p className="text-xs text-muted-foreground">
+                {client?.nom || "—"} · 3 rotations · dernier bon le {dernierBon}
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center shrink-0">
+            <p className="text-xs text-muted-foreground">{item.validated ? "Litrage validé" : "Litrage théorique"}</p>
+            {!item.validated && canValidateRecharge ? (
+              <Input
+                type="number" min="0"
+                className="h-7 w-20 text-right font-bold"
+                value={litresDraft}
+                onChange={e => setLitresDraft(e.target.value)}
+              />
+            ) : (
+              <p className="font-bold">{item.validated ? litresValides : theorique} L</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {item.validated ? (
+              <>
+                <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px]"><CheckCircle className="w-3 h-3 mr-1" />Validé</Badge>
+                {canTriggerRecharge ? (
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground px-2"
+                    onClick={() => onLaunchRecharge(vehicle, item.checkpoint.id)}
+                  >
+                    <Zap className="w-3.5 h-3.5 mr-1" /> Déclencher le rechargement auto
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">En attente de déclenchement</span>
+                )}
+              </>
+            ) : canValidateRecharge ? (
+              <Button
+                size="sm"
+                className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2"
+                onClick={() => onValidate(item.checkpoint.id, litresDraft)}
+                disabled={isValidating}
+              >
+                <CheckCircle className="w-3.5 h-3.5 mr-1" /> Valider
+              </Button>
+            ) : (
+              <span className="text-xs text-muted-foreground italic">En attente de validation</span>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
