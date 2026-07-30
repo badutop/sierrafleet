@@ -40,12 +40,38 @@ function rotateCapturedImage(previewUrl, angleDeg) {
 const FULL_CROP = { x: 0, y: 0, w: 1, h: 1 };
 const MIN_CROP_SIZE = 0.15;
 
-function clampCrop(c) {
-  const w = Math.min(Math.max(c.w, MIN_CROP_SIZE), 1);
-  const h = Math.min(Math.max(c.h, MIN_CROP_SIZE), 1);
-  const x = Math.min(Math.max(c.x, 0), 1 - w);
-  const y = Math.min(Math.max(c.y, 0), 1 - h);
-  return { x, y, w, h };
+// Calcule le nouveau cadre selon le côté déplacé — chaque bord garde l'autre
+// bord (opposé) fixe comme ancre, contrairement à un déplacement (qui
+// translate les 4 côtés ensemble). Tout est exprimé en fractions (0..1) de
+// l'image affichée.
+function dragCrop(mode, start, dx, dy) {
+  switch (mode) {
+    case "move": {
+      const x = Math.min(Math.max(start.x + dx, 0), 1 - start.w);
+      const y = Math.min(Math.max(start.y + dy, 0), 1 - start.h);
+      return { x, y, w: start.w, h: start.h };
+    }
+    case "left": {
+      const right = start.x + start.w;
+      const x = Math.min(Math.max(start.x + dx, 0), right - MIN_CROP_SIZE);
+      return { x, y: start.y, w: right - x, h: start.h };
+    }
+    case "right": {
+      const w = Math.min(Math.max(start.w + dx, MIN_CROP_SIZE), 1 - start.x);
+      return { x: start.x, y: start.y, w, h: start.h };
+    }
+    case "top": {
+      const bottom = start.y + start.h;
+      const y = Math.min(Math.max(start.y + dy, 0), bottom - MIN_CROP_SIZE);
+      return { x: start.x, y, w: start.w, h: bottom - y };
+    }
+    case "bottom": {
+      const h = Math.min(Math.max(start.h + dy, MIN_CROP_SIZE), 1 - start.y);
+      return { x: start.x, y: start.y, w: start.w, h };
+    }
+    default:
+      return start;
+  }
 }
 
 export default function DocumentScanner({
@@ -209,10 +235,7 @@ export default function DocumentScanner({
     if (!ds) return;
     const dx = (e.clientX - ds.startX) / ds.rect.width;
     const dy = (e.clientY - ds.startY) / ds.rect.height;
-    const next = ds.mode === "move"
-      ? { ...ds.startCrop, x: ds.startCrop.x + dx, y: ds.startCrop.y + dy }
-      : { ...ds.startCrop, w: ds.startCrop.w + dx, h: ds.startCrop.h + dy };
-    setCrop(clampCrop(next));
+    setCrop(dragCrop(ds.mode, ds.startCrop, dx, dy));
   };
   const handleCropPointerUp = () => { dragRef.current = null; };
 
@@ -278,8 +301,8 @@ export default function DocumentScanner({
           </div>
         ) : cropMode ? (
           /* Recadrage libre : cadre déplaçable (glisser à l'intérieur) et
-             redimensionnable (poignée en bas à droite), sur l'image déjà
-             tournée/redressée. */
+             redimensionnable indépendamment depuis chacun de ses 4 côtés,
+             sur l'image déjà tournée/redressée. */
           <div
             ref={cropAreaRef}
             className="relative touch-none select-none"
@@ -301,9 +324,22 @@ export default function DocumentScanner({
               {[["top-0 left-0", "border-t-2 border-l-2"], ["top-0 right-0", "border-t-2 border-r-2"], ["bottom-0 left-0", "border-b-2 border-l-2"], ["bottom-0 right-0", "border-b-2 border-r-2"]].map(([pos, cls], i) => (
                 <div key={i} className={`absolute ${pos} w-5 h-5 border-white ${cls} pointer-events-none`} />
               ))}
+              {/* Une poignée par côté — chacune ne déplace que son propre bord */}
               <div
-                className="absolute -right-2.5 -bottom-2.5 w-6 h-6 bg-secondary rounded-full border-2 border-white shadow cursor-nwse-resize touch-none"
-                onPointerDown={handleCropPointerDown("resize")}
+                className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full bg-secondary border-2 border-white shadow cursor-ns-resize touch-none"
+                onPointerDown={handleCropPointerDown("top")}
+              />
+              <div
+                className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full bg-secondary border-2 border-white shadow cursor-ns-resize touch-none"
+                onPointerDown={handleCropPointerDown("bottom")}
+              />
+              <div
+                className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-secondary border-2 border-white shadow cursor-ew-resize touch-none"
+                onPointerDown={handleCropPointerDown("left")}
+              />
+              <div
+                className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-secondary border-2 border-white shadow cursor-ew-resize touch-none"
+                onPointerDown={handleCropPointerDown("right")}
               />
             </div>
           </div>
@@ -345,7 +381,7 @@ export default function DocumentScanner({
       )}
       {cropMode && (
         <p className="text-center text-white/70 text-xs px-6 py-2 bg-black/80 border-t border-white/10">
-          Glissez le cadre pour le déplacer, la poignée pour le redimensionner
+          Glissez le cadre pour le déplacer, les poignées des 4 côtés pour le redimensionner
         </p>
       )}
 
