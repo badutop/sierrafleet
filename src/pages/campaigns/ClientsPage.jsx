@@ -190,18 +190,19 @@ export default function ClientsPage() {
         <Card>
           <CardContent className="p-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted">
                 <TableRow>
-                  <TableHead>Client</TableHead>
-                  <TableHead><span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />Contact</span></TableHead>
-                  <TableHead><span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />Zone</span></TableHead>
-                  <TableHead><span className="inline-flex items-center gap-1"><Warehouse className="w-3 h-3" />Dépôts</span></TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="font-bold">Client</TableHead>
+                  <TableHead className="font-bold"><span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />Contact</span></TableHead>
+                  <TableHead className="font-bold"><span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />Zone</span></TableHead>
+                  <TableHead className="font-bold"><span className="inline-flex items-center gap-1"><Warehouse className="w-3 h-3" />Adresse</span></TableHead>
+                  <TableHead className="text-right font-bold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredClients.map(c => {
                   const clientDepots = allDepots.filter(d => d.client_id === c.id);
+                  const depotAddresses = clientDepots.map(d => d.adresse).filter(Boolean).join(", ") || "-";
                   return (
                     <TableRow key={c.id}>
                       <TableCell>
@@ -220,7 +221,7 @@ export default function ClientsPage() {
                         {c.contact_telephone && <p className="text-muted-foreground">{c.contact_telephone}</p>}
                       </TableCell>
                       <TableCell><Badge className={cn("text-[10px]", zoneMap[c.zone]?.colors.badge)}><MapPin className="w-2.5 h-2.5 mr-1" />{zoneMap[c.zone]?.libelle || c.zone}</Badge></TableCell>
-                      <TableCell className="text-xs">{clientDepots.length || "-"}</TableCell>
+                      <TableCell className="text-xs">{depotAddresses}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(c)}>
