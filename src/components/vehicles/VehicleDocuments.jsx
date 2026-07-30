@@ -4,10 +4,11 @@ import { uploadFile } from "@/lib/storage";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Upload, ExternalLink, Trash2, Loader2, FileImage, FileBadge, ClipboardCheck } from "lucide-react";
+import { FileText, Upload, Camera, ExternalLink, Trash2, Loader2, FileImage, FileBadge, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { confirm } from "@/lib/confirm";
+import DocumentScanner from "@/components/drivers/DocumentScanner";
 
 const DOCS = [
   {
@@ -35,6 +36,7 @@ const DOCS = [
 
 function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
   const inputRef = useRef();
+  const [scannerOpen, setScannerOpen] = useState(false);
   const Icon = doc.icon;
 
   const handleFileChange = (e) => {
@@ -46,6 +48,13 @@ function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
 
   return (
     <div className={cn("rounded-xl border p-4 flex flex-col gap-3", value ? "border-border bg-card" : "border-dashed border-border bg-muted/30")}>
+      {scannerOpen && (
+        <DocumentScanner
+          onCapture={(file) => onUpload(doc.key, file)}
+          onClose={() => setScannerOpen(false)}
+          instructionText={`Alignez ${doc.label} dans le cadre`}
+        />
+      )}
       <div className="flex items-center gap-3">
         <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", doc.bg)}>
           <Icon className={cn("w-5 h-5", doc.color)} />
@@ -75,8 +84,19 @@ function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
               size="sm"
               variant="outline"
               className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setScannerOpen(true)}
+              disabled={uploading}
+              title="Scanner avec caméra"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
+              title="Importer un fichier"
             >
               {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
             </Button>
@@ -90,19 +110,31 @@ function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
             </Button>
           </>
         ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 h-8 text-xs border-dashed"
-            onClick={() => inputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Envoi...</>
-            ) : (
-              <><Upload className="w-3.5 h-3.5 mr-1.5" /> Uploader</>
-            )}
-          </Button>
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 h-8 text-xs border-dashed"
+              onClick={() => setScannerOpen(true)}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Envoi...</>
+              ) : (
+                <><Camera className="w-3.5 h-3.5 mr-1.5" /> Scanner</>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs border-dashed px-2"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+              title="Importer un fichier"
+            >
+              <Upload className="w-3.5 h-3.5" />
+            </Button>
+          </>
         )}
       </div>
 

@@ -12,7 +12,7 @@ import { uploadFile } from "@/lib/storage";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { logAudit } from "@/lib/auditLog";
 
-const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la vraie caméra, cf. PumpPhotoStep/BonCaptureStep
+const DEMO_MODE = false; // scan réel via DocumentScanner (voir RotationSheetEntry)
 const DEMO_BON_SCAN_URL = "https://placehold.co/320x200/e2e8f0/64748b?text=BON+SCANNE+DEMO";
 
 export default function CampaignRotationsTable({ rotations, vehicles, drivers, campaignId }) {

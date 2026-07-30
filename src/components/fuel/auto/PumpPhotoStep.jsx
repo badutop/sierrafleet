@@ -11,7 +11,7 @@ import { getFuelPricePerLitre } from "@/pages/SettingsPage";
 import { getRefuelCheckpoints } from "@/lib/refuelRules";
 import { logAudit } from "@/lib/auditLog";
 
-const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la photo de pompe
+const DEMO_MODE = false; // scan réel via DocumentScanner ou galerie
 const DEMO_PUMP_URL = "https://placehold.co/640x480/e2e8f0/64748b?text=POMPE+DEMO";
 const DEMO_STATIONS = ["Station Total", "Station Shell", "Station Oryx", "Station Elton"];
 

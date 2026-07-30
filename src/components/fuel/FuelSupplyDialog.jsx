@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Fuel, Camera, X, Coins, ArrowLeft, Save } from "lucide-react";
+import { Fuel, Camera, Upload, X, Coins, ArrowLeft, Save } from "lucide-react";
 import { getFuelPricePerLitre } from "@/pages/SettingsPage";
 import { uploadFile } from "@/lib/storage";
+import DocumentScanner from "@/components/drivers/DocumentScanner";
 
 const stations = [
   { label: "Star Oil - Pompier", value: "Star Oil - Pompier" },
@@ -30,6 +31,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
   const [form, setForm] = useState(emptyForm);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const cameraInputRef = useRef(null);
   const prixLitre = getFuelPricePerLitre();
 
@@ -56,15 +58,18 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
   const montantCalc = form.litres ? Number(form.litres) * prixLitre : 0;
   const isValid = form.vehicle_id && form.date && form.litres;
 
-  const handlePhotoCapture = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadReceiptPhoto = async (file, previewUrl) => {
     setUploadingPhoto(true);
-    const previewUrl = URL.createObjectURL(file);
-    setPhotoPreview(previewUrl);
+    setPhotoPreview(previewUrl || URL.createObjectURL(file));
     const { file_url } = await uploadFile(file, "fuel-receipts");
     set("recu_url", file_url);
     setUploadingPhoto(false);
+  };
+
+  const handlePhotoCapture = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadReceiptPhoto(file);
   };
 
   const removePhoto = () => {
@@ -160,19 +165,37 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
               ref={cameraInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
               className="hidden"
               onChange={handlePhotoCapture}
             />
+            {scannerOpen && (
+              <DocumentScanner
+                guideRatio={1.4}
+                instructionText="Alignez le reçu dans le cadre"
+                onCapture={(file, previewUrl) => uploadReceiptPhoto(file, previewUrl)}
+                onClose={() => setScannerOpen(false)}
+              />
+            )}
             {!photoPreview ? (
-              <button
-                type="button"
-                onClick={() => cameraInputRef.current?.click()}
-                className="mt-1.5 w-full h-20 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:border-secondary hover:text-secondary transition-colors"
-              >
-                <Camera className="w-6 h-6" />
-                <span className="text-xs">Prendre une photo du reçu</span>
-              </button>
+              <div className="mt-1.5 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setScannerOpen(true)}
+                  className="flex-1 h-20 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:border-secondary hover:text-secondary transition-colors"
+                >
+                  <Camera className="w-6 h-6" />
+                  <span className="text-xs">Scanner avec caméra</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="w-20 h-20 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:border-secondary hover:text-secondary transition-colors"
+                  title="Importer un fichier"
+                >
+                  <Upload className="w-5 h-5" />
+                  <span className="text-[10px]">Importer</span>
+                </button>
+              </div>
             ) : (
               <div className="mt-1.5 relative rounded-lg overflow-hidden border border-border">
                 <img src={photoPreview} alt="Reçu" className="w-full max-h-40 object-cover" />

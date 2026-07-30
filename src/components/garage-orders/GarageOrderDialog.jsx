@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Send, CheckCircle2, Package, XCircle, ChevronRight, Receipt, Banknote, Upload, Save } from "lucide-react";
+import { FileText, Send, CheckCircle2, Package, XCircle, ChevronRight, Receipt, Banknote, Upload, Camera, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uploadFile } from "@/lib/storage";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
+import DocumentScanner from "@/components/drivers/DocumentScanner";
 
 const STEPS = [
   { key: "en_attente",     label: "En attente",     icon: FileText },
@@ -50,6 +51,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
   const [form, setForm] = useState(emptyLaunchForm);
   const [invoiceForm, setInvoiceForm] = useState({ date_facture: "", montant_facture: "", facture_url: "" });
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
+  const [invoiceScannerOpen, setInvoiceScannerOpen] = useState(false);
   const invoiceFileRef = useRef();
 
   useEffect(() => {
@@ -85,9 +87,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
   const handleLaunch = () => onLaunch(order.id, buildOrderPayload());
   const handleSaveDraft = () => onSaveDraft(order.id, buildOrderPayload());
 
-  const handleInvoiceFile = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const uploadInvoiceFile = async (file) => {
     setUploadingInvoice(true);
     try {
       const { file_url } = await uploadFile(file, "garage-invoices");
@@ -98,6 +98,12 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
     } finally {
       setUploadingInvoice(false);
     }
+  };
+
+  const handleInvoiceFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    await uploadInvoiceFile(file);
   };
 
   const handleConfirmInvoice = () => {
@@ -271,14 +277,24 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Scan de la facture</Label>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <Button type="button" size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => setInvoiceScannerOpen(true)} disabled={uploadingInvoice}>
+                      <Camera className="w-3.5 h-3.5" /> {uploadingInvoice ? "Envoi..." : "Scanner avec caméra"}
+                    </Button>
                     <Button type="button" size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => invoiceFileRef.current?.click()} disabled={uploadingInvoice}>
-                      <Upload className="w-3.5 h-3.5" /> {uploadingInvoice ? "Envoi..." : invoiceForm.facture_url ? "Remplacer le fichier" : "Choisir un fichier"}
+                      <Upload className="w-3.5 h-3.5" /> {invoiceForm.facture_url ? "Remplacer le fichier" : "Choisir un fichier"}
                     </Button>
                     {invoiceForm.facture_url && (
                       <a href={invoiceForm.facture_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">Voir le scan</a>
                     )}
                     <input ref={invoiceFileRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={handleInvoiceFile} />
+                    {invoiceScannerOpen && (
+                      <DocumentScanner
+                        onCapture={(file) => uploadInvoiceFile(file)}
+                        onClose={() => setInvoiceScannerOpen(false)}
+                        instructionText="Alignez la facture dans le cadre"
+                      />
+                    )}
                   </div>
                 </div>
               </div>
