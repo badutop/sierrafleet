@@ -8,6 +8,7 @@ import { uploadFile } from "@/lib/storage";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { getFuelPricePerLitre } from "@/pages/SettingsPage";
+import { getRefuelCheckpoints } from "@/lib/refuelRules";
 import { logAudit } from "@/lib/auditLog";
 
 const DEMO_MODE = true; // ⚡ MODE DÉMO — bypasse la photo de pompe
@@ -23,7 +24,7 @@ function generateDemoStationName(gps) {
   return gps ? `${brand} — détectée via GPS (${gps.lat}, ${gps.lng})` : `${brand} — détectée automatiquement`;
 }
 
-export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], checkpointRotationId = null, onBack, onDone }) {
+export default function PumpPhotoStep({ driver, vehicle, bons, rotations = [], checkpointRotationId = null, onBack, onDone }) {
   const [pumpPhoto, setPumpPhoto] = useState(null); // {file, previewUrl}
   const [station, setStation] = useState("");
   const [litres, setLitres] = useState("");
@@ -46,15 +47,20 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], che
     );
   }, []);
 
-  // Reconduit la dernière recharge de ce camion (champ pré-rempli mais
-  // modifiable — pas de proratage automatique en fin de campagne pour l'instant).
+  // Litrage à recharger = allocation validée par le Responsable de
+  // l'Exploitation (somme de litres_carburant_alloues des 3 rotations du
+  // checkpoint, déjà figée à la saisie de la fiche du jour) — non modifiable
+  // par le chauffeur, d'où un champ verrouillé plutôt qu'une reconduction éditable.
   useEffect(() => {
-    if (!vehicle) return;
-    const last = entries
-      .filter(e => e.vehicle_id === vehicle.id && e.litres)
-      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))[0];
-    if (last) setLitres(String(last.litres));
-  }, [vehicle, entries]);
+    let allocated = null;
+    if (checkpointRotationId) {
+      const cp = getRefuelCheckpoints(rotations).find(c => c.checkpoint.id === checkpointRotationId);
+      if (cp) allocated = cp.rotations.reduce((s, r) => s + (Number(r.litres_carburant_alloues) || 0), 0);
+    } else if (bons.length) {
+      allocated = bons.reduce((s, b) => s + (Number(b.rotation?.litres_carburant_alloues) || 0), 0);
+    }
+    if (allocated != null) setLitres(String(allocated));
+  }, [checkpointRotationId, rotations, bons]);
 
   const handleCapture = (file, previewUrl) => {
     setPumpPhoto({ file, previewUrl });
@@ -237,8 +243,8 @@ export default function PumpPhotoStep({ driver, vehicle, bons, entries = [], che
           <Input className="mt-1" placeholder="Ex: Station Total Dakar" value={station} onChange={e => setStation(e.target.value)} />
         </div>
         <div>
-          <Label className="text-xs font-semibold">Litres servis <span className="font-normal text-muted-foreground">(reconduit de la dernière recharge)</span></Label>
-          <Input className="mt-1 w-32" type="number" placeholder="Ex: 150" value={litres} onChange={e => setLitres(e.target.value)} min={1} />
+          <Label className="text-xs font-semibold">Litres à recharger <span className="font-normal text-muted-foreground">(validé par le Responsable de l'Exploitation, non modifiable)</span></Label>
+          <Input className="mt-1 w-32 bg-muted text-muted-foreground" type="number" value={litres} readOnly disabled />
         </div>
       </div>
 

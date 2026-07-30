@@ -97,7 +97,7 @@ export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries =
               driver={selectedDriver}
               vehicle={selectedVehicle}
               bons={bons}
-              entries={entries}
+              rotations={rotations}
               checkpointRotationId={checkpointRotationId}
               onBack={() => checkpointRotationId ? onClose() : setStep("validation")}
               onDone={handlePumpDone}
