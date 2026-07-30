@@ -190,13 +190,13 @@ export default function ClientsPage() {
         <Card>
           <CardContent className="p-0">
             <Table>
-              <TableHeader className="bg-muted">
+              <TableHeader>
                 <TableRow>
-                  <TableHead className="font-bold">Client</TableHead>
-                  <TableHead className="font-bold"><span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />Contact</span></TableHead>
-                  <TableHead className="font-bold"><span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />Zone</span></TableHead>
-                  <TableHead className="font-bold"><span className="inline-flex items-center gap-1"><Warehouse className="w-3 h-3" />Adresse</span></TableHead>
-                  <TableHead className="text-right font-bold">Actions</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead><span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />Contact</span></TableHead>
+                  <TableHead><span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />Zone</span></TableHead>
+                  <TableHead><span className="inline-flex items-center gap-1"><Warehouse className="w-3 h-3" />Adresse</span></TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
