@@ -35,10 +35,16 @@ const emptyForm = { nom_campagne: "", clients: [{ client_id: "", tonnage_prevu: 
 
 export default function CampaignsList() {
   const { user: currentUser } = useAuth();
-  // Le Responsable des Opérations gère l'affectation des camions et la saisie
-  // des rotations, mais ne crée/termine/supprime pas les campagnes et n'a pas
-  // accès aux campagnes archivées (voir aussi CampaignDetail.jsx).
-  const isOpsRestricted = currentUser?.role === "responsable_operations";
+  // Resp. Opérations et Resp. Exploitation partagent les mêmes restrictions
+  // de cycle de vie de campagne : ni créer, ni terminer, ni supprimer, ni
+  // archiver, pas d'accès aux campagnes archivées (voir aussi
+  // CampaignDetail.jsx). Seul Resp. Opérations gère en plus l'affectation des
+  // camions et la saisie des rotations — Resp. Exploitation n'y a pas accès.
+  const isOpsRestricted = currentUser?.role === "responsable_operations" || currentUser?.role === "responsable_exploitation";
+  // Finances ne voit que les campagnes archivées (clôturées) et ne peut ni
+  // créer, ni modifier/supprimer, ni affecter de camions (voir aussi
+  // CampaignDetail.jsx pour la vue détail restreinte aux factures clients).
+  const isFinances = currentUser?.role === "finances";
   const [search, setSearch] = useState("");
   const [filterStatut, setFilterStatut] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -236,6 +242,9 @@ export default function CampaignsList() {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   const [view, setView] = useState("list"); // "list" | "board" | "archived"
+  // Finances n'a de vue que sur les campagnes archivées — forcé quel que soit
+  // l'état de "view" (le sélecteur correspondant lui est de toute façon masqué).
+  const effectiveView = isFinances ? "archived" : view;
 
   return (
     <div className="space-y-6">
@@ -248,15 +257,17 @@ export default function CampaignsList() {
           <p className="text-sm text-muted-foreground">{campaigns.filter(c => c.statut === "en_cours").length} en cours · {activeCampaigns.length} active{activeCampaigns.length > 1 ? "s" : ""} · {archivedCampaigns.length} archivée{archivedCampaigns.length > 1 ? "s" : ""}</p>
         </div>
         <div className="flex gap-2">
-          {!isOpsRestricted && (
+          {!isOpsRestricted && !isFinances && (
             <Button variant={view === "archived" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "archived" ? "list" : "archived")}>
               <Archive className="w-4 h-4 mr-2" /> {view === "archived" ? "Vue liste" : `Archivées (${archivedCampaigns.length})`}
             </Button>
           )}
-          <Button variant={view === "board" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "board" ? "list" : "board")}>
-            <Rows3 className="w-4 h-4 mr-2" /> {view === "board" ? "Vue liste" : "Affecter camions"}
-          </Button>
-          {!isOpsRestricted && (
+          {!isFinances && (
+            <Button variant={view === "board" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "board" ? "list" : "board")}>
+              <Rows3 className="w-4 h-4 mr-2" /> {view === "board" ? "Vue liste" : "Affecter camions"}
+            </Button>
+          )}
+          {!isOpsRestricted && !isFinances && (
             <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-2" /> Nouvelle campagne
             </Button>
@@ -264,16 +275,16 @@ export default function CampaignsList() {
         </div>
       </div>
 
-      {view === "board" && (
+      {effectiveView === "board" && (
         <TruckAssignmentBoard campaigns={filtered} />
       )}
 
-      <div className={cn("flex flex-col sm:flex-row gap-3", view === "board" && "hidden")}>
+      <div className={cn("flex flex-col sm:flex-row gap-3", effectiveView === "board" && "hidden")}>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Rechercher..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        {view !== "archived" && (
+        {effectiveView !== "archived" && (
           <Select value={filterStatut} onValueChange={setFilterStatut}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -284,11 +295,11 @@ export default function CampaignsList() {
         )}
       </div>
 
-      {view !== "board" && isLoading ? (
+      {effectiveView !== "board" && isLoading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>
-      ) : view !== "board" ? (
+      ) : effectiveView !== "board" ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {(view === "archived" && !isOpsRestricted ? filteredArchived : filtered).map(c => {
+          {(effectiveView === "archived" && !isOpsRestricted ? filteredArchived : filtered).map(c => {
             const campaignClientNames = campaignClients
               .filter(cc => cc.campaign_id === c.id)
               .map(cc => clientMap[cc.client_id]?.nom)
@@ -330,10 +341,10 @@ export default function CampaignsList() {
                   <div className="flex gap-2 pt-1 border-t border-border">
                     <Link to={`/campaigns/${c.id}`} className="flex-1">
                       <Button size="sm" variant="default" className="w-full h-7 text-xs bg-primary hover:bg-primary/90">
-                        <ArrowRight className="w-3 h-3 mr-1" /> {view === "archived" ? "Consulter" : "Gérer"}
+                        <ArrowRight className="w-3 h-3 mr-1" /> {effectiveView === "archived" ? "Consulter" : "Gérer"}
                       </Button>
                     </Link>
-                    {view !== "archived" && (<>
+                    {effectiveView !== "archived" && (<>
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(c)}><Pencil className="w-3 h-3" /></Button>
                       {!isOpsRestricted && (
                         <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(c)}><Trash2 className="w-3 h-3" /></Button>
@@ -344,10 +355,10 @@ export default function CampaignsList() {
               </Card>
             );
           })}
-          {(view === "archived" ? filteredArchived : filtered).length === 0 && (
+          {(effectiveView === "archived" ? filteredArchived : filtered).length === 0 && (
             <div className="col-span-2 text-center py-16 text-muted-foreground">
               <Ship className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>{view === "archived" ? "Aucune campagne archivée" : "Aucune campagne trouvée"}</p>
+              <p>{effectiveView === "archived" ? "Aucune campagne archivée" : "Aucune campagne trouvée"}</p>
             </div>
           )}
         </div>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,6 +40,11 @@ function getPeriodRange(key) {
 }
 
 export default function FuelManagementV2() {
+  const { user: currentUser } = useAuth();
+  // Seuls Admin et Resp. Exploitation peuvent faire un approvisionnement —
+  // Finances (et tout autre rôle) n'y a pas accès (voir aussi
+  // FuelValidationTab.jsx pour la validation/déclenchement du rechargement).
+  const canSupply = currentUser?.role === "admin" || currentUser?.role === "responsable_exploitation";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
   const [activeTab, setActiveTab] = useState("approvisionnements");
@@ -304,9 +310,11 @@ export default function FuelManagementV2() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleNew}>
-            <Plus className="w-4 h-4 mr-2" /> Nouvel approvisionnement
-          </Button>
+          {canSupply && (
+            <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleNew}>
+              <Plus className="w-4 h-4 mr-2" /> Nouvel approvisionnement
+            </Button>
+          )}
         </div>
       </div>
 

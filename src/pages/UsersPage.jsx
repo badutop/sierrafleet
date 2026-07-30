@@ -23,6 +23,7 @@ const roleLabels = {
   responsable_operations: "Resp. Opérations",
   collecteur_bons: "Collecteur de bons",
   executeur_depenses: "Exécuteur Dépenses",
+  finances: "Finances",
   chauffeur: "Chauffeur",
 };
 
@@ -32,6 +33,7 @@ const roleColors = {
   responsable_operations: "bg-purple-500/10 text-purple-600",
   collecteur_bons: "bg-green-500/10 text-green-600",
   executeur_depenses: "bg-amber-500/10 text-amber-600",
+  finances: "bg-teal-500/10 text-teal-600",
   chauffeur: "bg-secondary/10 text-secondary",
 };
 

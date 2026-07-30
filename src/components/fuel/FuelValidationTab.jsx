@@ -1,4 +1,5 @@
 import React from "react";
+import { useAuth } from "@/lib/AuthContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { Badge } from "@/components/ui/badge";
@@ -17,9 +18,19 @@ import { logAudit } from "@/lib/auditLog";
 // validation ne fait que marquer le camion prêt ; le vrai rechargement (et
 // son fuel_entries) se fait ensuite via le module Rechargement Auto.
 export default function FuelValidationTab({ rotations, vehicles, clients = [], onLaunchRecharge }) {
+  const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   const vMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c]));
+
+  // Seuls Admin et Resp. Exploitation peuvent valider un camion pour
+  // rechargement (Finances n'y a pas accès). Le déclenchement du
+  // rechargement auto lui-même est réservé à Admin — Resp. Exploitation se
+  // limite à valider les bons/camions, sans pouvoir déclencher le
+  // rechargement (voir aussi CampaignRotationsTable.jsx pour la validation
+  // des bons physiques).
+  const canValidateRecharge = currentUser?.role === "admin" || currentUser?.role === "responsable_exploitation";
+  const canTriggerRecharge = currentUser?.role === "admin";
 
   const validateMutation = useMutation({
     mutationFn: async (checkpointId) => {
@@ -77,15 +88,19 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], o
               {item.validated ? (
                 <>
                   <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px]"><CheckCircle className="w-3 h-3 mr-1" />Validé</Badge>
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground px-2"
-                    onClick={() => onLaunchRecharge(vehicle, item.checkpoint.id)}
-                  >
-                    <Zap className="w-3.5 h-3.5 mr-1" /> Déclencher le rechargement auto
-                  </Button>
+                  {canTriggerRecharge ? (
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground px-2"
+                      onClick={() => onLaunchRecharge(vehicle, item.checkpoint.id)}
+                    >
+                      <Zap className="w-3.5 h-3.5 mr-1" /> Déclencher le rechargement auto
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">En attente de déclenchement</span>
+                  )}
                 </>
-              ) : (
+              ) : canValidateRecharge ? (
                 <Button
                   size="sm"
                   className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2"
@@ -94,6 +109,8 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], o
                 >
                   <CheckCircle className="w-3.5 h-3.5 mr-1" /> Valider
                 </Button>
+              ) : (
+                <span className="text-xs text-muted-foreground italic">En attente de validation</span>
               )}
             </div>
           </div>

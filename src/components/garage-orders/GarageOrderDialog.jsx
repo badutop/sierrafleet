@@ -10,6 +10,7 @@ import { FileText, Send, CheckCircle2, Package, XCircle, ChevronRight, Receipt, 
 import { cn } from "@/lib/utils";
 import { uploadFile } from "@/lib/storage";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/AuthContext";
 
 const STEPS = [
   { key: "en_attente",     label: "En attente",     icon: FileText },
@@ -41,6 +42,11 @@ const emptyLaunchForm = {
 };
 
 export default function GarageOrderDialog({ open, onOpenChange, order, vMap, suppliers, onLaunch, onSaveDraft, onConfirm, onReceive, onInvoiceReceived, onPaid, onCancel, isPending }) {
+  const { user: currentUser } = useAuth();
+  // La réception de facture et le paiement relèvent de Finances (Resp.
+  // Exploitation suit la commande jusqu'à la réception de la pièce, pas
+  // au-delà — voir CampaignDetail.jsx pour ses autres restrictions).
+  const canHandleInvoice = currentUser?.role === "admin" || currentUser?.role === "finances";
   const [form, setForm] = useState(emptyLaunchForm);
   const [invoiceForm, setInvoiceForm] = useState({ date_facture: "", montant_facture: "", facture_url: "" });
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
@@ -247,60 +253,72 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
           </div>
         )}
 
-        {/* Réception de la facture fournisseur (statut recue) */}
+        {/* Réception de la facture fournisseur (statut recue) — Finances uniquement */}
         {order.statut === "recue" && (
-          <div className="border-t border-border pt-3 mt-3 space-y-3">
-            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <Receipt className="w-3.5 h-3.5 text-orange-600" /> Réception de la facture fournisseur
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Date de facture</Label>
-                <Input type="date" className="mt-1" value={invoiceForm.date_facture} onChange={e => setInvoiceForm(f => ({ ...f, date_facture: e.target.value }))} />
-              </div>
-              <div>
-                <Label className="text-xs">Montant facture (FCFA)</Label>
-                <Input type="number" min="0" className="mt-1" value={invoiceForm.montant_facture} onChange={e => setInvoiceForm(f => ({ ...f, montant_facture: e.target.value }))} />
-              </div>
-              <div className="col-span-2">
-                <Label className="text-xs">Scan de la facture</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Button type="button" size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => invoiceFileRef.current?.click()} disabled={uploadingInvoice}>
-                    <Upload className="w-3.5 h-3.5" /> {uploadingInvoice ? "Envoi..." : invoiceForm.facture_url ? "Remplacer le fichier" : "Choisir un fichier"}
-                  </Button>
-                  {invoiceForm.facture_url && (
-                    <a href={invoiceForm.facture_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">Voir le scan</a>
-                  )}
-                  <input ref={invoiceFileRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={handleInvoiceFile} />
+          canHandleInvoice ? (
+            <div className="border-t border-border pt-3 mt-3 space-y-3">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Receipt className="w-3.5 h-3.5 text-orange-600" /> Réception de la facture fournisseur
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Date de facture</Label>
+                  <Input type="date" className="mt-1" value={invoiceForm.date_facture} onChange={e => setInvoiceForm(f => ({ ...f, date_facture: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">Montant facture (FCFA)</Label>
+                  <Input type="number" min="0" className="mt-1" value={invoiceForm.montant_facture} onChange={e => setInvoiceForm(f => ({ ...f, montant_facture: e.target.value }))} />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Scan de la facture</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Button type="button" size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => invoiceFileRef.current?.click()} disabled={uploadingInvoice}>
+                      <Upload className="w-3.5 h-3.5" /> {uploadingInvoice ? "Envoi..." : invoiceForm.facture_url ? "Remplacer le fichier" : "Choisir un fichier"}
+                    </Button>
+                    {invoiceForm.facture_url && (
+                      <a href={invoiceForm.facture_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">Voir le scan</a>
+                    )}
+                    <input ref={invoiceFileRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={handleInvoiceFile} />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="border-t border-border pt-3 mt-3 flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-2xl px-3 py-3">
+              <Receipt className="w-3.5 h-3.5 shrink-0" /> La réception de la facture fournisseur est traitée par le service Finances.
+            </div>
+          )
         )}
 
-        {/* Facture reçue — échéance de paiement */}
+        {/* Facture reçue — échéance de paiement — Finances uniquement */}
         {order.statut === "facture_recue" && (
-          <div className="border-t border-border pt-3 mt-3 grid grid-cols-2 gap-3">
-            <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
-              <span className="text-muted-foreground">Date facture</span>
-              <p className="font-semibold text-sm mt-0.5">{order.date_facture || "—"}</p>
-            </div>
-            <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
-              <span className="text-muted-foreground">Montant facture</span>
-              <p className="font-semibold text-sm mt-0.5">{(order.montant_facture || 0).toLocaleString("fr-FR")} FCFA</p>
-            </div>
-            <div className={cn("col-span-2 rounded-2xl px-3 py-3 text-xs border", echeanceClass)}>
-              <span className="opacity-70">Échéance de paiement</span>
-              <p className="font-bold text-sm mt-0.5">
-                {order.date_echeance ? new Date(order.date_echeance).toLocaleDateString("fr-FR") : "—"} {echeanceDaysLabel}
-              </p>
-            </div>
-            {order.facture_url && (
-              <div className="col-span-2">
-                <a href={order.facture_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">📄 Voir la facture scannée</a>
+          canHandleInvoice ? (
+            <div className="border-t border-border pt-3 mt-3 grid grid-cols-2 gap-3">
+              <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
+                <span className="text-muted-foreground">Date facture</span>
+                <p className="font-semibold text-sm mt-0.5">{order.date_facture || "—"}</p>
               </div>
-            )}
-          </div>
+              <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
+                <span className="text-muted-foreground">Montant facture</span>
+                <p className="font-semibold text-sm mt-0.5">{(order.montant_facture || 0).toLocaleString("fr-FR")} FCFA</p>
+              </div>
+              <div className={cn("col-span-2 rounded-2xl px-3 py-3 text-xs border", echeanceClass)}>
+                <span className="opacity-70">Échéance de paiement</span>
+                <p className="font-bold text-sm mt-0.5">
+                  {order.date_echeance ? new Date(order.date_echeance).toLocaleDateString("fr-FR") : "—"} {echeanceDaysLabel}
+                </p>
+              </div>
+              {order.facture_url && (
+                <div className="col-span-2">
+                  <a href={order.facture_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">📄 Voir la facture scannée</a>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="border-t border-border pt-3 mt-3 flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-2xl px-3 py-3">
+              <Banknote className="w-3.5 h-3.5 shrink-0" /> Le paiement de cette facture est traité par le service Finances.
+            </div>
+          )
         )}
 
         {order.statut === "payee" && (
@@ -337,12 +355,12 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
               <Package className="w-3.5 h-3.5" /> {isPending ? "Enregistrement..." : "Marquer reçue"}
             </Button>
           )}
-          {order.statut === "recue" && (
+          {order.statut === "recue" && canHandleInvoice && (
             <Button className="flex-1 h-11 rounded-xl font-bold bg-orange-600 hover:bg-orange-700 text-white gap-1.5" onClick={handleConfirmInvoice} disabled={!invoiceForm.date_facture || !invoiceForm.montant_facture || isPending}>
               <Receipt className="w-3.5 h-3.5" /> {isPending ? "Enregistrement..." : "Confirmer réception facture"}
             </Button>
           )}
-          {order.statut === "facture_recue" && (
+          {order.statut === "facture_recue" && canHandleInvoice && (
             <Button className="flex-1 h-11 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5" onClick={() => onPaid(order.id)} disabled={isPending}>
               <Banknote className="w-3.5 h-3.5" /> {isPending ? "Enregistrement..." : "Marquer payée"}
             </Button>

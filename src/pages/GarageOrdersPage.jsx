@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import GarageOrderDialog from "@/components/garage-orders/GarageOrderDialog";
 import { logAudit } from "@/lib/auditLog";
+import { useAuth } from "@/lib/AuthContext";
 
 const KpiBox = ({ icon: Icon, label, value, sub, color = "primary" }) => {
   const colors = {
@@ -53,6 +54,11 @@ const STATUT_ICON = {
 };
 
 export default function GarageOrdersPage() {
+  const { user: currentUser } = useAuth();
+  // Resp. Exploitation suit la commande jusqu'à la réception de la pièce —
+  // la facture et le paiement relèvent de Finances (voir aussi
+  // GarageOrderDialog.jsx pour le détail par commande).
+  const canHandleInvoice = currentUser?.role === "admin" || currentUser?.role === "finances";
   const [activeTab, setActiveTab] = useState("alertes");
   const [search, setSearch] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -238,18 +244,20 @@ export default function GarageOrdersPage() {
             Commandes Garage
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {alertes.length} alerte(s) en attente · {enCours.length} en cours · {facturesAPayer.length} facture(s) à payer
+            {alertes.length} alerte(s) en attente · {enCours.length} en cours{canHandleInvoice ? ` · ${facturesAPayer.length} facture(s) à payer` : ""}
           </p>
         </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className={cn("grid grid-cols-2 gap-3", canHandleInvoice ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
         <KpiBox icon={Bell} label="Alertes en attente" value={alertes.length} sub="Pièces à commander" color="primary" />
         <KpiBox icon={Send} label="Commandes en cours" value={enCours.length} sub="Commandée / Confirmée" color="amber" />
         <KpiBox icon={ShoppingCart} label="Montant engagé" value={`${montantEngage.toLocaleString("fr-FR")} FCFA`} sub="Commandes en cours" color="purple" />
         <KpiBox icon={CheckCircle2} label="Reçues ce mois" value={recuesMois.length} sub="Stock mis à jour" color="green" />
-        <KpiBox icon={Receipt} label="Factures à payer" value={facturesAPayer.length} sub={`${facturesEnRetard.length} en retard`} color={facturesEnRetard.length > 0 ? "red" : "green"} />
+        {canHandleInvoice && (
+          <KpiBox icon={Receipt} label="Factures à payer" value={facturesAPayer.length} sub={`${facturesEnRetard.length} en retard`} color={facturesEnRetard.length > 0 ? "red" : "green"} />
+        )}
       </div>
 
       {/* Tabs */}
@@ -301,42 +309,44 @@ export default function GarageOrdersPage() {
             )}
           </div>
 
-          <div className="rounded-xl border border-border bg-muted/20 p-4 mt-3">
-            <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
-              <Receipt className="w-3.5 h-3.5 text-orange-600" />
-              Factures à payer
-              <span className="ml-auto text-muted-foreground font-normal normal-case tracking-normal">
-                {facturesAPayer.length} en attente{facturesEnRetard.length > 0 ? ` · ${facturesEnRetard.length} en retard` : ""}
-              </span>
-            </h3>
-            {facturesAPayer.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">✅ Aucune facture en attente de paiement.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {facturesAPayer.map(o => {
-                  const vehicle = vMap[o.vehicle_id];
-                  const enRetard = o.date_echeance && new Date(o.date_echeance) < new Date();
-                  return (
-                    <div key={o.id} className={cn("bg-card border rounded-xl p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow", enRetard ? "border-destructive/40" : "border-border")} onClick={() => openOrder(o)}>
-                      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                        <Receipt className="w-3.5 h-3.5 text-orange-600" /> Facture fournisseur
+          {canHandleInvoice && (
+            <div className="rounded-xl border border-border bg-muted/20 p-4 mt-3">
+              <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
+                <Receipt className="w-3.5 h-3.5 text-orange-600" />
+                Factures à payer
+                <span className="ml-auto text-muted-foreground font-normal normal-case tracking-normal">
+                  {facturesAPayer.length} en attente{facturesEnRetard.length > 0 ? ` · ${facturesEnRetard.length} en retard` : ""}
+                </span>
+              </h3>
+              {facturesAPayer.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">✅ Aucune facture en attente de paiement.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {facturesAPayer.map(o => {
+                    const vehicle = vMap[o.vehicle_id];
+                    const enRetard = o.date_echeance && new Date(o.date_echeance) < new Date();
+                    return (
+                      <div key={o.id} className={cn("bg-card border rounded-xl p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow", enRetard ? "border-destructive/40" : "border-border")} onClick={() => openOrder(o)}>
+                        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                          <Receipt className="w-3.5 h-3.5 text-orange-600" /> Facture fournisseur
+                        </div>
+                        <p className="font-semibold text-sm">{o.designation}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {vehicle ? `${vehicle.code_camion ? `[${vehicle.code_camion}] ` : ""}${vehicle.immatriculation}` : "Véhicule non précisé"}
+                        </p>
+                        <Badge className={cn("text-[10px]", enRetard ? "bg-destructive/15 text-destructive border-destructive/30" : "bg-amber-500/15 text-amber-700 border-amber-400/30")}>
+                          Échéance : {o.date_echeance ? new Date(o.date_echeance).toLocaleDateString("fr-FR") : "—"}
+                        </Badge>
+                        <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1.5">
+                          <Banknote className="w-3.5 h-3.5" /> Marquer payée
+                        </Button>
                       </div>
-                      <p className="font-semibold text-sm">{o.designation}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {vehicle ? `${vehicle.code_camion ? `[${vehicle.code_camion}] ` : ""}${vehicle.immatriculation}` : "Véhicule non précisé"}
-                      </p>
-                      <Badge className={cn("text-[10px]", enRetard ? "bg-destructive/15 text-destructive border-destructive/30" : "bg-amber-500/15 text-amber-700 border-amber-400/30")}>
-                        Échéance : {o.date_echeance ? new Date(o.date_echeance).toLocaleDateString("fr-FR") : "—"}
-                      </Badge>
-                      <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1.5">
-                        <Banknote className="w-3.5 h-3.5" /> Marquer payée
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="toutes" className="mt-4 space-y-3">

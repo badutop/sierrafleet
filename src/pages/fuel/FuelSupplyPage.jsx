@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +18,9 @@ import { logAudit } from "@/lib/auditLog";
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 
 export default function FuelSupplyPage() {
+  const { user: currentUser } = useAuth();
+  // Seuls Admin et Resp. Exploitation peuvent faire un approvisionnement (voir aussi FuelManagementV2.jsx).
+  const canSupply = currentUser?.role === "admin" || currentUser?.role === "responsable_exploitation";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
   const [activeTab, setActiveTab] = useState("approvisionnements");
@@ -153,9 +157,11 @@ export default function FuelSupplyPage() {
             {entries.length} entrées · {autoRefuels.length} refuels auto · {manuelRefuels.length} saisies manuelles
           </p>
         </div>
-        <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleNew}>
-          <Plus className="w-4 h-4 mr-2" /> Nouvel approvisionnement
-        </Button>
+        {canSupply && (
+          <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleNew}>
+            <Plus className="w-4 h-4 mr-2" /> Nouvel approvisionnement
+          </Button>
+        )}
       </div>
 
       <FuelKpiStrip

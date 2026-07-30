@@ -28,6 +28,7 @@ const VALID_ROLES = [
   'collecteur_bons',
   'executeur_depenses',
   'chauffeur',
+  'finances',
 ];
 
 const corsHeaders = {

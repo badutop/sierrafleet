@@ -23,9 +23,18 @@ import { logAudit } from "@/lib/auditLog";
 export default function CampaignDetail() {
   const { id } = useParams();
   const { user: currentUser } = useAuth();
-  // Le Responsable des Opérations n'a pas accès aux campagnes archivées et ne
-  // peut pas terminer/archiver une campagne (voir aussi CampaignsList.jsx).
-  const isOpsRestricted = currentUser?.role === "responsable_operations";
+  // Resp. Opérations et Resp. Exploitation n'ont pas accès aux campagnes
+  // archivées, ni ne peuvent terminer/archiver une campagne ou voir la
+  // facture client (voir aussi CampaignsList.jsx). Resp. Exploitation, en
+  // plus, ne gère ni l'affectation des camions ni la saisie des rotations —
+  // c'est le rôle de Resp. Opérations. Resp. Exploitation valide en revanche
+  // les bons scannés par Resp. Opérations (voir CampaignRotationsTable.jsx).
+  // Finances, à l'inverse, n'a accès qu'aux campagnes archivées et n'y voit
+  // que les factures clients (aucun KPI, aucune fiche de rotation, aucune
+  // affectation de camions).
+  const isOpsRestricted = currentUser?.role === "responsable_operations" || currentUser?.role === "responsable_exploitation";
+  const isExploitation = currentUser?.role === "responsable_exploitation";
+  const isFinances = currentUser?.role === "finances";
   const queryClient = useQueryClient();
   const [rotSheetOpen, setRotSheetOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -159,6 +168,19 @@ export default function CampaignDetail() {
     );
   }
 
+  if (isFinances && campaign.statut !== "clôturée") {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
+        <Lock className="w-12 h-12 text-muted-foreground opacity-30" />
+        <h2 className="text-lg font-bold text-foreground">Accès restreint</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          Le rôle Finances n'a accès qu'aux campagnes archivées, pour la consultation des factures clients.
+        </p>
+        <Link to="/campaigns"><Button variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Retour aux campagnes</Button></Link>
+      </div>
+    );
+  }
+
   const bonsSysteme = rotations.length;
   const bonsPhysiques = rotations.filter(r => r.bon_physique_recu).length;
   const ecart = bonsSysteme - bonsPhysiques;
@@ -185,6 +207,48 @@ export default function CampaignDetail() {
     ? campaignClientRows.map(cc => ({ client_id: cc.client_id, tonnage_prevu: cc.tonnage_prevu, client: clientMap[cc.client_id] }))
     : (campaign.client_id ? [{ client_id: campaign.client_id, tonnage_prevu: campaign.tonnage_total_prevu, client: clientMap[campaign.client_id] || client }] : []);
   const isSingleClient = campaignClients.length <= 1;
+
+  if (isFinances) {
+    return (
+      <div className="space-y-5 max-w-2xl">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link to="/campaigns"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Retour</Button></Link>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-foreground truncate">{campaign.nom_campagne}</h1>
+            <p className="text-sm text-muted-foreground">{client?.nom || "—"} · {campaign.type_marchandise}{campaign.navire ? ` · Navire: ${campaign.navire}` : ""}</p>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Factures clients</p>
+          {campaignClients.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun client associé à cette campagne.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {campaignClients.map(cc => cc.client && (
+                <Button
+                  key={cc.client_id}
+                  variant="outline"
+                  onClick={() => setInvoicingClient(cc.client)}
+                  className="border-secondary text-secondary hover:bg-secondary/10"
+                >
+                  <FileText className="w-4 h-4 mr-2" /> Facture{!isSingleClient ? ` — ${cc.client.nom}` : ""}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+        {invoicingClient && (
+          <CampaignInvoice
+            campaign={campaign}
+            client={invoicingClient}
+            rotations={rotations}
+            singleClient={isSingleClient}
+            onClose={() => setInvoicingClient(null)}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -322,10 +386,10 @@ export default function CampaignDetail() {
           <TabsTrigger value="rotations">Rotations ({rotations.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="camions" className="mt-4">
-          <CampaignTruckAssignmentTable campaignId={id} readOnly={isArchived} />
+          <CampaignTruckAssignmentTable campaignId={id} readOnly={isArchived || isExploitation} />
         </TabsContent>
         <TabsContent value="rotations" className="mt-4 space-y-3">
-          {campaign.statut === "en_cours" && (
+          {campaign.statut === "en_cours" && !isExploitation && (
             <div className="flex justify-end">
               <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={() => setRotSheetOpen(true)}>
                 <ClipboardList className="w-4 h-4 mr-2" /> Saisir fiche du jour
