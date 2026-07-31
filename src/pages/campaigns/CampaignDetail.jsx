@@ -435,6 +435,7 @@ export default function CampaignDetail() {
           vehicles={vehicles}
           drivers={drivers}
           depots={depots}
+          zones={zones}
           onClose={() => setReportOpen(false)}
         />
       )}

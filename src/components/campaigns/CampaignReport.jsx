@@ -8,7 +8,7 @@ import { resolveLocationLabel } from "@/lib/campaignLocations";
 const fmt = (n) => Number(n || 0).toLocaleString("fr-FR", { maximumFractionDigits: 2 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR") : "—";
 
-export default function CampaignReport({ campaign, client, rotations, declarations, vehicles, drivers, depots = [], onClose }) {
+export default function CampaignReport({ campaign, client, rotations, declarations, vehicles, drivers, depots = [], zones = [], onClose }) {
   const printRef = useRef();
 
   const handlePrint = () => {
@@ -170,7 +170,7 @@ export default function CampaignReport({ campaign, client, rotations, declaratio
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               {[
                 { label: "Point de départ", value: resolveLocationLabel(campaign.point_origine, depots) },
-                { label: "Dépôt destination", value: resolveLocationLabel(campaign.depot_destination_id, depots) },
+                { label: "Dépôt destination", value: resolveLocationLabel(campaign.depot_destination_id, depots, client ? [client] : [], zones) },
                 { label: "Date de début", value: fmtDate(campaign.date_debut) },
                 { label: "Date de fin prévue", value: fmtDate(campaign.date_fin_prevue) },
                 { label: "Navire", value: campaign.navire || "—" },

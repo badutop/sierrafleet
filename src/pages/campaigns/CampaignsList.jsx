@@ -17,7 +17,8 @@ import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 import { stampStatutDate } from "@/lib/campaignStatus";
 import { logAudit } from "@/lib/auditLog";
-import { PORT_MOLES as portMoles } from "@/lib/campaignLocations";
+import { PORT_MOLES as portMoles, ZONE_CLIENT_PREFIX } from "@/lib/campaignLocations";
+import { useZones } from "@/hooks/use-zones";
 
 const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturée: "Clôturée" };
 const statutColors = { creee: "bg-blue-500/10 text-blue-600", validee_responsable: "bg-purple-500/10 text-purple-600", validee_operationnel: "bg-cyan-500/10 text-cyan-600", en_cours: "bg-emerald-500/10 text-emerald-600", terminee: "bg-amber-500/10 text-amber-600", clôturée: "bg-muted text-muted-foreground" };
@@ -94,6 +95,8 @@ export default function CampaignsList() {
       return data;
     },
   });
+  const { data: zones = [] } = useZones();
+  const zoneMap = Object.fromEntries(zones.map(z => [z.code, z]));
 
   const saveCampaignClients = async (campaignId, clientRows) => {
     const { error: delError } = await supabase.from("campaign_clients").delete().eq("campaign_id", campaignId);
@@ -482,20 +485,30 @@ export default function CampaignsList() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">-- Sélectionner --</SelectItem>
-                      {/* Dépôts du client */}
+                      {/* Zone principale du/des client(s) sélectionné(s) */}
+                      {selectedClientIds.length > 0 && (
+                        <>
+                          <SelectItem disabled value="zones-label">Zone principale du client</SelectItem>
+                          {selectedClientIds.map(cid => {
+                            const c = clients.find(cl => cl.id === cid);
+                            if (!c) return null;
+                            return (
+                              <SelectItem key={`zone-${cid}`} value={`${ZONE_CLIENT_PREFIX}${cid}`}>
+                                {c.nom} — Zone principale ({zoneMap[c.zone]?.libelle || c.zone})
+                              </SelectItem>
+                            );
+                          })}
+                        </>
+                      )}
+                      {/* Dépôts secondaires du client */}
                       {depots.filter(d => selectedClientIds.includes(d.client_id)).length > 0 && (
                         <>
-                          <SelectItem disabled value="depots-label">Dépôts du client</SelectItem>
+                          <SelectItem disabled value="depots-label">Dépôts secondaires du client</SelectItem>
                           {depots.filter(d => selectedClientIds.includes(d.client_id)).map(d => (
                             <SelectItem key={d.id} value={d.id}>{d.nom_depot} — {d.zone}</SelectItem>
                           ))}
                         </>
                       )}
-                      {/* Môles du Port de Dakar */}
-                      <SelectItem disabled value="moles-label">Môles du Port de Dakar</SelectItem>
-                      {portMoles.map(m => (
-                        <SelectItem key={m.id} value={m.id}>{m.nom}</SelectItem>
-                      ))}
                     </SelectContent>
                   </Select>
                 </div>
