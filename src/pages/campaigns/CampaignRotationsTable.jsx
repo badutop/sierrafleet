@@ -1,7 +1,7 @@
 import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Fuel, RotateCw, ImageIcon } from "lucide-react";
+import { CheckCircle, Fuel, RotateCw, ImageIcon, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Ce tableau est désormais purement consultatif pour les bons physiques : le
@@ -63,6 +63,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                     <TableHead className="text-right font-bold">Conso. (L)</TableHead>
                     <TableHead className="font-bold">Refuel</TableHead>
                     <TableHead className="font-bold">Bon physique</TableHead>
+                    <TableHead className="font-bold">Bon final</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -82,7 +83,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                     return (
                       <React.Fragment key={vid}>
                         <TableRow className="bg-muted/40 hover:bg-muted/40">
-                          <TableCell colSpan={6} className="py-1.5 text-xs font-bold text-foreground">
+                          <TableCell colSpan={7} className="py-1.5 text-xs font-bold text-foreground">
                             {vehicle?.immatriculation || "Sans camion"}
                             {vehicle && driverMap[vehicle.driver_id] && (
                               <span className="font-semibold text-muted-foreground"> · {driverMap[vehicle.driver_id]}</span>
@@ -126,6 +127,33 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                                 )}
                               </div>
                             </TableCell>
+                            <TableCell>
+                              {/* Réconciliation du bon final — voir CollecteurBonsPage.jsx.
+                                  Distinct du bon physique (enlèvement) ci-dessus : ceci ne
+                                  peut être renseigné qu'une fois le rechargement effectué
+                                  (fuel_entry_id), par le Collecteur de bons. */}
+                              <div className="flex items-center gap-1.5">
+                                {!r.bon_final_scan_url ? (
+                                  <span className="text-muted-foreground text-xs">—</span>
+                                ) : r.ecart_bon_final ? (
+                                  <Badge className="bg-destructive/10 text-destructive text-[10px]" title={r.observation_bon_final || "Écart constaté par le Collecteur de bons"}>
+                                    <AlertTriangle className="w-3 h-3 mr-1" />Écart
+                                  </Badge>
+                                ) : (
+                                  <span
+                                    title="Bon final réconcilié — aucun écart"
+                                    className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"
+                                  >
+                                    <CheckCircle className="w-3 h-3 text-white" />
+                                  </span>
+                                )}
+                                {r.bon_final_scan_url && (
+                                  <a href={r.bon_final_scan_url} target="_blank" rel="noreferrer" title="Voir le scan du bon final" className="text-muted-foreground hover:text-secondary">
+                                    <ImageIcon className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </React.Fragment>
@@ -134,7 +162,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                   <TableRow className="bg-secondary/10 font-bold">
                     <TableCell colSpan={2} className="text-right text-xs font-bold uppercase text-secondary">Total journée</TableCell>
                     <TableCell className="text-right text-sm font-bold text-secondary">{totalPoids.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                    <TableCell colSpan={3} className="text-xs text-muted-foreground text-right">{totalPoids.toFixed(2)} T</TableCell>
+                    <TableCell colSpan={4} className="text-xs text-muted-foreground text-right">{totalPoids.toFixed(2)} T</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>

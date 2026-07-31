@@ -188,6 +188,10 @@ export default function CampaignDetail() {
   const bonsSysteme = rotations.length;
   const bonsPhysiques = rotations.filter(r => r.bon_physique_recu).length;
   const ecart = bonsSysteme - bonsPhysiques;
+  // Écarts relevés par le Collecteur de bons à la réconciliation du bon final
+  // (voir CollecteurBonsPage.jsx) — distinct de l'écart ci-dessus, qui ne
+  // porte que sur les bons manquants à l'enlèvement.
+  const ecartsBonFinal = rotations.filter(r => r.ecart_bon_final);
   const progress = campaign.tonnage_total_prevu > 0 ? Math.min(100, Math.round((campaign.tonnage_realise || 0) / campaign.tonnage_total_prevu * 100)) : 0;
   // poids_charge_tonnes (et tonnage_realise, qui en est la somme) est bien
   // exprimé en tonnes — la fiche du jour saisit directement des tonnes.
@@ -360,6 +364,15 @@ export default function CampaignDetail() {
         <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
           <AlertTriangle className="w-5 h-5 shrink-0" />
           <p className="text-sm font-medium">Écart détecté : {ecart} bon(s) manquant(s) — {bonsSysteme} bons système vs {bonsPhysiques} bons physiques collectés.</p>
+        </div>
+      )}
+
+      {ecartsBonFinal.length > 0 && (
+        <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          <p className="text-sm font-medium">
+            Écart bon final : {ecartsBonFinal.length} rotation{ecartsBonFinal.length > 1 ? "s" : ""} signalée{ecartsBonFinal.length > 1 ? "s" : ""} par le Collecteur de bons à la réconciliation — voir l'onglet Rotations.
+          </p>
         </div>
       )}
 
