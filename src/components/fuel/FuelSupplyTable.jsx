@@ -92,10 +92,9 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, driverMap = 
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="text-xs">Date</TableHead>
-              <TableHead className="text-xs">Véhicule</TableHead>
+              <TableHead className="text-xs min-w-[160px]">Véhicule</TableHead>
               <TableHead className="text-xs">Station / Source</TableHead>
               <TableHead className="text-xs text-right">Litres</TableHead>
-              <TableHead className="text-xs text-right">Prix/L (FCFA)</TableHead>
               <TableHead className="text-xs text-right">Montant (FCFA)</TableHead>
               <TableHead className="text-xs text-center">Type</TableHead>
               <TableHead className="w-20" />
@@ -104,13 +103,13 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, driverMap = 
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10">
+                <TableCell colSpan={7} className="text-center py-10">
                   <div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" />
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground text-sm">
+                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground text-sm">
                   Aucun enregistrement trouvé
                 </TableCell>
               </TableRow>
@@ -120,17 +119,19 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, driverMap = 
               return (
                 <TableRow key={e.id} className="hover:bg-muted/30">
                   <TableCell className="text-xs">{e.date}{e.heure ? ` · ${e.heure}` : ""}</TableCell>
-                  <TableCell className="text-xs font-semibold font-mono">
-                    {vehicle?.immatriculation || "—"}
+                  <TableCell className="text-xs">
+                    <div className="font-semibold font-mono">{vehicle?.immatriculation || "—"}</div>
+                    {(driverMap[e.driver_id] || driverMap[vehicle?.driver_id]) && (
+                      <div className="text-muted-foreground mt-0.5">
+                        {(driverMap[e.driver_id] || driverMap[vehicle?.driver_id]).prenom} {(driverMap[e.driver_id] || driverMap[vehicle?.driver_id]).nom}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-xs max-w-[200px] truncate" title={e.station}>
                     {e.station || "—"}
                   </TableCell>
                   <TableCell className="text-xs text-right font-medium">
                     {(e.litres || 0).toLocaleString("fr-FR")}
-                  </TableCell>
-                  <TableCell className="text-xs text-right">
-                    {e.prix_litre ? e.prix_litre.toLocaleString("fr-FR") : <span className="text-muted-foreground italic">N/A</span>}
                   </TableCell>
                   <TableCell className="text-xs text-right font-bold">
                     {(e.montant_total || 0).toLocaleString("fr-FR")}

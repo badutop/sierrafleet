@@ -120,6 +120,7 @@ export default function FuelSupplyPage() {
 
   const vMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
   const campaignMap = useMemo(() => Object.fromEntries(campaigns.map(c => [c.id, c])), [campaigns]);
+  const driverMap = useMemo(() => Object.fromEntries(drivers.map(d => [d.id, d])), [drivers]);
 
   const now = new Date();
   const thisMonth = now.getMonth();
@@ -217,6 +218,7 @@ export default function FuelSupplyPage() {
             entries={entries}
             isLoading={isLoading}
             vMap={vMap}
+            driverMap={driverMap}
             campaignMap={campaignMap}
             onEdit={handleEdit}
             onDelete={(id) => deleteMutation.mutate(entries.find(e => e.id === id))}
