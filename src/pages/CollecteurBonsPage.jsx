@@ -6,13 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { LogOut, Fuel, Truck, Camera, ImageIcon, ClipboardCheck } from "lucide-react";
+import { LogOut, Fuel, Truck, Camera, ImageIcon, ClipboardCheck, Calendar, MapPin, Droplet, Coins, Package, Ship } from "lucide-react";
 import { toast } from "sonner";
 import { uploadFile } from "@/lib/storage";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { logAudit } from "@/lib/auditLog";
 import { getCompletedRefuelCheckpoints } from "@/lib/refuelRules";
 import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
+
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR") : "—";
+const fmtDateTime = (d) => d ? new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
 // Une rotation d'un groupe déjà rechargé (voir getCompletedRefuelCheckpoints) :
 // bon d'enlèvement (Resp. Opérations) à gauche, bon final (client) à droite —
@@ -24,9 +27,12 @@ function RotationBonRow({ rotation, onScan, onToggleEcart, onSaveObservation }) 
 
   return (
     <div className="border border-border rounded-lg p-3 space-y-2 bg-background">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-bold">Rotation #{rotation.numero_rotation}</span>
-        <span className="text-muted-foreground">
+      <div className="flex items-center justify-between text-xs flex-wrap gap-1">
+        <span className="font-bold">
+          Rotation #{rotation.numero_rotation}
+          <span className="font-normal text-muted-foreground"> · {fmtDate(rotation.date_rotation)}</span>
+        </span>
+        <span className="font-semibold text-secondary">
           {Number(rotation.poids_charge_tonnes || 0).toFixed(2)} T{rotation.numero_bon_client ? ` · BL ${rotation.numero_bon_client}` : ""}
         </span>
       </div>
@@ -143,11 +149,20 @@ export default function CollecteurBonsPage() {
       return data;
     },
   });
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ["campaigns"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaigns").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const vehicleMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
   const driverMap = useMemo(() => Object.fromEntries(drivers.map(d => [d.id, d])), [drivers]);
   const clientMap = useMemo(() => Object.fromEntries(clients.map(c => [c.id, c])), [clients]);
   const fuelEntryMap = useMemo(() => Object.fromEntries(fuelEntries.map(f => [f.id, f])), [fuelEntries]);
+  const campaignMap = useMemo(() => Object.fromEntries(campaigns.map(c => [c.id, c])), [campaigns]);
 
   const checkpoints = useMemo(() => getCompletedRefuelCheckpoints(rotations), [rotations]);
 
@@ -265,7 +280,9 @@ export default function CollecteurBonsPage() {
               const driver = driverMap[vehicle?.driver_id];
               const client = clientMap[cp.clientId];
               const fuelEntry = fuelEntryMap[cp.fuelEntryId];
+              const campaign = campaignMap[cp.rotations[0]?.campaign_id];
               const collectedCount = cp.rotations.filter(r => r.bon_final_scan_url).length;
+              const totalPoids = cp.rotations.reduce((s, r) => s + (Number(r.poids_charge_tonnes) || 0), 0);
               return (
                 <div key={`${cp.clientId}-${cp.vehicleId}-${cp.fuelEntryId}`} className="bg-card border border-border rounded-2xl overflow-hidden">
                   <div className="bg-muted/40 px-4 py-3 flex items-center gap-3 border-b border-border">
@@ -276,6 +293,9 @@ export default function CollecteurBonsPage() {
                       <p className="font-bold text-sm font-mono truncate">{vehicle?.immatriculation || "—"}</p>
                       <p className="text-xs text-muted-foreground truncate">
                         {driver ? `${driver.prenom} ${driver.nom}` : "Chauffeur inconnu"} · {client?.nom || "Client inconnu"}
+                        {campaign?.nom_campagne && (
+                          <span className="inline-flex items-center gap-0.5"> · <Ship className="w-3 h-3 inline" /> {campaign.nom_campagne}</span>
+                        )}
                       </p>
                     </div>
                     <Badge className={collectedCount === 3 ? "bg-emerald-500/10 text-emerald-600 text-[10px] shrink-0" : "bg-amber-500/10 text-amber-600 text-[10px] shrink-0"}>
@@ -283,18 +303,39 @@ export default function CollecteurBonsPage() {
                     </Badge>
                   </div>
 
+                  <div className="px-4 py-3 border-b border-border bg-secondary/5 space-y-2">
+                    <p className="text-[11px] font-semibold text-secondary flex items-center gap-1">
+                      <Fuel className="w-3.5 h-3.5" /> Rechargement carburant
+                    </p>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Calendar className="w-3.5 h-3.5 shrink-0" />
+                        {fmtDateTime(fuelEntry?.date ? `${fuelEntry.date}T${fuelEntry.heure || "00:00"}` : null)}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{fuelEntry?.station || "—"}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Droplet className="w-3.5 h-3.5 shrink-0" />
+                        {fuelEntry?.litres ? `${Number(fuelEntry.litres).toLocaleString("fr-FR")} L` : "—"}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Coins className="w-3.5 h-3.5 shrink-0" />
+                        {fuelEntry?.montant_total ? `${Number(fuelEntry.montant_total).toLocaleString("fr-FR")} FCFA` : "—"}
+                      </div>
+                    </div>
+                    {fuelEntry?.recu_url && (
+                      <button type="button" onClick={() => window.open(fuelEntry.recu_url, "_blank")} className="block">
+                        <img src={fuelEntry.recu_url} alt="Photo de la pompe" className="h-24 rounded-lg border border-border object-cover" />
+                      </button>
+                    )}
+                  </div>
+
                   <div className="p-4 space-y-3">
-                    <div>
-                      <p className="text-[11px] text-muted-foreground mb-1 flex items-center gap-1">
-                        <Fuel className="w-3 h-3" /> Photo de la pompe (chauffeur)
-                      </p>
-                      {fuelEntry?.recu_url ? (
-                        <button type="button" onClick={() => window.open(fuelEntry.recu_url, "_blank")} className="block">
-                          <img src={fuelEntry.recu_url} alt="Photo de la pompe" className="h-28 rounded-lg border border-border object-cover" />
-                        </button>
-                      ) : (
-                        <p className="text-xs text-muted-foreground italic">Aucune photo</p>
-                      )}
+                    <div className="flex items-center justify-between text-xs font-semibold text-foreground bg-muted/30 rounded-lg px-3 py-2">
+                      <span className="flex items-center gap-1.5"><Package className="w-3.5 h-3.5 text-primary" /> Tonnage total des bons d'enlèvement</span>
+                      <span className="text-primary">{totalPoids.toFixed(2)} T</span>
                     </div>
 
                     {cp.rotations.map(r => (
