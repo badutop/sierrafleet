@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Camera, X, RotateCcw, RotateCw, Crop, Check } from "lucide-react";
 
@@ -305,7 +306,18 @@ export default function DocumentScanner({
     }
   };
 
-  return (
+  // Rendu via un portail directement sur document.body : quand ce composant
+  // est ouvert depuis un DocSlot niché dans un <Dialog> (DriverDocuments,
+  // VehicleDocuments...), le DialogContent de shadcn a un translate-x/-y
+  // (transform) — ce qui, par la spec CSS, fait de lui le "containing block"
+  // de tout descendant en position:fixed. Résultat sans portail : ce
+  // "fixed inset-0" se retrouve confiné à la petite boîte du Dialog (~448px)
+  // au lieu du plein écran, laissant beaucoup moins de place que prévu pour
+  // le viseur et les poignées de recadrage. Un portail sur document.body
+  // sort complètement de cette hiérarchie et garantit un vrai plein écran,
+  // que l'appelant soit dans un Dialog ou non (ex: CollecteurBonsPage.jsx,
+  // qui n'est pas dans un Dialog et n'a jamais eu ce problème).
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-black/80">
@@ -466,6 +478,7 @@ export default function DocumentScanner({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
