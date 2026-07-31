@@ -274,7 +274,7 @@ export default function CampaignsList() {
           )}
           {!isFinances && (
             <Button variant={view === "board" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "board" ? "list" : "board")}>
-              <Rows3 className="w-4 h-4 mr-2" /> {view === "board" ? "Vue liste" : "Affecter camions"}
+              <Rows3 className="w-4 h-4 mr-2" /> {view === "board" ? "Vue liste" : "Redéployer camions"}
             </Button>
           )}
           {!isOpsRestricted && !isFinances && (

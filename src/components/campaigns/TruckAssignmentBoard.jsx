@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, GripVertical, Ship, Plus, X } from "lucide-react";
+import { Truck, GripVertical, Ship, Plus, X, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
@@ -51,6 +51,19 @@ export default function TruckAssignmentBoard({ campaigns }) {
     },
   });
 
+  // Liste complète (non filtrée par la recherche/le statut de la page
+  // Campagnes) — nécessaire pour retrouver le nom d'une campagne d'origine de
+  // redéploiement même si elle n'est plus affichée comme colonne active.
+  const { data: allCampaigns = [] } = useQuery({
+    queryKey: ["campaigns"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaigns").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const campaignById = useMemo(() => Object.fromEntries(allCampaigns.map(c => [c.id, c])), [allCampaigns]);
+
   // Immatriculations bloquées : statut en_maintenance/hors_service OU maintenance active
   const blockedImmatriculations = useMemo(() => {
     const maintenanceVehicleIds = new Set(
@@ -69,25 +82,38 @@ export default function TruckAssignmentBoard({ campaigns }) {
     );
   }, [vehicles, maintenances]);
 
-  // Move truck: réaffecte le camion à une autre campagne
+  // Move truck: un déplacement direct entre deux campagnes en_cours est un
+  // "redéploiement" — tracé via redeploye_depuis_campaign_id/date_redeploiement
+  // pour rester visible dans la campagne de réception (calcul de performance).
+  // Les rotations déjà effectuées, elles, restent liées à la campagne d'origine
+  // via rotations.campaign_id, jamais touché ici.
   const moveMutation = useMutation({
-    mutationFn: async ({ vehicleId, newCampaignId }) => {
-      const { error } = await supabase.from("vehicles").update({ campaign_id: newCampaignId }).eq("id", vehicleId);
+    mutationFn: async ({ vehicleId, sourceCampaignId, newCampaignId }) => {
+      const isRedeployment = campaignById[sourceCampaignId]?.statut === "en_cours" && campaignById[newCampaignId]?.statut === "en_cours";
+      const payload = {
+        campaign_id: newCampaignId,
+        redeploye_depuis_campaign_id: isRedeployment ? sourceCampaignId : null,
+        date_redeploiement: isRedeployment ? new Date().toISOString() : null,
+      };
+      const { error } = await supabase.from("vehicles").update(payload).eq("id", vehicleId);
       if (error) throw error;
-      await logAudit("Véhicule", vehicleId, "update", { campaign_id: newCampaignId }, null, ["campaign_id"]);
+      await logAudit("Véhicule", vehicleId, "update", payload, null, Object.keys(payload));
+      return { isRedeployment };
     },
-    onSuccess: () => {
+    onSuccess: ({ isRedeployment }) => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
-      toast.success("Camion réaffecté avec succès");
+      toast.success(isRedeployment ? "Camion redéployé avec succès" : "Camion réaffecté avec succès");
     },
   });
 
-  // Assign new truck(s) to campaign
+  // Assign new truck(s) to campaign — affectation depuis le pool des camions
+  // disponibles, pas un redéploiement : on efface toute marque précédente.
   const assignMutation = useMutation({
     mutationFn: async ({ vehicleIds, campaignId }) => {
-      const { error } = await supabase.from("vehicles").update({ campaign_id: campaignId }).in("id", vehicleIds);
+      const payload = { campaign_id: campaignId, redeploye_depuis_campaign_id: null, date_redeploiement: null };
+      const { error } = await supabase.from("vehicles").update(payload).in("id", vehicleIds);
       if (error) throw error;
-      await Promise.all(vehicleIds.map(vid => logAudit("Véhicule", vid, "update", { campaign_id: campaignId }, null, ["campaign_id"])));
+      await Promise.all(vehicleIds.map(vid => logAudit("Véhicule", vid, "update", payload, null, Object.keys(payload))));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
@@ -95,12 +121,14 @@ export default function TruckAssignmentBoard({ campaigns }) {
     },
   });
 
-  // Remove truck from campaign
+  // Remove truck from campaign — on efface aussi la marque de redéploiement,
+  // une future affectation ne doit pas hériter d'un historique périmé.
   const removeMutation = useMutation({
     mutationFn: async (vehicleId) => {
-      const { error } = await supabase.from("vehicles").update({ campaign_id: null }).eq("id", vehicleId);
+      const payload = { campaign_id: null, redeploye_depuis_campaign_id: null, date_redeploiement: null };
+      const { error } = await supabase.from("vehicles").update(payload).eq("id", vehicleId);
       if (error) throw error;
-      await logAudit("Véhicule", vehicleId, "update", { campaign_id: null }, null, ["campaign_id"]);
+      await logAudit("Véhicule", vehicleId, "update", payload, null, Object.keys(payload));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
@@ -130,7 +158,7 @@ export default function TruckAssignmentBoard({ campaigns }) {
     setIsDragging(false);
     const { source, destination, draggableId } = result;
     if (!destination || source.droppableId === destination.droppableId) return;
-    moveMutation.mutate({ vehicleId: draggableId, newCampaignId: destination.droppableId });
+    moveMutation.mutate({ vehicleId: draggableId, sourceCampaignId: source.droppableId, newCampaignId: destination.droppableId });
   };
 
   const handleAssign = (campaignId) => {
@@ -153,7 +181,7 @@ export default function TruckAssignmentBoard({ campaigns }) {
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground flex items-center gap-1.5">
         <GripVertical className="w-3.5 h-3.5" />
-        Glissez un camion d'une colonne à une autre pour le transférer, ou utilisez le sélecteur pour en affecter un nouveau.
+        Glissez un camion d'une colonne à une autre pour le redéployer, ou utilisez le sélecteur pour en affecter un nouveau.
       </p>
       <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -213,7 +241,17 @@ export default function TruckAssignmentBoard({ campaigns }) {
                                 <Truck className="w-4 h-4 text-primary" />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="font-bold truncate">{vehicle.immatriculation}</p>
+                                <p className="font-bold truncate flex items-center gap-1.5">
+                                  {vehicle.immatriculation}
+                                  {vehicle.redeploye_depuis_campaign_id && (
+                                    <Badge
+                                      className="bg-purple-500/10 text-purple-600 text-[9px] px-1.5 py-0 gap-0.5 shrink-0 font-medium"
+                                      title={`Redéployé depuis ${campaignById[vehicle.redeploye_depuis_campaign_id]?.nom_campagne || "campagne précédente"}${vehicle.date_redeploiement ? " le " + new Date(vehicle.date_redeploiement).toLocaleDateString("fr-FR") : ""}`}
+                                    >
+                                      <Repeat className="w-2.5 h-2.5" /> R
+                                    </Badge>
+                                  )}
+                                </p>
                                 <p className="text-muted-foreground truncate">{vehicle.code_camion && `${vehicle.code_camion} · `}{vehicle.marque} {vehicle.modele}</p>
                               </div>
                               <button

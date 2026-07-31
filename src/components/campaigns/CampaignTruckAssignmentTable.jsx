@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Plus, Trash2 } from "lucide-react";
+import { Truck, Plus, Trash2, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
@@ -43,6 +43,17 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
     },
   });
 
+  // Pour résoudre le nom de la campagne d'origine d'un camion redéployé.
+  const { data: allCampaigns = [] } = useQuery({
+    queryKey: ["campaigns"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaigns").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const campaignById = useMemo(() => Object.fromEntries(allCampaigns.map(c => [c.id, c])), [allCampaigns]);
+
   // Immatriculations bloquées : statut en_maintenance/hors_service OU maintenance active
   const blockedImmatriculations = useMemo(() => {
     const maintenanceVehicleIds = new Set(
@@ -67,11 +78,15 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
     !blockedImmatriculations.has(v.immatriculation)
   );
 
+  // Affectation manuelle depuis le pool disponible — pas un redéploiement
+  // (voir TruckAssignmentBoard.jsx pour le cas du glisser-déposer entre deux
+  // campagnes en_cours), on efface donc toute marque précédente.
   const assignMutation = useMutation({
     mutationFn: async (vehicleId) => {
-      const { error } = await supabase.from("vehicles").update({ campaign_id: campaignId }).eq("id", vehicleId);
+      const payload = { campaign_id: campaignId, redeploye_depuis_campaign_id: null, date_redeploiement: null };
+      const { error } = await supabase.from("vehicles").update(payload).eq("id", vehicleId);
       if (error) throw error;
-      await logAudit("Véhicule", vehicleId, "update", { campaign_id: campaignId }, null, ["campaign_id"]);
+      await logAudit("Véhicule", vehicleId, "update", payload, null, Object.keys(payload));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
@@ -82,9 +97,10 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
 
   const removeMutation = useMutation({
     mutationFn: async (vehicleId) => {
-      const { error } = await supabase.from("vehicles").update({ campaign_id: null }).eq("id", vehicleId);
+      const payload = { campaign_id: null, redeploye_depuis_campaign_id: null, date_redeploiement: null };
+      const { error } = await supabase.from("vehicles").update(payload).eq("id", vehicleId);
       if (error) throw error;
-      await logAudit("Véhicule", vehicleId, "update", { campaign_id: null }, { campaign_id: campaignId }, ["campaign_id"]);
+      await logAudit("Véhicule", vehicleId, "update", payload, { campaign_id: campaignId }, Object.keys(payload));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
@@ -151,6 +167,7 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
                 <th className="px-4 py-2.5 text-left font-semibold">Immatriculation</th>
                 <th className="px-4 py-2.5 text-left font-semibold">Marque & Modèle</th>
                 <th className="px-4 py-2.5 text-left font-semibold">Statut</th>
+                <th className="px-4 py-2.5 text-left font-semibold">Origine</th>
                 {!readOnly && <th className="px-4 py-2.5 text-center font-semibold">Actions</th>}
               </tr>
             </thead>
@@ -168,6 +185,18 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
                     <td className="px-4 py-2.5 text-muted-foreground">{v.marque} {v.modele}</td>
                     <td className="px-4 py-2.5">
                       <Badge className={cn("text-[10px]", st.color)}>{st.label}</Badge>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {v.redeploye_depuis_campaign_id ? (
+                        <Badge
+                          className="bg-purple-500/10 text-purple-600 text-[10px] gap-1 font-medium"
+                          title={v.date_redeploiement ? `Le ${new Date(v.date_redeploiement).toLocaleDateString("fr-FR")}` : undefined}
+                        >
+                          <Repeat className="w-3 h-3" /> Redéployé depuis {campaignById[v.redeploye_depuis_campaign_id]?.nom_campagne || "—"}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
                     </td>
                     {!readOnly && (
                       <td className="px-4 py-2.5 text-center">
