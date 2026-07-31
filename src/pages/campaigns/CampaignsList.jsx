@@ -32,6 +32,16 @@ const statutBorderColors = {
   terminee: "border-amber-400/50 hover:border-amber-500/70",
   clôturée: "border-slate-400/60 hover:border-slate-500/80",
 };
+// Bouton "Gérer" de chaque carte teinté par le même statut que la bordure —
+// cohérence visuelle carte/action, plutôt qu'un bleu primaire uniforme.
+const statutButtonColors = {
+  creee: "bg-blue-600 hover:bg-blue-700",
+  validee_responsable: "bg-purple-600 hover:bg-purple-700",
+  validee_operationnel: "bg-cyan-600 hover:bg-cyan-700",
+  en_cours: "bg-emerald-600 hover:bg-emerald-700",
+  terminee: "bg-amber-600 hover:bg-amber-700",
+  clôturée: "bg-slate-600 hover:bg-slate-700",
+};
 const cerealTypes = ["Blé", "Maïs", "Riz", "Orge", "Seigle", "Avoine", "Soja", "Tournesol", "Colza"];
 
 // Moyenne de tonnage transporté par rotation de camion — sert de base au
@@ -271,12 +281,30 @@ export default function CampaignsList() {
         </div>
         <div className="flex gap-2">
           {!isOpsRestricted && !isFinances && (
-            <Button variant={view === "archived" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "archived" ? "list" : "archived")}>
+            <Button
+              size="sm"
+              variant={view === "archived" ? "default" : "outline"}
+              className={cn(
+                view === "archived"
+                  ? "bg-slate-600 hover:bg-slate-700 text-white border-slate-600"
+                  : "border-2 border-slate-400 text-slate-600 hover:bg-slate-100 hover:text-slate-700"
+              )}
+              onClick={() => setView(v => v === "archived" ? "list" : "archived")}
+            >
               <Archive className="w-4 h-4 mr-2" /> {view === "archived" ? "Vue liste" : `Archivées (${archivedCampaigns.length})`}
             </Button>
           )}
           {!isFinances && (
-            <Button variant={view === "board" ? "default" : "outline"} size="sm" onClick={() => setView(v => v === "board" ? "list" : "board")}>
+            <Button
+              size="sm"
+              variant={view === "board" ? "default" : "outline"}
+              className={cn(
+                view === "board"
+                  ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+                  : "border-2 border-purple-400 text-purple-600 hover:bg-purple-100 hover:text-purple-700"
+              )}
+              onClick={() => setView(v => v === "board" ? "list" : "board")}
+            >
               <Rows3 className="w-4 h-4 mr-2" /> {view === "board" ? "Vue liste" : "Redéployer camions"}
             </Button>
           )}
@@ -353,7 +381,7 @@ export default function CampaignsList() {
                   </div>
                   <div className="flex gap-2 pt-1 border-t border-border">
                     <Link to={`/campaigns/${c.id}`} className="flex-1">
-                      <Button size="sm" className="w-full h-9 rounded-lg text-xs font-bold bg-primary hover:bg-primary/90">
+                      <Button size="sm" className={cn("w-full h-9 rounded-lg text-xs font-bold text-white", statutButtonColors[c.statut] || "bg-primary hover:bg-primary/90")}>
                         <ArrowRight className="w-3.5 h-3.5 mr-1" /> {effectiveView === "archived" ? "Consulter" : "Gérer"}
                       </Button>
                     </Link>
