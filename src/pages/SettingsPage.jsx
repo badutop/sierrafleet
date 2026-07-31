@@ -1,11 +1,13 @@
 import React from "react";
 import { Settings } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 import FuelPriceCard from "@/components/settings/FuelPriceCard";
 import InvoiceSettingsCard from "@/components/settings/InvoiceSettingsCard";
 import AlertThresholdsCard from "@/components/settings/AlertThresholdsCard";
 import ZonesSettingsCard from "@/components/settings/ZonesSettingsCard";
 import WhatsAppNotifCard from "@/components/settings/WhatsAppNotifCard";
 import FuelStationsCard from "@/components/settings/FuelStationsCard";
+import CollecteBonsAccessCard from "@/components/settings/CollecteBonsAccessCard";
 
 export const FUEL_PRICE_KEY = "sierra_fuel_price_per_litre";
 export function getFuelPricePerLitre() {
@@ -22,6 +24,8 @@ export function getAlertJoursVisite() { return Number(localStorage.getItem(ALERT
 export function getAlertJoursPermis() { return Number(localStorage.getItem(ALERT_JOURS_PERMIS_KEY) || 60); }
 
 export default function SettingsPage() {
+  const { user: currentUser } = useAuth();
+
   return (
     <div className="space-y-6">
       <div>
@@ -39,6 +43,7 @@ export default function SettingsPage() {
         <ZonesSettingsCard />
         <WhatsAppNotifCard />
         <FuelStationsCard />
+        {currentUser?.role === "admin" && <CollecteBonsAccessCard />}
       </div>
     </div>
   );
