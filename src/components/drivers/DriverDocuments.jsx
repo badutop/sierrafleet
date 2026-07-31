@@ -152,8 +152,13 @@ export default function DriverDocuments({ driver, open, onClose }) {
       const { error } = await supabase.from("drivers").update(data).eq("id", driver.id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["drivers"] });
+    onSuccess: async () => {
+      // Attendu — sinon mutateAsync (et donc le toast de succès dans
+      // handleUpload) peut se résoudre avant que la liste "drivers" n'ait
+      // fini de se rafraîchir, laissant une fenêtre où driver (dérivé de
+      // cette liste) reste momentanément périmé si on rouvre vite un autre
+      // chauffeur.
+      await queryClient.invalidateQueries({ queryKey: ["drivers"] });
     },
   });
 

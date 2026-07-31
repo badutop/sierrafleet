@@ -159,8 +159,11 @@ export default function VehicleDocuments({ vehicle, open, onClose }) {
       const { error } = await supabase.from("vehicles").update(data).eq("id", vehicle.id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+    onSuccess: async () => {
+      // Attendu — même raison que DriverDocuments.jsx : éviter la fenêtre où
+      // vehicle (dérivé de la liste) reste périmé si on rouvre vite un autre
+      // véhicule juste après un upload.
+      await queryClient.invalidateQueries({ queryKey: ["vehicles"] });
     },
   });
 
