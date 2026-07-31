@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { confirm } from "@/lib/confirm";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
+import { imageFileToPdfFile } from "@/lib/imagePdf";
 
 const DOCS = [
   {
@@ -50,7 +51,16 @@ function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
     <div className={cn("rounded-xl border p-4 flex flex-col gap-3", value ? "border-border bg-card" : "border-dashed border-border bg-muted/30")}>
       {scannerOpen && (
         <DocumentScanner
-          onCapture={(file) => onUpload(doc.key, file)}
+          onCapture={async (file) => {
+            // Le scan est enregistré directement en PDF (et non en image) —
+            // seul ce chemin caméra est concerné, pas l'import manuel de fichier.
+            try {
+              const pdfFile = await imageFileToPdfFile(file, `${doc.key}.pdf`);
+              onUpload(doc.key, pdfFile);
+            } catch {
+              onUpload(doc.key, file);
+            }
+          }}
           onClose={() => setScannerOpen(false)}
           instructionText={`Alignez ${doc.label} dans le cadre`}
         />
