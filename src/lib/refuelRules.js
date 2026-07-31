@@ -61,6 +61,35 @@ export function getPendingBonGroupForVehicle(allRotations, vehicleId) {
   return best; // [rotation1, rotation2, rotation3] | null
 }
 
+// Groupes de 3 rotations dont la recharge a réellement eu lieu
+// (fuel_entry_id renseigné, via le rechargement auto — voir PumpPhotoStep) —
+// c'est-à-dire "réalisées jusqu'à la pompe". Sert à l'espace Collecteur de
+// bons (CollecteurBonsPage.jsx), qui doit ensuite scanner le bon final de
+// chaque rotation du groupe pour vérification face au bon d'enlèvement déjà
+// scanné par le Responsable des Opérations.
+export function getCompletedRefuelCheckpoints(allRotations) {
+  const pairs = new Map();
+  allRotations.forEach(r => {
+    if (!r.client_id || !r.vehicle_id) return;
+    const key = `${r.client_id}::${r.vehicle_id}`;
+    if (!pairs.has(key)) pairs.set(key, { clientId: r.client_id, vehicleId: r.vehicle_id });
+  });
+
+  const checkpoints = [];
+  pairs.forEach(({ clientId, vehicleId }) => {
+    const group = allRotations
+      .filter(r => r.client_id === clientId && r.vehicle_id === vehicleId)
+      .sort((a, b) => (a.numero_rotation || 0) - (b.numero_rotation || 0));
+    for (let i = 2; i < group.length; i += 3) {
+      const chunk = group.slice(i - 2, i + 1);
+      if (chunk[2].fuel_entry_id) {
+        checkpoints.push({ clientId, vehicleId, rotations: chunk, fuelEntryId: chunk[2].fuel_entry_id });
+      }
+    }
+  });
+  return checkpoints;
+}
+
 export function getRefuelCheckpoints(allRotations) {
   const pairs = new Map();
   allRotations.forEach(r => {

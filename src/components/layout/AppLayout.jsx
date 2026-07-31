@@ -14,11 +14,13 @@ export default function AppLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Les chauffeurs ont leur propre page dédiée
+    // Les chauffeurs et les collecteurs de bons ont leur propre page dédiée
     if (currentUser?.role === "chauffeur") {
       navigate("/refuel", { replace: true });
+    } else if (currentUser?.role === "collecteur_bons") {
+      navigate("/collecte-bons", { replace: true });
     }
-    // L'admin reste sur l'app principale mais peut accéder à /refuel via le menu carburant
+    // L'admin reste sur l'app principale mais peut accéder aux deux directement par leur URL
   }, [currentUser]);
 
   return (

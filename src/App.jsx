@@ -27,6 +27,7 @@ import CampaignsList from '@/pages/campaigns/CampaignsList';
 import CampaignDetail from '@/pages/campaigns/CampaignDetail';
 import ClientsPage from '@/pages/campaigns/ClientsPage';
 import DriverRefuelPage from '@/pages/DriverRefuelPage';
+import CollecteurBonsPage from '@/pages/CollecteurBonsPage';
 import AuditLogPage from '@/pages/AuditLogPage';
 import LandingPage from '@/pages/LandingPage';
 import DeversementPage from '@/pages/DeversementPage';
@@ -57,8 +58,9 @@ function App() {
             </Route>
 
             <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-              {/* Espace Chauffeur — page autonome, sans le menu latéral / layout principal. */}
+              {/* Espaces Chauffeur / Collecteur de bons — pages autonomes, sans le menu latéral / layout principal. */}
               <Route path="/refuel" element={<DriverRefuelPage />} />
+              <Route path="/collecte-bons" element={<CollecteurBonsPage />} />
               <Route element={<AppLayout />}>
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="/journal" element={<Journal />} />
