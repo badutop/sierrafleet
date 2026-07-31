@@ -30,7 +30,7 @@ const emptyForm = {
 export default function Drivers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
-  const [docsDriver, setDocsDriver] = useState(null);
+  const [docsDriverId, setDocsDriverId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
@@ -43,6 +43,10 @@ export default function Drivers() {
       return data;
     },
   });
+  // Dérivé de la liste vivante (pas un simple snapshot figé à l'ouverture) —
+  // sinon la dialogue Documents affiche encore "Aucun document" après un
+  // scan/upload réussi, tant qu'elle n'est pas rouverte.
+  const docsDriver = drivers.find(d => d.id === docsDriverId) || null;
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -168,7 +172,7 @@ export default function Drivers() {
                           size="sm"
                           variant="outline"
                           className={cn("h-7 text-xs", (d.doc_permis_url || d.doc_cni_url) ? "text-blue-600 border-blue-200 hover:bg-blue-50" : "")}
-                          onClick={() => setDocsDriver(d)}
+                          onClick={() => setDocsDriverId(d.id)}
                           title="Documents"
                         >
                           <FileText className="w-3 h-3" />
@@ -256,8 +260,8 @@ export default function Drivers() {
 
       <DriverDocuments
         driver={docsDriver}
-        open={!!docsDriver}
-        onClose={() => setDocsDriver(null)}
+        open={!!docsDriverId}
+        onClose={() => setDocsDriverId(null)}
       />
     </div>
   );

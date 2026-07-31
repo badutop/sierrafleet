@@ -29,7 +29,7 @@ export default function Vehicles() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  const [docsVehicle, setDocsVehicle] = useState(null);
+  const [docsVehicleId, setDocsVehicleId] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: vehicles = [], isLoading } = useQuery({
@@ -40,6 +40,10 @@ export default function Vehicles() {
       return data;
     },
   });
+  // Dérivé de la liste vivante (pas un simple snapshot figé à l'ouverture) —
+  // sinon la dialogue Documents affiche encore "Aucun document" après un
+  // scan/upload réussi, tant qu'elle n'est pas rouverte.
+  const docsVehicle = vehicles.find(v => v.id === docsVehicleId) || null;
 
   const { data: drivers = [] } = useQuery({
     queryKey: ["drivers"],
@@ -192,7 +196,7 @@ export default function Vehicles() {
                             size="sm"
                             variant="outline"
                             className={cn("h-7 text-xs", (v.doc_carte_grise_url || v.doc_assurance_url || v.doc_visite_technique_url) ? "text-blue-600 border-blue-200 hover:bg-blue-50" : "")}
-                            onClick={() => setDocsVehicle(v)}
+                            onClick={() => setDocsVehicleId(v.id)}
                             title="Documents"
                           >
                             <FileText className="w-3 h-3" />
@@ -213,8 +217,8 @@ export default function Vehicles() {
 
       <VehicleDocuments
         vehicle={docsVehicle}
-        open={!!docsVehicle}
-        onClose={() => setDocsVehicle(null)}
+        open={!!docsVehicleId}
+        onClose={() => setDocsVehicleId(null)}
       />
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>

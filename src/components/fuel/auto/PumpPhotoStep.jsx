@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { uploadFile } from "@/lib/storage";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
+import { compressImageFile } from "@/lib/imageCompression";
 import { getFuelPricePerLitre } from "@/pages/SettingsPage";
 import { getRefuelCheckpoints } from "@/lib/refuelRules";
 import { logAudit } from "@/lib/auditLog";
@@ -76,11 +77,15 @@ export default function PumpPhotoStep({ driver, vehicle, bons, rotations = [], c
     setScanning(false);
   };
 
-  const handleFileInput = (e) => {
+  const handleFileInput = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPumpPhoto({ file, previewUrl: URL.createObjectURL(file) });
     e.target.value = "";
+    // Photo native du téléphone (galerie/appareil photo, pas le scan
+    // DocumentScanner déjà compressé à la capture) — peut arriver en
+    // plusieurs Mo, à recompresser avant upload.
+    const compressed = await compressImageFile(file);
+    setPumpPhoto({ file: compressed, previewUrl: URL.createObjectURL(compressed) });
   };
 
   const handleConfirm = async () => {

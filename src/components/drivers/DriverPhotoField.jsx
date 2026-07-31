@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Camera, Upload, User, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
+import { compressImageFile } from "@/lib/imageCompression";
 
 export default function DriverPhotoField({ value, onUploaded }) {
   const inputRef = useRef();
@@ -21,8 +22,9 @@ export default function DriverPhotoField({ value, onUploaded }) {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
-    const previewUrl = URL.createObjectURL(file);
-    const { file_url } = await uploadFile(file, "driver-photos");
+    const compressed = await compressImageFile(file);
+    const previewUrl = URL.createObjectURL(compressed);
+    const { file_url } = await uploadFile(compressed, "driver-photos");
     onUploaded(file_url);
     setPreview(previewUrl);
     setUploading(false);

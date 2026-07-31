@@ -10,6 +10,7 @@ import { Fuel, Camera, Upload, X, Coins, ArrowLeft, Save } from "lucide-react";
 import { getFuelPricePerLitre } from "@/pages/SettingsPage";
 import { uploadFile } from "@/lib/storage";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
+import { compressImageFile } from "@/lib/imageCompression";
 
 const emptyForm = {
   vehicle_id: "",
@@ -73,7 +74,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers
   const handlePhotoCapture = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await uploadReceiptPhoto(file);
+    await uploadReceiptPhoto(await compressImageFile(file));
   };
 
   const removePhoto = () => {

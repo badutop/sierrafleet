@@ -4,11 +4,19 @@ import { Camera, X, RotateCcw, RotateCw, Crop, Check } from "lucide-react";
 
 const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
 
+// Compression volontairement agressive — ces scans (permis, CNI, cartes
+// grises, bons, photo de la pompe...) sont avant tout du texte/tableaux, pas
+// de la photo fine : un plafond de résolution + une qualité JPEG réduite
+// suffisent largement à rester lisibles tout en divisant la taille du
+// fichier par 5-10 par rapport à une capture brute en haute qualité.
+const MAX_DIMENSION = 1600;
+const JPEG_QUALITY = 0.55;
+
 // Applique une rotation (degrés, quelconque) à l'image capturée et renvoie un
 // nouveau fichier — le canvas est redimensionné à la boîte englobante de
-// l'image tournée pour ne rien couper. Ne dépend que de Canvas/Image (DOM
-// standard), donc portable tel quel dans un futur wrapper mobile (Capacitor/
-// WebView) sans lib supplémentaire.
+// l'image tournée (plafonnée à MAX_DIMENSION) pour ne rien couper. Ne dépend
+// que de Canvas/Image (DOM standard), donc portable tel quel dans un futur
+// wrapper mobile (Capacitor/WebView) sans lib supplémentaire.
 function rotateCapturedImage(previewUrl, angleDeg) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -17,20 +25,22 @@ function rotateCapturedImage(previewUrl, angleDeg) {
       const sin = Math.abs(Math.sin(rad));
       const cos = Math.abs(Math.cos(rad));
       const w = img.width, h = img.height;
-      const newW = Math.round(w * cos + h * sin);
-      const newH = Math.round(w * sin + h * cos);
+      const boundW = w * cos + h * sin;
+      const boundH = w * sin + h * cos;
+      const scale = Math.min(1, MAX_DIMENSION / Math.max(boundW, boundH));
       const canvas = document.createElement("canvas");
-      canvas.width = newW;
-      canvas.height = newH;
+      canvas.width = Math.round(boundW * scale);
+      canvas.height = Math.round(boundH * scale);
       const ctx = canvas.getContext("2d");
-      ctx.translate(newW / 2, newH / 2);
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(scale, scale);
       ctx.rotate(rad);
       ctx.drawImage(img, -w / 2, -h / 2);
       canvas.toBlob((blob) => {
         if (!blob) { reject(new Error("Rotation impossible")); return; }
         const file = new File([blob], "document.jpg", { type: "image/jpeg" });
         resolve({ file, previewUrl: URL.createObjectURL(blob) });
-      }, "image/jpeg", 0.95);
+      }, "image/jpeg", JPEG_QUALITY);
     };
     img.onerror = () => reject(new Error("Image illisible"));
     img.src = previewUrl;
@@ -150,8 +160,9 @@ export default function DocumentScanner({
       sy = (vh - sh) / 2;
     }
 
-    canvas.width = Math.round(sw);
-    canvas.height = Math.round(sh);
+    const scale = Math.min(1, MAX_DIMENSION / Math.max(sw, sh));
+    canvas.width = Math.round(sw * scale);
+    canvas.height = Math.round(sh * scale);
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
@@ -160,7 +171,7 @@ export default function DocumentScanner({
       const previewUrl = URL.createObjectURL(blob);
       setCaptured({ file, previewUrl });
       stopCamera();
-    }, "image/jpeg", 0.95);
+    }, "image/jpeg", JPEG_QUALITY);
   };
 
   const retake = () => {
@@ -210,17 +221,18 @@ export default function DocumentScanner({
     const sy = Math.round(crop.y * nh);
     const sw = Math.round(crop.w * nw);
     const sh = Math.round(crop.h * nh);
-    canvas.width = sw;
-    canvas.height = sh;
+    const scale = Math.min(1, MAX_DIMENSION / Math.max(sw, sh));
+    canvas.width = Math.round(sw * scale);
+    canvas.height = Math.round(sh * scale);
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     canvas.toBlob((blob) => {
       if (!blob) { setCropMode(false); return; }
       const file = new File([blob], "document.jpg", { type: "image/jpeg" });
       const previewUrl = URL.createObjectURL(blob);
       setCaptured({ file, previewUrl });
       setCropMode(false);
-    }, "image/jpeg", 0.95);
+    }, "image/jpeg", JPEG_QUALITY);
   };
 
   const handleCropPointerDown = (mode) => (e) => {

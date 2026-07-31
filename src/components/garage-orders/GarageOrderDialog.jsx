@@ -12,6 +12,7 @@ import { uploadFile } from "@/lib/storage";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
+import { compressImageFile } from "@/lib/imageCompression";
 
 const STEPS = [
   { key: "en_attente",     label: "En attente",     icon: FileText },
@@ -103,7 +104,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
   const handleInvoiceFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    await uploadInvoiceFile(file);
+    await uploadInvoiceFile(await compressImageFile(file));
   };
 
   const handleConfirmInvoice = () => {
