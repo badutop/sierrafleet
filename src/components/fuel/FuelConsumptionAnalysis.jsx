@@ -28,7 +28,6 @@ export default function FuelConsumptionAnalysis({ consumptionData, formatCFA }) 
                   </div>
                   <div>
                     <CardTitle className="text-sm">{d.vehicle.immatriculation}</CardTitle>
-                    <p className="text-xs text-muted-foreground">{d.vehicle.marque} {d.vehicle.modele}</p>
                   </div>
                 </div>
                 {Math.abs(d.ecartPct) > 15 && (

@@ -54,7 +54,6 @@ export default function QuickTripDialog({ open, onClose }) {
     vehicles.map(v => ({
       id: v.id,
       label: v.immatriculation,
-      sublabel: [v.code_camion, v.marque, v.modele].filter(Boolean).join(" · "),
       km_actuel: v.km_actuel,
     })), [vehicles]);
 

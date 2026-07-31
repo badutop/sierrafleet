@@ -139,7 +139,7 @@ export default function Journal() {
             <SelectItem value="all">— Vue globale (tous véhicules) —</SelectItem>
             {vehicles.map(v => (
               <SelectItem key={v.id} value={v.id}>
-                {v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation}{v.marque ? ` — ${v.marque}` : ""}
+                {v.immatriculation}
               </SelectItem>
             ))}
           </SelectContent>

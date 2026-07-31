@@ -138,10 +138,9 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
                      <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Sélectionner camion" /></SelectTrigger>
                      <SelectContent>
                        <SelectItem value="none">-- Sélectionner --</SelectItem>
-                       {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation}{v.marque ? ` · ${v.marque}` : ""}</SelectItem>)}
+                       {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}</SelectItem>)}
                      </SelectContent>
                    </Select>
-                   {row.vehicle_id && (() => { const v = vehicles.find(x => x.id === row.vehicle_id); return v ? <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">{v.immatriculation} · {v.marque} {v.modele}</p> : null; })()}
                   </TableCell>
                   {!isSingleClient && (
                     <TableCell>

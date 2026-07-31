@@ -174,7 +174,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
               <SelectContent>
                 {vehicles.map(v => (
                   <SelectItem key={v.id} value={v.id}>
-                    {v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation}{v.marque ? ` — ${v.marque} ${v.modele}` : ""}
+                    {v.immatriculation}
                   </SelectItem>
                 ))}
               </SelectContent>

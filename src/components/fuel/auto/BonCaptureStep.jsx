@@ -78,7 +78,7 @@ export default function BonCaptureStep({ drivers, vehicles, rotations, onDone, p
               <SelectContent>
                 {vehicles.map(v => (
                   <SelectItem key={v.id} value={v.id}>
-                    {v.immatriculation} {v.code_camion ? `(${v.code_camion})` : ""}
+                    {v.immatriculation}
                   </SelectItem>
                 ))}
               </SelectContent>

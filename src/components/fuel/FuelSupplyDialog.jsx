@@ -104,7 +104,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
                 <SelectContent>
                   {vehicles.map(v => (
                     <SelectItem key={v.id} value={v.id} className="py-3 text-sm">
-                      {v.immatriculation} — {v.marque} {v.modele}
+                      {v.immatriculation}
                     </SelectItem>
                   ))}
                 </SelectContent>

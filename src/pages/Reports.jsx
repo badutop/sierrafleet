@@ -126,7 +126,6 @@ export default function Reports() {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="text-xs">Véhicule</TableHead>
-                  <TableHead className="text-xs">Marque</TableHead>
                   <TableHead className="text-xs text-right">Missions</TableHead>
                   <TableHead className="text-xs text-right">Km</TableHead>
                   <TableHead className="text-xs text-right">Carburant</TableHead>
@@ -139,7 +138,6 @@ export default function Reports() {
                 {vehicleSummary.map(v => (
                   <TableRow key={v.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium">{v.immatriculation}</TableCell>
-                    <TableCell className="text-xs">{v.marque} {v.modele}</TableCell>
                     <TableCell className="text-xs text-right">{v.missions}</TableCell>
                     <TableCell className="text-xs text-right">{v.totalKm.toLocaleString("fr-FR")}</TableCell>
                     <TableCell className="text-xs text-right">{formatCFA(v.fuelCost)}</TableCell>

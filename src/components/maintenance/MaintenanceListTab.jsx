@@ -125,7 +125,6 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
                 <TableRow key={m.id} className={cn("hover:bg-muted/30", m.categorie === "corrective" && m.gravite === "critique" && "bg-destructive/5")}>
                   <TableCell className="text-xs">{m.date_entretien}</TableCell>
                   <TableCell className="text-xs font-semibold font-mono">
-                    {vehicle?.code_camion && <span className="text-[10px] bg-primary/10 text-primary font-bold px-1 rounded mr-1">{vehicle.code_camion}</span>}
                     {vehicle?.immatriculation || "—"}
                   </TableCell>
                   <TableCell className="text-xs">

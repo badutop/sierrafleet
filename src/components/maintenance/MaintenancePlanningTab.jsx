@@ -100,7 +100,7 @@ export default function MaintenancePlanningTab({ maintenances, vehicles, rotatio
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-sm">
-                        {v?.code_camion ? `[${v.code_camion}] ` : ""}{v?.immatriculation || "Véhicule inconnu"}
+                        {v?.immatriculation || "Véhicule inconnu"}
                       </span>
                       {alert.type === "date" && <UrgencyBadge days={alert.days} />}
                       {alert.type === "km" && (
@@ -144,7 +144,7 @@ export default function MaintenancePlanningTab({ maintenances, vehicles, rotatio
                   <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
                     <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                     <span className="text-sm font-bold">
-                      {vehicle?.code_camion ? `[${vehicle.code_camion}] ` : ""}{vehicle?.immatriculation || "—"}
+                      {vehicle?.immatriculation || "—"}
                     </span>
                     <div className="ml-auto">
                       {days !== null && <UrgencyBadge days={days} />}

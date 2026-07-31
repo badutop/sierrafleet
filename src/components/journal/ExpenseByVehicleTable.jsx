@@ -80,10 +80,7 @@ export default function ExpenseByVehicleTable({ expenses, vehicles, vMap, isLoad
                   </TableCell>
                   <TableCell className="text-xs">
                     {vehicle ? (
-                      <div className="flex items-center gap-1.5">
-                        {vehicle.code_camion && <span className="text-[10px] bg-primary/10 text-primary font-bold px-1.5 py-0.5 rounded">{vehicle.code_camion}</span>}
-                        <span className="font-semibold font-mono">{vehicle.immatriculation}</span>
-                      </div>
+                      <span className="font-semibold font-mono">{vehicle.immatriculation}</span>
                     ) : <span className="text-muted-foreground italic text-[11px]">Véhicule inconnu</span>}
                   </TableCell>
                   {TYPES.map(t => (

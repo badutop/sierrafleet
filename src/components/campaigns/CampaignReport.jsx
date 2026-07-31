@@ -198,8 +198,6 @@ export default function CampaignReport({ campaign, client, rotations, declaratio
                   <thead>
                     <tr className="bg-primary/10">
                       <th className="text-left p-2.5 font-semibold text-foreground">Immatriculation</th>
-                      <th className="text-left p-2.5 font-semibold text-foreground">Code</th>
-                      <th className="text-left p-2.5 font-semibold text-foreground">Marque / Modèle</th>
                       <th className="text-right p-2.5 font-semibold text-foreground">Rotations</th>
                       <th className="text-right p-2.5 font-semibold text-foreground">Tonnage (T)</th>
                     </tr>
@@ -208,8 +206,6 @@ export default function CampaignReport({ campaign, client, rotations, declaratio
                     {vehiclesUsed.map(({ vehicle: v, rotations: r, poids }, i) => (
                       <tr key={i} className={cn(i % 2 === 0 ? "bg-card" : "bg-muted/20")}>
                         <td className="p-2.5 font-mono font-bold">{v.immatriculation}</td>
-                        <td className="p-2.5">{v.code_camion || "—"}</td>
-                        <td className="p-2.5">{v.marque} {v.modele}</td>
                         <td className="p-2.5 text-right font-semibold">{r}</td>
                         <td className="p-2.5 text-right font-semibold">{fmt(poids)}</td>
                       </tr>

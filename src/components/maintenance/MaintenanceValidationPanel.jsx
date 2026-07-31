@@ -50,7 +50,6 @@ export default function MaintenanceValidationPanel({ maintenance, vMap, onStatus
       <div className="text-xs space-y-0.5">
         {vMap && vMap[maintenance.vehicle_id] && (
           <div className="font-semibold text-foreground">
-            <span className="text-[10px] bg-primary/10 text-primary font-bold px-1 rounded mr-1">{vMap[maintenance.vehicle_id].code_camion}</span>
             {vMap[maintenance.vehicle_id].immatriculation}
           </div>
         )}

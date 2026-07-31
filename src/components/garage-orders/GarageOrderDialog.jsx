@@ -179,7 +179,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
             <div>
               <Label className="text-xs">Véhicule</Label>
               <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-muted/50 text-sm text-muted-foreground">
-                {vehicle ? `${vehicle.code_camion ? `[${vehicle.code_camion}] ` : ""}${vehicle.immatriculation}` : "—"}
+                {vehicle ? vehicle.immatriculation : "—"}
               </div>
             </div>
           </div>
@@ -196,7 +196,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
             <div className="col-span-2 bg-muted/50 rounded-2xl px-3 py-3 text-xs">
               <span className="text-muted-foreground">Véhicule</span>
               <p className="font-semibold text-sm mt-0.5">
-                {vehicle ? `${vehicle.code_camion ? `[${vehicle.code_camion}] ` : ""}${vehicle.immatriculation}` : "—"}
+                {vehicle ? vehicle.immatriculation : "—"}
               </p>
             </div>
           </div>

@@ -41,11 +41,7 @@ export default function VehicleExpenseDetail({ vehicle, expenses, filterYear, on
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <div>
           <div className="flex items-center gap-2">
-            {vehicle?.code_camion && (
-              <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded">{vehicle.code_camion}</span>
-            )}
             <span className="font-bold text-base font-mono">{vehicle?.immatriculation || "Véhicule inconnu"}</span>
-            {vehicle?.marque && <span className="text-sm text-muted-foreground">{vehicle.marque} {vehicle.modele}</span>}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">Dépenses par poste — Année {filterYear}</p>
         </div>

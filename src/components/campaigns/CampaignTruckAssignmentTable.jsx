@@ -43,6 +43,16 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
     },
   });
 
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const driverById = useMemo(() => Object.fromEntries(drivers.map(d => [d.id, d])), [drivers]);
+
   // Pour résoudre le nom de la campagne d'origine d'un camion redéployé.
   const { data: allCampaigns = [] } = useQuery({
     queryKey: ["campaigns"],
@@ -143,7 +153,7 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
               ) : (
                 availableVehicles.map(v => (
                   <SelectItem key={v.id} value={v.id}>
-                    {v.code_camion ? `[${v.code_camion}] ` : ""}{v.immatriculation}{v.marque ? ` — ${v.marque} ${v.modele || ""}` : ""}
+                    {v.immatriculation}
                   </SelectItem>
                 ))
               )}
@@ -170,9 +180,8 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
           <table className="w-full text-sm">
             <thead className="bg-muted/50 border-b">
               <tr>
-                <th className="px-4 py-2.5 text-left font-semibold">Code</th>
                 <th className="px-4 py-2.5 text-left font-semibold">Immatriculation</th>
-                <th className="px-4 py-2.5 text-left font-semibold">Marque & Modèle</th>
+                <th className="px-4 py-2.5 text-left font-semibold">Chauffeur</th>
                 <th className="px-4 py-2.5 text-left font-semibold">Statut</th>
                 <th className="px-4 py-2.5 text-left font-semibold">Redéploiement</th>
                 {!readOnly && <th className="px-4 py-2.5 text-center font-semibold">Actions</th>}
@@ -181,15 +190,11 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
             <tbody>
               {assignedVehicles.map(v => {
                 const st = statutVehicule[v.statut] || statutVehicule.disponible;
+                const driver = driverById[v.driver_id];
                 return (
                   <tr key={v.id} className="border-b hover:bg-muted/30">
-                    <td className="px-4 py-2.5">
-                      {v.code_camion && (
-                        <span className="text-[10px] bg-primary/10 text-primary font-bold px-1.5 py-0.5 rounded">{v.code_camion}</span>
-                      )}
-                    </td>
                     <td className="px-4 py-2.5 font-mono font-semibold">{v.immatriculation}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{v.marque} {v.modele}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{driver ? `${driver.prenom} ${driver.nom}` : "—"}</td>
                     <td className="px-4 py-2.5">
                       <Badge className={cn("text-[10px]", st.color)}>{st.label}</Badge>
                     </td>
@@ -223,15 +228,12 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
                   </tr>
                 );
               })}
-              {reassignedAwayVehicles.map(v => (
+              {reassignedAwayVehicles.map(v => {
+                const driver = driverById[v.driver_id];
+                return (
                 <tr key={v.id} className="border-b bg-muted/20 opacity-70">
-                  <td className="px-4 py-2.5">
-                    {v.code_camion && (
-                      <span className="text-[10px] bg-primary/10 text-primary font-bold px-1.5 py-0.5 rounded">{v.code_camion}</span>
-                    )}
-                  </td>
                   <td className="px-4 py-2.5 font-mono font-semibold">{v.immatriculation}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{v.marque} {v.modele}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{driver ? `${driver.prenom} ${driver.nom}` : "—"}</td>
                   <td className="px-4 py-2.5">
                     <Badge className="text-[10px] bg-slate-500/10 text-slate-600">Réaffecté</Badge>
                   </td>
@@ -245,7 +247,8 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
                   </td>
                   {!readOnly && <td className="px-4 py-2.5 text-center text-muted-foreground text-xs">—</td>}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -83,7 +83,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                       <React.Fragment key={vid}>
                         <TableRow className="bg-muted/40 hover:bg-muted/40">
                           <TableCell colSpan={6} className="py-1.5 text-xs font-bold text-foreground">
-                            {vehicle?.code_camion ? `[${vehicle.code_camion}] ` : ""}{vehicle?.immatriculation || "Sans camion"}
+                            {vehicle?.immatriculation || "Sans camion"}
                             <span className="font-normal text-muted-foreground"> — {vRots.length} rotation{vRots.length > 1 ? "s" : ""} — {vPoids.toFixed(2)} T</span>
                           </TableCell>
                         </TableRow>

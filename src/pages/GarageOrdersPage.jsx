@@ -297,7 +297,7 @@ export default function GarageOrdersPage() {
                       <p className="font-semibold text-sm">{o.designation}</p>
                       <p className="text-xs text-muted-foreground">Quantité : {o.quantite}</p>
                       <p className="text-xs text-muted-foreground">
-                        {vehicle ? `${vehicle.code_camion ? `[${vehicle.code_camion}] ` : ""}${vehicle.immatriculation}` : "Véhicule non précisé"}
+                        {vehicle ? vehicle.immatriculation : "Véhicule non précisé"}
                       </p>
                       <Button size="sm" className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground text-xs gap-1.5">
                         <Send className="w-3.5 h-3.5" /> Lancer la commande
@@ -332,7 +332,7 @@ export default function GarageOrdersPage() {
                         </div>
                         <p className="font-semibold text-sm">{o.designation}</p>
                         <p className="text-xs text-muted-foreground">
-                          {vehicle ? `${vehicle.code_camion ? `[${vehicle.code_camion}] ` : ""}${vehicle.immatriculation}` : "Véhicule non précisé"}
+                          {vehicle ? vehicle.immatriculation : "Véhicule non précisé"}
                         </p>
                         <Badge className={cn("text-[10px]", enRetard ? "bg-destructive/15 text-destructive border-destructive/30" : "bg-amber-500/15 text-amber-700 border-amber-400/30")}>
                           Échéance : {o.date_echeance ? new Date(o.date_echeance).toLocaleDateString("fr-FR") : "—"}
@@ -380,7 +380,6 @@ export default function GarageOrdersPage() {
                     <TableRow key={o.id} className="hover:bg-muted/30">
                       <TableCell className="text-xs">{(o.created_date || "").split("T")[0]}</TableCell>
                       <TableCell className="text-xs font-semibold font-mono">
-                        {vehicle?.code_camion && <span className="text-[10px] bg-primary/10 text-primary font-bold px-1 rounded mr-1">{vehicle.code_camion}</span>}
                         {vehicle?.immatriculation || "—"}
                       </TableCell>
                       <TableCell className="text-xs">{o.designation}</TableCell>

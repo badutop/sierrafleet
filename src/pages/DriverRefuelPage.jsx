@@ -130,7 +130,6 @@ export default function DriverRefuelPage() {
                     <div className="flex items-center gap-2">
                       <Truck className="w-4 h-4 text-secondary" />
                       <span className="font-bold font-mono">{vehicle.immatriculation}</span>
-                      {vehicle.code_camion && <span className="text-xs text-muted-foreground">— {vehicle.code_camion}</span>}
                     </div>
                   ) : (
                     <p className="text-xs text-amber-600">Aucun véhicule assigné à ce chauffeur</p>
@@ -161,9 +160,6 @@ export default function DriverRefuelPage() {
                   <div>
                     <p className="text-xs text-muted-foreground">Véhicule assigné</p>
                     <p className="font-bold text-base font-mono">{vehicle.immatriculation}</p>
-                    {vehicle.code_camion && (
-                      <p className="text-xs text-muted-foreground">{vehicle.code_camion} — {vehicle.marque} {vehicle.modele}</p>
-                    )}
                   </div>
                 </div>
               ) : (

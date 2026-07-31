@@ -46,6 +46,16 @@ export default function TruckAssignmentBoard({ campaigns }) {
     },
   });
 
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const driverById = useMemo(() => Object.fromEntries(drivers.map(d => [d.id, d])), [drivers]);
+
   // Liste complète (non filtrée par la recherche/le statut de la page
   // Campagnes) — nécessaire pour retrouver le nom d'une campagne d'origine de
   // redéploiement même si elle n'est plus affichée comme colonne active.
@@ -194,7 +204,9 @@ export default function TruckAssignmentBoard({ campaigns }) {
                                     </Badge>
                                   )}
                                 </p>
-                                <p className="text-muted-foreground truncate">{vehicle.code_camion && `${vehicle.code_camion} · `}{vehicle.marque} {vehicle.modele}</p>
+                                <p className="text-muted-foreground truncate">
+                                  {driverById[vehicle.driver_id] ? `${driverById[vehicle.driver_id].prenom} ${driverById[vehicle.driver_id].nom}` : "Aucun chauffeur"}
+                                </p>
                               </div>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>

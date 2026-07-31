@@ -55,11 +55,7 @@ export default function MaintenanceVehicleTab({ vehicles, maintenances, rotation
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4 text-muted-foreground" />
                 <span className="font-bold text-sm font-mono">{vehicle.immatriculation}</span>
-                {vehicle.code_camion && (
-                  <span className="text-[10px] bg-primary/10 text-primary font-bold px-1.5 py-0.5 rounded">{vehicle.code_camion}</span>
-                )}
               </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{vehicle.marque} {vehicle.modele}</p>
             </div>
             {enCours && (
               <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-500/15 text-amber-700">En maintenance</span>
