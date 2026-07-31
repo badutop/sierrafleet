@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { uploadFile } from "@/lib/storage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, User, Users, Pencil, Trash2, Upload, ExternalLink, Loader2, X, Camera, Search, IdCard, FileStack, PhoneCall, ArrowLeft, Save } from "lucide-react";
+import { Plus, User, Users, Pencil, Trash2, FileText, Search, IdCard, PhoneCall, ArrowLeft, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import DocumentScanner from "@/components/drivers/DocumentScanner";
 import DriverPhotoField from "@/components/drivers/DriverPhotoField";
+import DriverDocuments from "@/components/drivers/DriverDocuments";
 import { confirm } from "@/lib/confirm";
 import { logAudit } from "@/lib/auditLog";
 
@@ -25,96 +24,13 @@ const statusColors = { actif: "bg-emerald-500/10 text-emerald-600", inactif: "bg
 const emptyForm = {
   prenom: "", nom: "", telephone: "", numero_permis: "", categorie_permis: "",
   date_expiration_permis: "", date_embauche: "", contact_urgence_nom: "",
-  contact_urgence_telephone: "", statut: "actif",
-  doc_permis_url: "", doc_cni_url: "", photo_url: "",
+  contact_urgence_telephone: "", statut: "actif", photo_url: "",
 };
-
-function DocUploadField({ label, value, fieldKey, onUploaded }) {
-  const inputRef = useRef();
-  const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState(null);
-  const [scannerOpen, setScannerOpen] = useState(false);
-
-  useEffect(() => {
-    if (value && !preview) setPreview(value);
-    if (!value) setPreview(null);
-  }, [value]);
-
-  // Importation depuis fichier (galerie / PDF)
-  const handleFile = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
-    const { file_url } = await uploadFile(file, "driver-docs");
-    onUploaded(fieldKey, file_url);
-    if (previewUrl) setPreview(previewUrl);
-    setUploading(false);
-    toast.success(`${label} uploadé`);
-  };
-
-  // Après capture via le scanner avec gabarit
-  const handleScanned = async (file, previewUrl) => {
-    setUploading(true);
-    setPreview(previewUrl);
-    const { file_url } = await uploadFile(file, "driver-docs");
-    onUploaded(fieldKey, file_url);
-    setUploading(false);
-    toast.success(`${label} uploadé`);
-  };
-
-  return (
-    <div className="col-span-2">
-      {scannerOpen && (
-        <DocumentScanner onCapture={handleScanned} onClose={() => setScannerOpen(false)} />
-      )}
-      <Label className="text-xs">{label}</Label>
-      <div className="flex gap-2 mt-1">
-        <Button
-          type="button" size="sm" variant="outline"
-          className="flex-1 h-8 text-xs justify-start"
-          onClick={() => setScannerOpen(true)}
-          disabled={uploading}
-        >
-          <Camera className="w-3 h-3 mr-1.5" />
-          {uploading ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Upload...</> : "Scanner avec caméra"}
-        </Button>
-        <Button
-          type="button" size="sm" variant="outline"
-          className="h-8 text-xs px-2"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-        >
-          <Upload className="w-3 h-3" />
-        </Button>
-        {value && (
-          <Button type="button" size="sm" variant="outline" className="h-8 px-2" asChild>
-            <a href={value} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-3.5 h-3.5" /></a>
-          </Button>
-        )}
-        <input ref={inputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFile} />
-      </div>
-
-      {preview && (
-        <div className="mt-2 relative inline-block">
-          <img src={preview} alt="Aperçu document" className="max-h-36 rounded-lg border border-border object-contain bg-muted shadow-sm" style={{ aspectRatio: "1.585/1", width: "100%" }} />
-          <button
-            type="button"
-            onClick={() => { setPreview(null); onUploaded(fieldKey, ""); }}
-            className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center shadow"
-          >
-            <X className="w-3 h-3" />
-          </button>
-        </div>
-      )}
-      {!preview && value && <p className="text-[10px] text-emerald-600 mt-0.5">✓ Document enregistré</p>}
-    </div>
-  );
-}
 
 export default function Drivers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
+  const [docsDriver, setDocsDriver] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
@@ -171,10 +87,6 @@ export default function Drivers() {
 
   const handleDelete = async (d) => {
     if (await confirm(`Supprimer le chauffeur ${d.prenom} ${d.nom} ?`)) deleteMutation.mutate(d);
-  };
-
-  const handleDocUploaded = (fieldKey, url) => {
-    setForm(f => ({ ...f, [fieldKey]: url }));
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -252,6 +164,15 @@ export default function Drivers() {
                         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(d)}>
                           <Pencil className="w-3 h-3" />
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={cn("h-7 text-xs", (d.doc_permis_url || d.doc_cni_url) ? "text-blue-600 border-blue-200 hover:bg-blue-50" : "")}
+                          onClick={() => setDocsDriver(d)}
+                          title="Documents"
+                        >
+                          <FileText className="w-3 h-3" />
+                        </Button>
                         <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(d)} disabled={deleteMutation.isPending}>
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -297,15 +218,6 @@ export default function Drivers() {
               </div>
             </div>
 
-            {/* Documents d'identité */}
-            <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><FileStack className="w-3.5 h-3.5" />Documents d'identité</p>
-              <div className="grid grid-cols-1 gap-3">
-                <DocUploadField label="Scan Permis de conduire" value={form.doc_permis_url} fieldKey="doc_permis_url" onUploaded={handleDocUploaded} />
-                <DocUploadField label="Scan CNI (Carte Nationale d'Identité)" value={form.doc_cni_url} fieldKey="doc_cni_url" onUploaded={handleDocUploaded} />
-              </div>
-            </div>
-
             {/* Contact urgence */}
             <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
               <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5"><PhoneCall className="w-3.5 h-3.5" />Contact d'urgence</p>
@@ -341,6 +253,12 @@ export default function Drivers() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <DriverDocuments
+        driver={docsDriver}
+        open={!!docsDriver}
+        onClose={() => setDocsDriver(null)}
+      />
     </div>
   );
 }

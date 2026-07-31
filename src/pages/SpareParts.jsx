@@ -141,7 +141,6 @@ export default function SpareParts() {
                   <TableHead>État</TableHead>
                   <TableHead>Stock</TableHead>
                   <TableHead>Prix unitaire</TableHead>
-                  <TableHead>Fournisseur</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -168,7 +167,6 @@ export default function SpareParts() {
                         {isLow && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 inline ml-1" />}
                       </TableCell>
                       <TableCell className="text-xs">{p.prix_unitaire > 0 ? `${p.prix_unitaire?.toLocaleString("fr-FR")} FCFA` : "-"}</TableCell>
-                      <TableCell className="text-xs">{suppliers.find(s => s.id === p.supplier_id)?.nom || "-"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(p)}>
