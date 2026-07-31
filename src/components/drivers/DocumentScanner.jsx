@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, X, RotateCcw, RotateCw, Crop, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
 
@@ -12,6 +11,9 @@ const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis
 // fichier par 5-10 par rapport à une capture brute en haute qualité.
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.55;
+// Espace réservé autour de l'image en mode recadrage pour que les poignées
+// (en saillie de ~6px) restent toujours visibles, quel que soit l'appareil.
+const HANDLE_MARGIN = 20;
 
 // Applique une rotation (degrés, quelconque) à l'image capturée et renvoie un
 // nouveau fichier — le canvas est redimensionné à la boîte englobante de
@@ -110,6 +112,14 @@ export default function DocumentScanner({
   const cropAreaRef = useRef(null);
   const cropImgRef = useRef(null);
   const dragRef = useRef(null);
+  const viewfinderRef = useRef(null);
+  // Taille max de l'image en recadrage, mesurée sur le conteneur réel (pas
+  // devinée en vh) — une valeur en vh ne tient pas compte du header/footer
+  // ni d'une orientation paysage du téléphone (viewport bas), qui peut alors
+  // remplir toute la hauteur disponible et couper les poignées haut/bas en
+  // saillie. On réserve HANDLE_MARGIN de chaque côté pour qu'elles restent
+  // toujours visibles, quels que soient l'appareil et son orientation.
+  const [cropMaxSize, setCropMaxSize] = useState(null);
 
   useEffect(() => {
     startCamera();
@@ -184,6 +194,30 @@ export default function DocumentScanner({
     setReady(false);
     startCamera();
   };
+
+  // Mesure la taille réellement disponible dans le viseur (pas une valeur en
+  // vh, qui ignore le header/footer et peut remplir tout l'écran en
+  // orientation paysage sur téléphone) pour garantir HANDLE_MARGIN de marge
+  // tout autour de l'image en mode recadrage.
+  useEffect(() => {
+    if (!cropMode) return;
+    const measure = () => {
+      const el = viewfinderRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      setCropMaxSize({
+        w: Math.max(100, rect.width - HANDLE_MARGIN * 2),
+        h: Math.max(100, rect.height - HANDLE_MARGIN * 2),
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
+    };
+  }, [cropMode]);
 
   // Le recadrage se fait toujours sur une image déjà "à plat" (rotation
   // figée) — s'il reste une rotation en attente en entrant en mode
@@ -284,7 +318,7 @@ export default function DocumentScanner({
       </div>
 
       {/* Viewfinder */}
-      <div className={cn("flex-1 relative flex items-center justify-center p-4", cropMode ? "overflow-visible" : "overflow-hidden")}>
+      <div ref={viewfinderRef} className="flex-1 relative flex items-center justify-center overflow-hidden p-4">
         {!captured ? (
           <div className="flex flex-col items-center gap-3 w-full">
             <div
@@ -326,8 +360,12 @@ export default function DocumentScanner({
               ref={cropImgRef}
               src={captured.previewUrl}
               alt="Document capturé"
-              className="max-h-[calc(60vh-2rem)] max-w-full object-contain rounded block"
-              style={{ background: "#000" }}
+              className="object-contain rounded block"
+              style={{
+                background: "#000",
+                maxWidth: cropMaxSize ? `${cropMaxSize.w}px` : "100%",
+                maxHeight: cropMaxSize ? `${cropMaxSize.h}px` : "60vh",
+              }}
             />
             <div
               className="absolute border-2 border-secondary bg-secondary/10 cursor-move touch-none"
@@ -337,26 +375,21 @@ export default function DocumentScanner({
               {[["top-0 left-0", "border-t-2 border-l-2"], ["top-0 right-0", "border-t-2 border-r-2"], ["bottom-0 left-0", "border-b-2 border-l-2"], ["bottom-0 right-0", "border-b-2 border-r-2"]].map(([pos, cls], i) => (
                 <div key={i} className={`absolute ${pos} w-5 h-5 border-white ${cls} pointer-events-none`} />
               ))}
-              {/* Une poignée par côté — chacune ne déplace que son propre bord.
-                  Placées à ras du bord (pas en saillie vers l'extérieur) :
-                  en saillie, elles se faisaient couper par l'overflow-hidden
-                  du cadre de visée dès que l'image (portrait notamment)
-                  remplissait toute la hauteur disponible, sans marge pour
-                  déborder — surtout visible sur les poignées haut/bas. */}
+              {/* Une poignée par côté — chacune ne déplace que son propre bord */}
               <div
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full bg-secondary border-2 border-white shadow cursor-ns-resize touch-none"
+                className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full bg-secondary border-2 border-white shadow cursor-ns-resize touch-none"
                 onPointerDown={handleCropPointerDown("top")}
               />
               <div
-                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full bg-secondary border-2 border-white shadow cursor-ns-resize touch-none"
+                className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full bg-secondary border-2 border-white shadow cursor-ns-resize touch-none"
                 onPointerDown={handleCropPointerDown("bottom")}
               />
               <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-secondary border-2 border-white shadow cursor-ew-resize touch-none"
+                className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-secondary border-2 border-white shadow cursor-ew-resize touch-none"
                 onPointerDown={handleCropPointerDown("left")}
               />
               <div
-                className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-secondary border-2 border-white shadow cursor-ew-resize touch-none"
+                className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-secondary border-2 border-white shadow cursor-ew-resize touch-none"
                 onPointerDown={handleCropPointerDown("right")}
               />
             </div>
