@@ -42,6 +42,14 @@ export default function MaintenancePage() {
       return data;
     },
   });
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const maintenances = allMaintenances;
 
@@ -97,6 +105,7 @@ export default function MaintenancePage() {
   });
 
   const vMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
+  const driverMap = Object.fromEntries(drivers.map(d => [d.id, d]));
 
   const handleEdit = (entry) => { setEditEntry(entry); setDialogOpen(true); };
   const handleNew = () => { setEditEntry(null); setDialogOpen(true); };
@@ -151,6 +160,7 @@ export default function MaintenancePage() {
             maintenances={maintenances}
             isLoading={isLoading}
             vMap={vMap}
+            driverMap={driverMap}
             onEdit={handleEdit}
             onDelete={(id) => deleteMutation.mutate(maintenances.find(m => m.id === id))}
             onStatusChange={handleStatusChange}
@@ -163,6 +173,7 @@ export default function MaintenancePage() {
             maintenances={maintenances}
             vehicles={vehicles}
             rotations={rotations}
+            driverMap={driverMap}
             onStatusChange={handleStatusChange}
             isPending={statusMutation.isPending}
           />
@@ -173,6 +184,7 @@ export default function MaintenancePage() {
             vehicles={vehicles}
             maintenances={maintenances}
             rotations={rotations}
+            driverMap={driverMap}
           />
         </TabsContent>
       </Tabs>
@@ -182,6 +194,7 @@ export default function MaintenancePage() {
         open={dialogOpen}
         onOpenChange={(v) => { setDialogOpen(v); if (!v) setEditEntry(null); }}
         vehicles={vehicles}
+        driverMap={driverMap}
         entry={editEntry}
         onSave={(data) => saveMutation.mutate(data)}
         isPending={saveMutation.isPending}

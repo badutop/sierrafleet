@@ -42,7 +42,7 @@ const emptyLaunchForm = {
   conditions_paiement: "", delai_paiement_jours: 30, prix_unitaire: "", notes: "",
 };
 
-export default function GarageOrderDialog({ open, onOpenChange, order, vMap, suppliers, onLaunch, onSaveDraft, onConfirm, onReceive, onInvoiceReceived, onPaid, onCancel, isPending }) {
+export default function GarageOrderDialog({ open, onOpenChange, order, vMap, driverMap = {}, suppliers, onLaunch, onSaveDraft, onConfirm, onReceive, onInvoiceReceived, onPaid, onCancel, isPending }) {
   const { user: currentUser } = useAuth();
   // La réception de facture et le paiement relèvent de Finances (Resp.
   // Exploitation suit la commande jusqu'à la réception de la pièce, pas
@@ -178,8 +178,8 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
             </div>
             <div>
               <Label className="text-xs">Véhicule</Label>
-              <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-muted/50 text-sm text-muted-foreground">
-                {vehicle ? vehicle.immatriculation : "—"}
+              <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-muted/50 text-sm text-muted-foreground truncate">
+                {vehicle ? `${vehicle.immatriculation}${driverMap[vehicle.driver_id] ? ` — ${driverMap[vehicle.driver_id].prenom} ${driverMap[vehicle.driver_id].nom}` : ""}` : "—"}
               </div>
             </div>
           </div>
@@ -197,6 +197,9 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, sup
               <span className="text-muted-foreground">Véhicule</span>
               <p className="font-semibold text-sm mt-0.5">
                 {vehicle ? vehicle.immatriculation : "—"}
+                {vehicle && driverMap[vehicle.driver_id] && (
+                  <span className="font-normal text-muted-foreground"> — {driverMap[vehicle.driver_id].prenom} {driverMap[vehicle.driver_id].nom}</span>
+                )}
               </p>
             </div>
           </div>

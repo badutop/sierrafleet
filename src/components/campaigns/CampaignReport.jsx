@@ -65,6 +65,8 @@ export default function CampaignReport({ campaign, client, rotations, declaratio
   const progressTonnage = tonnagePrevu > 0 ? Math.min(100, Math.round(tonnageRealise / tonnagePrevu * 100)) : 0;
   const progressRot = campaign.nombre_rotations_prevues > 0 ? Math.min(100, Math.round((campaign.nombre_rotations_realisees || 0) / campaign.nombre_rotations_prevues * 100)) : 0;
 
+  const driverById = Object.fromEntries((drivers || []).map(d => [d.id, d]));
+
   // Vehicles used
   const vehicleIds = [...new Set(rotations.map(r => r.vehicle_id))];
   const vehiclesUsed = vehicleIds.map(vid => {
@@ -198,6 +200,7 @@ export default function CampaignReport({ campaign, client, rotations, declaratio
                   <thead>
                     <tr className="bg-primary/10">
                       <th className="text-left p-2.5 font-semibold text-foreground">Immatriculation</th>
+                      <th className="text-left p-2.5 font-semibold text-foreground">Chauffeur</th>
                       <th className="text-right p-2.5 font-semibold text-foreground">Rotations</th>
                       <th className="text-right p-2.5 font-semibold text-foreground">Tonnage (T)</th>
                     </tr>
@@ -206,6 +209,7 @@ export default function CampaignReport({ campaign, client, rotations, declaratio
                     {vehiclesUsed.map(({ vehicle: v, rotations: r, poids }, i) => (
                       <tr key={i} className={cn(i % 2 === 0 ? "bg-card" : "bg-muted/20")}>
                         <td className="p-2.5 font-mono font-bold">{v.immatriculation}</td>
+                        <td className="p-2.5">{driverById[v.driver_id] ? `${driverById[v.driver_id].prenom} ${driverById[v.driver_id].nom}` : "—"}</td>
                         <td className="p-2.5 text-right font-semibold">{r}</td>
                         <td className="p-2.5 text-right font-semibold">{fmt(poids)}</td>
                       </tr>

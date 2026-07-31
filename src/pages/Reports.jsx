@@ -48,6 +48,15 @@ export default function Reports() {
       return data;
     },
   });
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const driverMap = useMemo(() => Object.fromEntries(drivers.map(d => [d.id, d])), [drivers]);
 
   const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
 
@@ -126,6 +135,7 @@ export default function Reports() {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="text-xs">Véhicule</TableHead>
+                  <TableHead className="text-xs">Chauffeur</TableHead>
                   <TableHead className="text-xs text-right">Missions</TableHead>
                   <TableHead className="text-xs text-right">Km</TableHead>
                   <TableHead className="text-xs text-right">Carburant</TableHead>
@@ -138,6 +148,7 @@ export default function Reports() {
                 {vehicleSummary.map(v => (
                   <TableRow key={v.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium">{v.immatriculation}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{driverMap[v.driver_id] ? `${driverMap[v.driver_id].prenom} ${driverMap[v.driver_id].nom}` : "—"}</TableCell>
                     <TableCell className="text-xs text-right">{v.missions}</TableCell>
                     <TableCell className="text-xs text-right">{v.totalKm.toLocaleString("fr-FR")}</TableCell>
                     <TableCell className="text-xs text-right">{formatCFA(v.fuelCost)}</TableCell>

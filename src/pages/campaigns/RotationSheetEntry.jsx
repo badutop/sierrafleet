@@ -40,8 +40,9 @@ function computeClientVehiclePositions(rows, resolveClientId, existingRotations)
 }
 
 // ── STEP 1 : Saisie ──────────────────────────────────────────────────────────
-function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicles, consoParRotation, existingRotationsCount, existingRotations, resolveClientId, campaign, campaignClients, onPreview, onClose }) {
+function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicles, drivers = [], consoParRotation, existingRotationsCount, existingRotations, resolveClientId, campaign, campaignClients, onPreview, onClose }) {
   const [scanningRowIndex, setScanningRowIndex] = useState(null);
+  const driverById = Object.fromEntries(drivers.map(d => [d.id, d]));
   const isSingleClient = campaignClients.length <= 1;
   const totalPoids = rows.reduce((s, r) => s + (Number(r.poids_tonnes) || 0), 0);
   // Le bon physique doit désormais être scanné dès la saisie de la fiche
@@ -138,7 +139,7 @@ function SheetSaisie({ date, setDate, rows, addRow, removeRow, updateRow, vehicl
                      <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Sélectionner camion" /></SelectTrigger>
                      <SelectContent>
                        <SelectItem value="none">-- Sélectionner --</SelectItem>
-                       {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}</SelectItem>)}
+                       {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}{driverById[v.driver_id] && ` — ${driverById[v.driver_id].prenom} ${driverById[v.driver_id].nom}`}</SelectItem>)}
                      </SelectContent>
                    </Select>
                   </TableCell>
@@ -518,6 +519,7 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
             date={date} setDate={setDate}
             rows={rows} addRow={addRow} removeRow={removeRow} updateRow={updateRow}
             vehicles={vehicles}
+            drivers={drivers}
             consoParRotation={consoParRotation}
             existingRotationsCount={existingRotationsCount}
             existingRotations={existingRotations}

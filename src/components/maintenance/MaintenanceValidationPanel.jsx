@@ -25,7 +25,7 @@ const STATUT_LABELS = {
   annule: "Annulé",
 };
 
-export default function MaintenanceValidationPanel({ maintenance, vMap, onStatusChange, isPending }) {
+export default function MaintenanceValidationPanel({ maintenance, vMap, driverMap = {}, onStatusChange, isPending }) {
   const [obs, setObs] = useState("");
   const [showObs, setShowObs] = useState(false);
 
@@ -51,6 +51,9 @@ export default function MaintenanceValidationPanel({ maintenance, vMap, onStatus
         {vMap && vMap[maintenance.vehicle_id] && (
           <div className="font-semibold text-foreground">
             {vMap[maintenance.vehicle_id].immatriculation}
+            {driverMap[vMap[maintenance.vehicle_id].driver_id] && (
+              <span className="font-normal text-muted-foreground"> — {driverMap[vMap[maintenance.vehicle_id].driver_id].prenom} {driverMap[vMap[maintenance.vehicle_id].driver_id].nom}</span>
+            )}
           </div>
         )}
         <div className="text-muted-foreground">

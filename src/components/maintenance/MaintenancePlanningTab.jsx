@@ -19,7 +19,7 @@ function UrgencyBadge({ days }) {
   return <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-400/30 text-[10px]">OK ({days}j)</Badge>;
 }
 
-export default function MaintenancePlanningTab({ maintenances, vehicles, rotations, onStatusChange, isPending }) {
+export default function MaintenancePlanningTab({ maintenances, vehicles, rotations, driverMap = {}, onStatusChange, isPending }) {
   const rotationsByVehicle = useMemo(() => {
     const map = {};
     rotations.forEach(r => { map[r.vehicle_id] = (map[r.vehicle_id] || 0) + 1; });
@@ -101,6 +101,9 @@ export default function MaintenancePlanningTab({ maintenances, vehicles, rotatio
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-sm">
                         {v?.immatriculation || "Véhicule inconnu"}
+                        {v && driverMap[v.driver_id] && (
+                          <span className="font-normal text-muted-foreground"> — {driverMap[v.driver_id].prenom} {driverMap[v.driver_id].nom}</span>
+                        )}
                       </span>
                       {alert.type === "date" && <UrgencyBadge days={alert.days} />}
                       {alert.type === "km" && (
@@ -145,6 +148,9 @@ export default function MaintenancePlanningTab({ maintenances, vehicles, rotatio
                     <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                     <span className="text-sm font-bold">
                       {vehicle?.immatriculation || "—"}
+                      {vehicle && driverMap[vehicle.driver_id] && (
+                        <span className="font-normal text-muted-foreground"> — {driverMap[vehicle.driver_id].prenom} {driverMap[vehicle.driver_id].nom}</span>
+                      )}
                     </span>
                     <div className="ml-auto">
                       {days !== null && <UrgencyBadge days={days} />}

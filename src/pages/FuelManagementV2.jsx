@@ -452,6 +452,7 @@ export default function FuelManagementV2() {
         open={dialogOpen}
         onOpenChange={(v) => { setDialogOpen(v); if (!v) setEditEntry(null); }}
         vehicles={vehicles}
+        drivers={drivers}
         entry={editEntry}
         onSave={(data) => createMutation.mutate(data)}
         isPending={createMutation.isPending}

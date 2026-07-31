@@ -37,7 +37,7 @@ const graviteColors = {
 
 const MAX_ROWS = 20;
 
-export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEdit, onDelete, onStatusChange, isPending }) {
+export default function MaintenanceListTab({ maintenances, isLoading, vMap, driverMap = {}, onEdit, onDelete, onStatusChange, isPending }) {
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
@@ -73,6 +73,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, onEd
                 key={m.id}
                 maintenance={m}
                 vMap={vMap}
+                driverMap={driverMap}
                 onStatusChange={onStatusChange}
                 isPending={isPending}
               />

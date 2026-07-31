@@ -50,8 +50,17 @@ export default function Journal() {
       return data;
     },
   });
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const vMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
+  const driverMap = useMemo(() => Object.fromEntries(drivers.map(d => [d.id, d])), [drivers]);
 
   // Coûts du garage (préventif + correctif), réalisés uniquement — intégrés au
   // journal comme des dépenses en lecture seule. Les pneus sont détachés dans
@@ -139,7 +148,7 @@ export default function Journal() {
             <SelectItem value="all">— Vue globale (tous véhicules) —</SelectItem>
             {vehicles.map(v => (
               <SelectItem key={v.id} value={v.id}>
-                {v.immatriculation}
+                {v.immatriculation}{driverMap[v.driver_id] && ` — ${driverMap[v.driver_id].prenom} ${driverMap[v.driver_id].nom}`}
               </SelectItem>
             ))}
           </SelectContent>
@@ -150,6 +159,7 @@ export default function Journal() {
       {selectedVehicle ? (
         <VehicleExpenseDetail
           vehicle={selectedVehicle}
+          driver={driverMap[selectedVehicle?.driver_id]}
           expenses={vehicleYearExpenses}
           filterYear={filterYear}
           onClose={() => setSelectedVehicleId("all")}

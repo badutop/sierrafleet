@@ -20,7 +20,8 @@ const emptyForm = {
   recu_url: "",
 };
 
-export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, onSave, isPending }) {
+export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers = [], entry, onSave, isPending }) {
+  const driverById = Object.fromEntries(drivers.map(d => [d.id, d]));
   // Liste des stations paramétrée dans Paramètres > Les Stations d'essence
   // (voir FuelStationsManagerDialog.jsx) au lieu d'une liste figée dans le code.
   const { data: stations = [] } = useQuery({
@@ -104,7 +105,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, entry, 
                 <SelectContent>
                   {vehicles.map(v => (
                     <SelectItem key={v.id} value={v.id} className="py-3 text-sm">
-                      {v.immatriculation}
+                      {v.immatriculation}{driverById[v.driver_id] && ` — ${driverById[v.driver_id].prenom} ${driverById[v.driver_id].nom}`}
                     </SelectItem>
                   ))}
                 </SelectContent>

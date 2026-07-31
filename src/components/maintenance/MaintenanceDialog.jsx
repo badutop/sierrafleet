@@ -48,7 +48,7 @@ const emptyForm = {
   statut: "planifie", gravite: "moyenne", observations: "",
 };
 
-export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry, onSave, isPending, defaultCategorie }) {
+export default function MaintenanceDialog({ open, onOpenChange, vehicles, driverMap = {}, entry, onSave, isPending, defaultCategorie }) {
   const [form, setForm] = useState(emptyForm);
   const [selectedPart, setSelectedPart] = useState("");
   const [selectedParts, setSelectedParts] = useState([]);
@@ -174,7 +174,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, entry,
               <SelectContent>
                 {vehicles.map(v => (
                   <SelectItem key={v.id} value={v.id}>
-                    {v.immatriculation}
+                    {v.immatriculation}{driverMap[v.driver_id] && ` — ${driverMap[v.driver_id].prenom} ${driverMap[v.driver_id].nom}`}
                   </SelectItem>
                 ))}
               </SelectContent>

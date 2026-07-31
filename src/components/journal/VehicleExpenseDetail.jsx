@@ -12,7 +12,7 @@ const TYPE_LABELS = {
 const MONTH_NAMES = ["", "Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 const fmt = n => n > 0 ? new Intl.NumberFormat("fr-FR").format(Math.round(n)) : "—";
 
-export default function VehicleExpenseDetail({ vehicle, expenses, filterYear, onClose }) {
+export default function VehicleExpenseDetail({ vehicle, driver, expenses, filterYear, onClose }) {
   // Group expenses by month × type
   const { months, grandTotals, grandTotal } = useMemo(() => {
     const byMonth = {};
@@ -42,6 +42,7 @@ export default function VehicleExpenseDetail({ vehicle, expenses, filterYear, on
         <div>
           <div className="flex items-center gap-2">
             <span className="font-bold text-base font-mono">{vehicle?.immatriculation || "Véhicule inconnu"}</span>
+            {driver && <span className="text-sm text-muted-foreground">{driver.prenom} {driver.nom}</span>}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">Dépenses par poste — Année {filterYear}</p>
         </div>

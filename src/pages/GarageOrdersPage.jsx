@@ -89,9 +89,18 @@ export default function GarageOrdersPage() {
       return data;
     },
   });
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const vMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const supplierMap = Object.fromEntries(suppliers.map(s => [s.id, s]));
+  const driverMap = Object.fromEntries(drivers.map(d => [d.id, d]));
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["garage-orders"] });
 
@@ -297,7 +306,7 @@ export default function GarageOrdersPage() {
                       <p className="font-semibold text-sm">{o.designation}</p>
                       <p className="text-xs text-muted-foreground">Quantité : {o.quantite}</p>
                       <p className="text-xs text-muted-foreground">
-                        {vehicle ? vehicle.immatriculation : "Véhicule non précisé"}
+                        {vehicle ? `${vehicle.immatriculation}${driverMap[vehicle.driver_id] ? ` — ${driverMap[vehicle.driver_id].prenom} ${driverMap[vehicle.driver_id].nom}` : ""}` : "Véhicule non précisé"}
                       </p>
                       <Button size="sm" className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground text-xs gap-1.5">
                         <Send className="w-3.5 h-3.5" /> Lancer la commande
@@ -332,7 +341,7 @@ export default function GarageOrdersPage() {
                         </div>
                         <p className="font-semibold text-sm">{o.designation}</p>
                         <p className="text-xs text-muted-foreground">
-                          {vehicle ? vehicle.immatriculation : "Véhicule non précisé"}
+                          {vehicle ? `${vehicle.immatriculation}${driverMap[vehicle.driver_id] ? ` — ${driverMap[vehicle.driver_id].prenom} ${driverMap[vehicle.driver_id].nom}` : ""}` : "Véhicule non précisé"}
                         </p>
                         <Badge className={cn("text-[10px]", enRetard ? "bg-destructive/15 text-destructive border-destructive/30" : "bg-amber-500/15 text-amber-700 border-amber-400/30")}>
                           Échéance : {o.date_echeance ? new Date(o.date_echeance).toLocaleDateString("fr-FR") : "—"}
@@ -410,6 +419,7 @@ export default function GarageOrdersPage() {
         onOpenChange={setDialogOpen}
         order={selectedOrder}
         vMap={vMap}
+        driverMap={driverMap}
         suppliers={suppliers}
         onLaunch={(id, data) => launchMutation.mutate({ id, data })}
         onSaveDraft={(id, data) => saveDraftMutation.mutate({ id, data })}

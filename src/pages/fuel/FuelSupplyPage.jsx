@@ -67,6 +67,14 @@ export default function FuelSupplyPage() {
       return data;
     },
   });
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("drivers").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
   const { data: zones = [] } = useZones();
 
   const createMutation = useMutation({
@@ -220,6 +228,7 @@ export default function FuelSupplyPage() {
             vehicles={vehicles}
             rotations={rotations}
             entries={entries}
+            drivers={drivers}
             formatCFA={formatCFA}
           />
         </TabsContent>
@@ -256,6 +265,7 @@ export default function FuelSupplyPage() {
         open={dialogOpen}
         onOpenChange={(v) => { setDialogOpen(v); if (!v) setEditEntry(null); }}
         vehicles={vehicles}
+        drivers={drivers}
         entry={editEntry}
         onSave={(data) => createMutation.mutate(data)}
         isPending={createMutation.isPending}

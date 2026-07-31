@@ -84,6 +84,9 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                         <TableRow className="bg-muted/40 hover:bg-muted/40">
                           <TableCell colSpan={6} className="py-1.5 text-xs font-bold text-foreground">
                             {vehicle?.immatriculation || "Sans camion"}
+                            {vehicle && driverMap[vehicle.driver_id] && (
+                              <span className="font-semibold text-muted-foreground"> · {driverMap[vehicle.driver_id]}</span>
+                            )}
                             <span className="font-normal text-muted-foreground"> — {vRots.length} rotation{vRots.length > 1 ? "s" : ""} — {vPoids.toFixed(2)} T</span>
                           </TableCell>
                         </TableRow>

@@ -2,7 +2,8 @@ import React, { useMemo } from "react";
 import { Truck, Fuel, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function FuelVehiclePerformance({ vehicles, rotations, entries, formatCFA }) {
+export default function FuelVehiclePerformance({ vehicles, rotations, entries, drivers = [], formatCFA }) {
+  const driverById = Object.fromEntries(drivers.map(d => [d.id, d]));
   const data = useMemo(() => {
     return vehicles.map(vehicle => {
       const vRotations = rotations.filter(r => r.vehicle_id === vehicle.id);
@@ -52,6 +53,9 @@ export default function FuelVehiclePerformance({ vehicles, rotations, entries, f
                   <Truck className="w-4 h-4 text-muted-foreground" />
                   <span className="font-bold text-sm font-mono">{vehicle.immatriculation}</span>
                 </div>
+                {driverById[vehicle.driver_id] && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{driverById[vehicle.driver_id].prenom} {driverById[vehicle.driver_id].nom}</p>
+                )}
               </div>
               <div className={cn(
                 "text-[10px] font-bold px-2 py-1 rounded-full",

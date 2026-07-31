@@ -11,7 +11,7 @@ const typeLabels = {
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 
-export default function MaintenanceVehicleTab({ vehicles, maintenances, rotations }) {
+export default function MaintenanceVehicleTab({ vehicles, maintenances, rotations, driverMap = {} }) {
   const data = useMemo(() => {
     return vehicles.map(vehicle => {
       const vMaints = maintenances.filter(m => m.vehicle_id === vehicle.id && m.statut === "realise");
@@ -56,6 +56,9 @@ export default function MaintenanceVehicleTab({ vehicles, maintenances, rotation
                 <Truck className="w-4 h-4 text-muted-foreground" />
                 <span className="font-bold text-sm font-mono">{vehicle.immatriculation}</span>
               </div>
+              {driverMap[vehicle.driver_id] && (
+                <p className="text-[11px] text-muted-foreground mt-0.5">{driverMap[vehicle.driver_id].prenom} {driverMap[vehicle.driver_id].nom}</p>
+              )}
             </div>
             {enCours && (
               <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-500/15 text-amber-700">En maintenance</span>
