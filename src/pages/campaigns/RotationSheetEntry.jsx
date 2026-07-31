@@ -513,7 +513,11 @@ export default function RotationSheetEntry({ open, onClose, campaign, client, ca
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+      <DialogContent
+        className="max-w-4xl max-h-[90vh] overflow-y-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         {step === "saisie" ? (
           <SheetSaisie
             date={date} setDate={setDate}
