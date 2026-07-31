@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, X, RotateCcw, RotateCw, Crop, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
 
@@ -283,7 +284,7 @@ export default function DocumentScanner({
       </div>
 
       {/* Viewfinder */}
-      <div className="flex-1 relative flex items-center justify-center overflow-hidden p-4">
+      <div className={cn("flex-1 relative flex items-center justify-center p-4", cropMode ? "overflow-visible" : "overflow-hidden")}>
         {!captured ? (
           <div className="flex flex-col items-center gap-3 w-full">
             <div
@@ -325,7 +326,7 @@ export default function DocumentScanner({
               ref={cropImgRef}
               src={captured.previewUrl}
               alt="Document capturé"
-              className="max-h-[60vh] max-w-full object-contain rounded block"
+              className="max-h-[calc(60vh-2rem)] max-w-full object-contain rounded block"
               style={{ background: "#000" }}
             />
             <div
