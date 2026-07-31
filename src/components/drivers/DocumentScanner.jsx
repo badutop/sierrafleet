@@ -336,21 +336,26 @@ export default function DocumentScanner({
               {[["top-0 left-0", "border-t-2 border-l-2"], ["top-0 right-0", "border-t-2 border-r-2"], ["bottom-0 left-0", "border-b-2 border-l-2"], ["bottom-0 right-0", "border-b-2 border-r-2"]].map(([pos, cls], i) => (
                 <div key={i} className={`absolute ${pos} w-5 h-5 border-white ${cls} pointer-events-none`} />
               ))}
-              {/* Une poignée par côté — chacune ne déplace que son propre bord */}
+              {/* Une poignée par côté — chacune ne déplace que son propre bord.
+                  Placées à ras du bord (pas en saillie vers l'extérieur) :
+                  en saillie, elles se faisaient couper par l'overflow-hidden
+                  du cadre de visée dès que l'image (portrait notamment)
+                  remplissait toute la hauteur disponible, sans marge pour
+                  déborder — surtout visible sur les poignées haut/bas. */}
               <div
-                className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full bg-secondary border-2 border-white shadow cursor-ns-resize touch-none"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full bg-secondary border-2 border-white shadow cursor-ns-resize touch-none"
                 onPointerDown={handleCropPointerDown("top")}
               />
               <div
-                className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full bg-secondary border-2 border-white shadow cursor-ns-resize touch-none"
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full bg-secondary border-2 border-white shadow cursor-ns-resize touch-none"
                 onPointerDown={handleCropPointerDown("bottom")}
               />
               <div
-                className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-secondary border-2 border-white shadow cursor-ew-resize touch-none"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-secondary border-2 border-white shadow cursor-ew-resize touch-none"
                 onPointerDown={handleCropPointerDown("left")}
               />
               <div
-                className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-secondary border-2 border-white shadow cursor-ew-resize touch-none"
+                className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-secondary border-2 border-white shadow cursor-ew-resize touch-none"
                 onPointerDown={handleCropPointerDown("right")}
               />
             </div>
