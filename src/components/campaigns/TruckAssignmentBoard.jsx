@@ -206,7 +206,7 @@ export default function TruckAssignmentBoard({ campaigns }) {
                                   </button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel className="text-xs">Redéployer vers…</DropdownMenuLabel>
+                                  <DropdownMenuLabel>Redéployer vers…</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
                                   {otherCampaigns.length === 0 && (
                                     <DropdownMenuItem disabled>Aucune autre campagne active</DropdownMenuItem>
