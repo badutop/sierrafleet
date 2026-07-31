@@ -35,7 +35,10 @@ export default function Vehicles() {
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ["vehicles"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("vehicles").select("*");
+      // Tri stable (par immatriculation) — même raison que Drivers.jsx :
+      // sans lui, une ligne modifiée peut changer de position dans la liste,
+      // donnant l'impression qu'elle a disparu.
+      const { data, error } = await supabase.from("vehicles").select("*").order("immatriculation", { ascending: true });
       if (error) throw error;
       return data;
     },

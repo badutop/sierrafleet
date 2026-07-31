@@ -38,7 +38,11 @@ export default function Drivers() {
   const { data: drivers = [] } = useQuery({
     queryKey: ["drivers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("drivers").select("*");
+      // Tri stable (alphabétique) — sans lui, Postgres ne garantit aucun
+      // ordre après une mise à jour (ex: scan de document), donnant
+      // l'impression qu'une ligne modifiée a "disparu" alors qu'elle a juste
+      // changé de position dans la liste.
+      const { data, error } = await supabase.from("drivers").select("*").order("nom", { ascending: true }).order("prenom", { ascending: true });
       if (error) throw error;
       return data;
     },
