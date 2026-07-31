@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Plus, Trash2, Repeat } from "lucide-react";
+import { Truck, Plus, Trash2, Repeat, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
@@ -76,6 +76,13 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
   const availableVehicles = allVehicles.filter(v =>
     !v.campaign_id &&
     !blockedImmatriculations.has(v.immatriculation)
+  );
+  // Camions redéployés hors de cette campagne (voir TruckAssignmentBoard.jsx) —
+  // gardés visibles ici avec le statut "Réaffecté" pour l'historique/traçabilité,
+  // même s'ils ne comptent plus dans les camions actuellement affectés.
+  const reassignedAwayVehicles = useMemo(
+    () => allVehicles.filter(v => v.redeploye_depuis_campaign_id === campaignId && v.campaign_id !== campaignId),
+    [allVehicles, campaignId]
   );
 
   // Affectation manuelle depuis le pool disponible — pas un redéploiement
@@ -153,7 +160,7 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
       )}
 
       {/* Table */}
-      {assignedVehicles.length === 0 ? (
+      {assignedVehicles.length === 0 && reassignedAwayVehicles.length === 0 ? (
         <div className="text-center py-12 border-2 border-dashed border-muted rounded-lg text-muted-foreground">
           <Truck className="w-10 h-10 mx-auto mb-2 opacity-30" />
           <p className="text-sm">Aucun camion affecté à cette campagne</p>
@@ -167,7 +174,7 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
                 <th className="px-4 py-2.5 text-left font-semibold">Immatriculation</th>
                 <th className="px-4 py-2.5 text-left font-semibold">Marque & Modèle</th>
                 <th className="px-4 py-2.5 text-left font-semibold">Statut</th>
-                <th className="px-4 py-2.5 text-left font-semibold">Origine</th>
+                <th className="px-4 py-2.5 text-left font-semibold">Redéploiement</th>
                 {!readOnly && <th className="px-4 py-2.5 text-center font-semibold">Actions</th>}
               </tr>
             </thead>
@@ -192,7 +199,7 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
                           className="bg-purple-500/10 text-purple-600 text-[10px] gap-1 font-medium"
                           title={v.date_redeploiement ? `Le ${new Date(v.date_redeploiement).toLocaleDateString("fr-FR")}` : undefined}
                         >
-                          <Repeat className="w-3 h-3" /> Redéployé depuis {campaignById[v.redeploye_depuis_campaign_id]?.nom_campagne || "—"}
+                          <Repeat className="w-3 h-3" /> Depuis {campaignById[v.redeploye_depuis_campaign_id]?.nom_campagne || "—"}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
@@ -216,6 +223,29 @@ export default function CampaignTruckAssignmentTable({ campaignId, readOnly = fa
                   </tr>
                 );
               })}
+              {reassignedAwayVehicles.map(v => (
+                <tr key={v.id} className="border-b bg-muted/20 opacity-70">
+                  <td className="px-4 py-2.5">
+                    {v.code_camion && (
+                      <span className="text-[10px] bg-primary/10 text-primary font-bold px-1.5 py-0.5 rounded">{v.code_camion}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 font-mono font-semibold">{v.immatriculation}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{v.marque} {v.modele}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge className="text-[10px] bg-slate-500/10 text-slate-600">Réaffecté</Badge>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Badge
+                      className="bg-slate-500/10 text-slate-600 text-[10px] gap-1 font-medium"
+                      title={v.date_redeploiement ? `Le ${new Date(v.date_redeploiement).toLocaleDateString("fr-FR")}` : undefined}
+                    >
+                      <ArrowRightLeft className="w-3 h-3" /> Vers {campaignById[v.campaign_id]?.nom_campagne || "—"}
+                    </Badge>
+                  </td>
+                  {!readOnly && <td className="px-4 py-2.5 text-center text-muted-foreground text-xs">—</td>}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
