@@ -350,8 +350,16 @@ export default function DocumentScanner({
   // sort complètement de cette hiérarchie et garantit un vrai plein écran,
   // que l'appelant soit dans un Dialog ou non (ex: CollecteurBonsPage.jsx,
   // qui n'est pas dans un Dialog et n'a jamais eu ce problème).
+  //
+  // pointer-events-auto est impératif ici : un Dialog Radix "modal" (le
+  // défaut) désactive pointer-events sur TOUT document.body pour imposer sa
+  // modalité, et ne le réautorise que pour ses propres calques reconnus. Le
+  // scanner, simple portail sans lien avec les calques de Radix, hérite donc
+  // de ce pointer-events:none et devient entièrement non cliquable (y
+  // compris le bouton photo et le X de fermeture) tant qu'un Dialog modal
+  // reste ouvert derrière lui.
   return createPortal(
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black flex flex-col pointer-events-auto">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-black/80">
         <span className="text-white text-sm font-medium">
