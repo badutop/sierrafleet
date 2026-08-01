@@ -17,6 +17,7 @@ import DriverDocuments from "@/components/drivers/DriverDocuments";
 import { confirm } from "@/lib/confirm";
 import { logAudit } from "@/lib/auditLog";
 import { formatSenegalPhone, isBlankSenegalPhone } from "@/lib/phoneFormat";
+import { friendlyDeleteError, friendlySaveError } from "@/lib/errors";
 
 
 const statusLabels = { actif: "Actif", inactif: "Inactif", en_mission: "En mission" };
@@ -61,6 +62,7 @@ export default function Drivers() {
       return row;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["drivers"] }); closeDialog(); toast.success("Chauffeur ajouté"); },
+    onError: (error) => toast.error(friendlySaveError(error, "Ce n° de permis")),
   });
 
   const updateMutation = useMutation({
@@ -70,6 +72,7 @@ export default function Drivers() {
       await logAudit("Chauffeur", id, "update", data, oldData, Object.keys(data));
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["drivers"] }); closeDialog(); toast.success("Chauffeur modifié"); },
+    onError: (error) => toast.error(friendlySaveError(error, "Ce n° de permis")),
   });
 
   const deleteMutation = useMutation({
@@ -79,6 +82,7 @@ export default function Drivers() {
       await logAudit("Chauffeur", driver.id, "delete", null, driver);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["drivers"] }); toast.success("Chauffeur supprimé"); },
+    onError: (error) => toast.error(friendlyDeleteError(error, "ce chauffeur")),
   });
 
   const openCreate = () => { setEditingDriver(null); setForm(emptyForm); setDialogOpen(true); };
@@ -96,6 +100,9 @@ export default function Drivers() {
     dateFields.forEach(f => { if (data[f] === "") data[f] = null; });
     if (isBlankSenegalPhone(data.telephone)) data.telephone = null;
     if (isBlankSenegalPhone(data.contact_urgence_telephone)) data.contact_urgence_telephone = null;
+    // "" et non null casserait la contrainte d'unicité (deux permis "vides"
+    // seraient alors considérés comme un doublon, contrairement à NULL).
+    if (data.numero_permis === "") data.numero_permis = null;
     if (editingDriver) updateMutation.mutate({ id: editingDriver.id, data, oldData: editingDriver });
     else createMutation.mutate(data);
   };

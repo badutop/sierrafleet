@@ -31,6 +31,9 @@ export default function SpareParts() {
   const [form, setForm] = useState(emptyForm);
   const queryClient = useQueryClient();
 
+  const stockInvalid = !!(form.quantite_stock !== "" && Number(form.quantite_stock) < 0);
+  const seuilInvalid = !!(form.quantite_min !== "" && Number(form.quantite_min) < 0);
+
   const { data: parts = [], isLoading } = useQuery({
     queryKey: ["spareParts"],
     queryFn: async () => {
@@ -231,8 +234,16 @@ export default function SpareParts() {
                     <SelectContent>{Object.entries(etatLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><Label className="text-xs">Stock actuel</Label><Input type="number" className="mt-1 bg-card" value={form.quantite_stock} onChange={e => setForm({ ...form, quantite_stock: e.target.value })} /></div>
-                <div><Label className="text-xs">Seuil min.</Label><Input type="number" className="mt-1 bg-card" value={form.quantite_min} onChange={e => setForm({ ...form, quantite_min: e.target.value })} /></div>
+                <div>
+                  <Label className="text-xs">Stock actuel</Label>
+                  <Input type="number" min="0" className="mt-1 bg-card" value={form.quantite_stock} onChange={e => setForm({ ...form, quantite_stock: e.target.value })} />
+                  {stockInvalid && <p className="text-[11px] text-destructive mt-1">Ne peut pas être négatif</p>}
+                </div>
+                <div>
+                  <Label className="text-xs">Seuil min.</Label>
+                  <Input type="number" min="0" className="mt-1 bg-card" value={form.quantite_min} onChange={e => setForm({ ...form, quantite_min: e.target.value })} />
+                  {seuilInvalid && <p className="text-[11px] text-destructive mt-1">Ne peut pas être négatif</p>}
+                </div>
               </div>
             </div>
 
@@ -262,7 +273,7 @@ export default function SpareParts() {
             <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
               <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
             </Button>
-            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.designation}>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.designation || stockInvalid || seuilInvalid}>
               <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>

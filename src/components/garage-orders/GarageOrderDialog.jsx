@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/AuthContext";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { compressImageFile } from "@/lib/imageCompression";
 import { displayThousands, parseThousandsInput } from "@/lib/numberFormat";
+import { isPositiveNumber } from "@/lib/validation";
 
 const STEPS = [
   { key: "en_attente",     label: "En attente",     icon: FileText },
@@ -80,6 +81,11 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
   // être datée dans le futur.
   const livraisonDateInvalid = !!(form.date_livraison_prevue && form.date_livraison_prevue < today);
   const factureDateInvalid = !!(invoiceForm.date_facture && invoiceForm.date_facture > today);
+  // La quantité doit toujours être positive. Le prix peut rester vide tant
+  // que la commande n'est encore qu'un brouillon, mais doit être positif
+  // pour être réellement lancée auprès d'un fournisseur.
+  const quantiteInvalid = !isPositiveNumber(form.quantite);
+  const prixMissingForLaunch = !isPositiveNumber(form.prix_unitaire);
 
   const buildOrderPayload = () => ({
     designation: form.designation,
@@ -188,6 +194,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
             <div>
               <Label className="text-xs">Quantité</Label>
               <Input type="number" min="1" className="mt-1" value={form.quantite} onChange={e => setForm(f => ({ ...f, quantite: e.target.value }))} />
+              {quantiteInvalid && <p className="text-[11px] text-destructive mt-1">Doit être supérieure à 0</p>}
             </div>
             <div>
               <Label className="text-xs">Véhicule</Label>
@@ -386,13 +393,13 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
             </Button>
           )}
           {order.statut === "en_attente" && (
-            <Button variant="outline" className="h-11 rounded-xl font-bold gap-1.5" onClick={handleSaveDraft} disabled={isPending || !form.designation?.trim() || livraisonDateInvalid}>
+            <Button variant="outline" className="h-11 rounded-xl font-bold gap-1.5" onClick={handleSaveDraft} disabled={isPending || !form.designation?.trim() || livraisonDateInvalid || quantiteInvalid}>
               <Save className="w-3.5 h-3.5" /> Enregistrer
             </Button>
           )}
           <Button variant="outline" className="flex-1 h-11 rounded-xl font-bold" onClick={() => onOpenChange(false)}>Fermer</Button>
           {order.statut === "en_attente" && (
-            <Button className="flex-1 h-11 rounded-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-1.5" onClick={handleLaunch} disabled={!form.supplier_id || !form.designation?.trim() || livraisonDateInvalid || isPending}>
+            <Button className="flex-1 h-11 rounded-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-1.5" onClick={handleLaunch} disabled={!form.supplier_id || !form.designation?.trim() || livraisonDateInvalid || quantiteInvalid || prixMissingForLaunch || isPending}>
               <Send className="w-3.5 h-3.5" /> {isPending ? "Enregistrement..." : "Lancer la commande"} <ChevronRight className="w-3 h-3" />
             </Button>
           )}

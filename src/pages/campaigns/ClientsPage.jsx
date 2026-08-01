@@ -18,6 +18,7 @@ import { logAudit } from "@/lib/auditLog";
 import { useZones } from "@/hooks/use-zones";
 import { getZoneColors } from "@/lib/zoneColors";
 import { formatSenegalPhone, isBlankSenegalPhone } from "@/lib/phoneFormat";
+import { friendlyDeleteError } from "@/lib/errors";
 
 const emptyForm = { nom: "", code_client: "", zone: "zone1", contact_nom: "", contact_telephone: "+221 ", actif: true };
 
@@ -132,6 +133,7 @@ export default function ClientsPage() {
       queryClient.invalidateQueries({ queryKey: ["depots"] });
       toast.success("Client supprimé");
     },
+    onError: (error) => toast.error(friendlyDeleteError(error, "ce client")),
   });
 
   const openCreate = () => {
@@ -298,7 +300,8 @@ export default function ClientsPage() {
                     value={form.tarif_par_tonne != null ? Number(form.tarif_par_tonne).toLocaleString("fr-FR") : ""}
                     onChange={e => {
                       const digits = e.target.value.replace(/\D/g, "");
-                      setForm({ ...form, tarif_par_tonne: digits ? Number(digits) : undefined });
+                      // "0" traité comme non renseigné — un tarif nul n'a pas de sens.
+                      setForm({ ...form, tarif_par_tonne: digits && Number(digits) > 0 ? Number(digits) : undefined });
                     }}
                   />
                 </div>

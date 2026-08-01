@@ -98,6 +98,7 @@ export default function QuickTripDialog({ open, onClose }) {
     if (!form.vehicle_id) { toast.error("Sélectionnez un véhicule"); return; }
     if (!form.driver_id) { toast.error("Sélectionnez un chauffeur"); return; }
     if (!form.mission) { toast.error("Mission requise"); return; }
+    if (form.km_depart !== "" && Number(form.km_depart) < 0) { toast.error("Le kilométrage ne peut pas être négatif"); return; }
 
     const data = {
       vehicle_id: form.vehicle_id,

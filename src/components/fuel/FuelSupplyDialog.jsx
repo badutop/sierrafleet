@@ -11,6 +11,7 @@ import { getFuelPricePerLitre } from "@/pages/SettingsPage";
 import { uploadFile } from "@/lib/storage";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { compressImageFile } from "@/lib/imageCompression";
+import { isPositiveNumber } from "@/lib/validation";
 
 const emptyForm = {
   vehicle_id: "",
@@ -61,7 +62,9 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const montantCalc = form.litres ? Number(form.litres) * prixLitre : 0;
-  const isValid = form.vehicle_id && form.date && form.litres;
+  const litresInvalid = !isPositiveNumber(form.litres);
+  const kmCompteurInvalid = !!(form.km_compteur !== "" && Number(form.km_compteur) < 0);
+  const isValid = form.vehicle_id && form.date && !litresInvalid && !kmCompteurInvalid;
 
   const uploadReceiptPhoto = async (file, previewUrl) => {
     setUploadingPhoto(true);
@@ -154,6 +157,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers
                   value={form.litres}
                   onChange={e => set("litres", e.target.value)}
                 />
+                {form.litres !== "" && litresInvalid && <p className="text-[11px] text-destructive mt-1">Doit être supérieur à 0</p>}
               </div>
               <div>
                 <Label className="text-sm font-medium">Km compteur</Label>
@@ -164,6 +168,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers
                   value={form.km_compteur}
                   onChange={e => set("km_compteur", e.target.value)}
                 />
+                {kmCompteurInvalid && <p className="text-[11px] text-destructive mt-1">Ne peut pas être négatif</p>}
               </div>
             </div>
             <div className="bg-card rounded-lg px-4 py-3 flex items-center justify-end text-sm border border-emerald-500/20">

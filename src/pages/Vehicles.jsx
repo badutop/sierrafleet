@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import VehicleDocuments from "@/components/vehicles/VehicleDocuments";
 import { confirm } from "@/lib/confirm";
 import { logAudit } from "@/lib/auditLog";
+import { friendlyDeleteError, friendlySaveError } from "@/lib/errors";
 
 const statusLabels = { disponible: "Disponible", en_mission: "En mission", en_maintenance: "Maintenance", hors_service: "Hors service" };
 const statusColors = { disponible: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", en_mission: "bg-blue-500/10 text-blue-600 border-blue-500/20", en_maintenance: "bg-amber-500/10 text-amber-600 border-amber-500/20", hors_service: "bg-destructive/10 text-destructive border-destructive/20" };
@@ -87,6 +88,7 @@ export default function Vehicles() {
       return row;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); closeDialog(); toast.success("Véhicule ajouté"); },
+    onError: (error) => toast.error(friendlySaveError(error, "Cette immatriculation")),
   });
 
   const updateMutation = useMutation({
@@ -96,6 +98,7 @@ export default function Vehicles() {
       await logAudit("Véhicule", id, "update", data, oldData, Object.keys(data));
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); closeDialog(); toast.success("Véhicule modifié"); },
+    onError: (error) => toast.error(friendlySaveError(error, "Cette immatriculation")),
   });
 
   const deleteMutation = useMutation({
@@ -105,6 +108,7 @@ export default function Vehicles() {
       await logAudit("Véhicule", vehicle.id, "delete", null, vehicle);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); toast.success("Véhicule supprimé"); },
+    onError: (error) => toast.error(friendlyDeleteError(error, "ce véhicule")),
   });
 
   const openCreate = () => { setEditingVehicle(null); setForm({ ...emptyForm, code_camion: generateNextVehicleCode(vehicles) }); setDialogOpen(true); };
@@ -114,6 +118,15 @@ export default function Vehicles() {
     setDialogOpen(true);
   };
   const closeDialog = () => { setDialogOpen(false); setEditingVehicle(null); setForm(emptyForm); };
+
+  // Le kilométrage ne peut jamais diminuer par rapport à l'ancien relevé
+  // (compteur qui ne recule pas dans la réalité) ; les autres champs
+  // numériques ne peuvent pas être négatifs.
+  const kmActuelInvalid = !!(form.km_actuel !== "" && (
+    Number(form.km_actuel) < 0 ||
+    (editingVehicle && editingVehicle.km_actuel != null && Number(form.km_actuel) < Number(editingVehicle.km_actuel))
+  ));
+  const capaciteInvalid = !!(form.capacite_charge_tonnes !== "" && Number(form.capacite_charge_tonnes) < 0);
 
   const handleSave = () => {
     // Postgres rejette "" pour les colonnes integer/numeric/date (l'ancien backend l'acceptait) — on convertit en null.
@@ -304,16 +317,28 @@ export default function Vehicles() {
                     <SelectContent>{Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                {[["annee","Année"],["couleur","Couleur"],["km_actuel","Km actuel"]].map(([key, label]) => (
+                {[["annee","Année"],["couleur","Couleur"]].map(([key, label]) => (
                   <div key={key}>
                     <Label className="text-xs">{label}</Label>
                     <Input className="mt-1 bg-card" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })} />
                   </div>
                 ))}
+                <div>
+                  <Label className="text-xs">Km actuel</Label>
+                  <Input className="mt-1 bg-card" value={form.km_actuel || ""} onChange={e => setForm({ ...form, km_actuel: e.target.value })} />
+                  {kmActuelInvalid && (
+                    <p className="text-[11px] text-destructive mt-1">
+                      {editingVehicle && Number(form.km_actuel) < Number(editingVehicle.km_actuel || 0)
+                        ? `Ne peut pas être inférieur au dernier relevé (${Number(editingVehicle.km_actuel).toLocaleString("fr-FR")} km)`
+                        : "Ne peut pas être négatif"}
+                    </p>
+                  )}
+                </div>
                 {form.type_vehicule !== "remorque" && (
                   <div>
                     <Label className="text-xs">Capacité (tonnes)</Label>
                     <Input className="mt-1 bg-card" value={form.capacite_charge_tonnes || ""} onChange={e => setForm({ ...form, capacite_charge_tonnes: e.target.value })} />
+                    {capaciteInvalid && <p className="text-[11px] text-destructive mt-1">Ne peut pas être négative</p>}
                   </div>
                 )}
               </div>
@@ -355,7 +380,7 @@ export default function Vehicles() {
             <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
               <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
             </Button>
-            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.immatriculation?.trim() || !form.marque?.trim() || !form.modele?.trim()}>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.immatriculation?.trim() || !form.marque?.trim() || !form.modele?.trim() || kmActuelInvalid || capaciteInvalid}>
               <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>

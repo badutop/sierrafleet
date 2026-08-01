@@ -18,6 +18,7 @@ import { confirm } from "@/lib/confirm";
 import { stampStatutDate } from "@/lib/campaignStatus";
 import { logAudit } from "@/lib/auditLog";
 import { PORT_MOLES as portMoles, ZONE_CLIENT_PREFIX } from "@/lib/campaignLocations";
+import { isPositiveNumber } from "@/lib/validation";
 import { useZones } from "@/hooks/use-zones";
 
 const statutLabels = { creee: "Créée", validee_responsable: "Validée (Responsable)", validee_operationnel: "Validée (Opérationnel)", en_cours: "En cours", terminee: "Terminée", clôturée: "Clôturée" };
@@ -187,7 +188,7 @@ export default function CampaignsList() {
   // (client + tonnage) — il faut donc au moins une ligne avec les deux
   // renseignés, pas seulement un client_id quelque part et un tonnage
   // quelque part ailleurs (voir handleSave, validClients).
-  const hasValidClientRow = (form.clients || []).some(r => r.client_id && r.tonnage_prevu);
+  const hasValidClientRow = (form.clients || []).some(r => r.client_id && isPositiveNumber(r.tonnage_prevu));
 
   // Rotations prévues = tonnage total / tonnage moyen par rotation (31T).
   const rotationsPrevues = totalTonnage > 0 ? Math.ceil(totalTonnage / TONNAGE_PAR_ROTATION) : 0;
@@ -224,7 +225,7 @@ export default function CampaignsList() {
     // Postgres rejette "" pour les colonnes date (l'ancien backend l'acceptait) — on convertit en null.
     // duree_prevue_jours ne correspond à aucune colonne (juste utile au calcul), on l'exclut de l'envoi.
     const { clients: clientRows, duree_prevue_jours, ...rest } = form;
-    const validClients = clientRows.filter(r => r.client_id && r.tonnage_prevu);
+    const validClients = clientRows.filter(r => r.client_id && isPositiveNumber(r.tonnage_prevu));
     const data = {
       ...rest,
       client_id: validClients[0]?.client_id || "",
@@ -463,7 +464,7 @@ export default function CampaignsList() {
                       </SelectContent>
                     </Select>
                     <Input
-                      type="number" placeholder="Tonnage (T)" className="w-32 bg-card"
+                      type="number" min="0" placeholder="Tonnage (T)" className="w-32 bg-card"
                       value={row.tonnage_prevu}
                       onChange={e => updateClientRow(i, "tonnage_prevu", e.target.value)}
                     />

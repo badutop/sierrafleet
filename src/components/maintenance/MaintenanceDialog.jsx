@@ -138,7 +138,13 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
   // La prochaine échéance planifiée n'a de sens qu'après la date de
   // l'intervention en cours — sinon on planifierait un entretien "avant" lui.
   const prochaineDateInvalid = !!(form.prochaine_date && form.date_entretien && form.prochaine_date <= form.date_entretien);
-  const isValid = form.vehicle_id && form.vehicle_id !== "" && form.date_entretien && form.type_entretien && !prochaineDateInvalid;
+  // Aucun de ces compteurs/durées ne peut être négatif.
+  const dureeInvalid = !!(form.duree_immobilisation_jours !== "" && Number(form.duree_immobilisation_jours) < 0);
+  const kmEntretienInvalid = !!(form.km_entretien !== "" && Number(form.km_entretien) < 0);
+  const prochainKmInvalid = !!(form.prochain_km !== "" && Number(form.prochain_km) < 0);
+  const prochainRotationsInvalid = !!(form.prochain_nb_rotations !== "" && Number(form.prochain_nb_rotations) < 0);
+  const isValid = form.vehicle_id && form.vehicle_id !== "" && form.date_entretien && form.type_entretien
+    && !prochaineDateInvalid && !dureeInvalid && !kmEntretienInvalid && !prochainKmInvalid && !prochainRotationsInvalid;
   const allowedPartCategories = TYPE_TO_PART_CATEGORIES[form.type_entretien];
   const filteredSpareParts = allowedPartCategories ? spareParts.filter(p => allowedPartCategories.includes(p.categorie)) : spareParts;
 
@@ -358,6 +364,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
               <div>
                 <Label className="text-xs">Immobilisation (jours)</Label>
                 <Input type="number" min="0" className="mt-1 bg-card" placeholder="0" value={form.duree_immobilisation_jours} onChange={e => set("duree_immobilisation_jours", e.target.value)} />
+                {dureeInvalid && <p className="text-[11px] text-destructive mt-1">Ne peut pas être négative</p>}
               </div>
             </div>
             <div>
@@ -377,6 +384,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
             <div>
               <Label className="text-xs">Km au compteur</Label>
               <Input type="number" min="0" className="mt-1 bg-card" value={form.km_entretien} onChange={e => set("km_entretien", e.target.value)} />
+              {kmEntretienInvalid && <p className="text-[11px] text-destructive mt-1">Ne peut pas être négatif</p>}
             </div>
             <div>
               <Label className="text-xs">Prochaine date prévue</Label>
@@ -386,10 +394,12 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
             <div>
               <Label className="text-xs">Prochain Km</Label>
               <Input type="number" min="0" className="mt-1 bg-card" value={form.prochain_km} onChange={e => set("prochain_km", e.target.value)} />
+              {prochainKmInvalid && <p className="text-[11px] text-destructive mt-1">Ne peut pas être négatif</p>}
             </div>
             <div className="col-span-2">
               <Label className="text-xs">Déclencher après N rotations</Label>
               <Input type="number" min="0" className="mt-1 bg-card" placeholder="Ex: 50" value={form.prochain_nb_rotations} onChange={e => set("prochain_nb_rotations", e.target.value)} />
+              {prochainRotationsInvalid && <p className="text-[11px] text-destructive mt-1">Ne peut pas être négatif</p>}
             </div>
           </div>
         </div>

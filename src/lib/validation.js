@@ -7,3 +7,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function isValidEmail(value) {
   return EMAIL_RE.test((value || "").trim());
 }
+
+// true si la valeur, une fois vidée, représente un nombre strictement positif
+// — utilisé pour bloquer les tonnages/prix/quantités à 0 ou négatifs.
+export function isPositiveNumber(value) {
+  return value !== "" && value != null && Number(value) > 0;
+}
+
