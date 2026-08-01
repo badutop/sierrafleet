@@ -72,13 +72,13 @@ export default function ZoneFormDialog({ open, onClose, zone, existingZones = []
 
         <div className="space-y-3 mt-2">
           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />Détails de la zone</p>
+            <p className="text-sm font-bold text-primary flex items-center gap-1.5"><MapPin className="w-4 h-4" />Détails de la zone</p>
             <div>
-              <Label className="text-xs">Libellé *</Label>
+              <Label className="text-xs">Libellé <span className="text-green-600 font-bold">*</span></Label>
               <Input className="mt-1 bg-card" placeholder="Ex: Zone Nord — Dakar" value={form.libelle} onChange={e => setForm({ ...form, libelle: e.target.value })} />
             </div>
             <div>
-              <Label className="text-xs">Litrage approximatif (L / rotation) *</Label>
+              <Label className="text-xs">Litrage approximatif (L / rotation) <span className="text-green-600 font-bold">*</span></Label>
               <Input type="number" min="0" className="mt-1 bg-card" placeholder="Ex: 25" value={form.litrage_approximatif} onChange={e => setForm({ ...form, litrage_approximatif: e.target.value })} />
             </div>
           </div>

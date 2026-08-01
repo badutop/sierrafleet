@@ -42,7 +42,7 @@ export default function AlertThresholdsDialog({ open, onClose }) {
 
         <div className="space-y-3 mt-2">
           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" />Seuils</p>
+            <p className="text-sm font-bold text-primary flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />Seuils</p>
             <div>
               <Label className="text-xs">Km avant vidange (alerte)</Label>
               <Input type="number" min="0" className="mt-1 bg-card" value={form.kmVidange} onChange={e => setForm({ ...form, kmVidange: Number(e.target.value) })} />

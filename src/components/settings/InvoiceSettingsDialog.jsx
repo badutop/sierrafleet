@@ -31,7 +31,7 @@ export default function InvoiceSettingsDialog({ open, onClose }) {
 
         <div className="space-y-3 mt-2">
           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" />TVA</p>
+            <p className="text-sm font-bold text-primary flex items-center gap-1.5"><FileText className="w-4 h-4" />TVA</p>
             <div>
               <Label className="text-xs">TVA (%)</Label>
               <Input type="number" min="0" max="100" className="mt-1 bg-card" placeholder="Ex: 18" value={tvaPct} onChange={e => setTvaPct(Number(e.target.value))} />

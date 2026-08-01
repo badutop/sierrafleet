@@ -420,18 +420,18 @@ export default function CampaignsList() {
           <div className="space-y-3 mt-2">
             {/* Campagne */}
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Ship className="w-3.5 h-3.5" />Campagne</p>
+              <p className="text-sm font-bold text-primary flex items-center gap-1.5"><Ship className="w-4 h-4" />Campagne</p>
               <div>
-                <Label className="text-xs">Nom de la campagne *</Label>
+                <Label className="text-xs">Nom de la campagne <span className="text-green-600 font-bold">*</span></Label>
                 <Input className="mt-1 bg-card" value={form.nom_campagne} onChange={e => setForm({ ...form, nom_campagne: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Navire *</Label>
+                  <Label className="text-xs">Navire <span className="text-green-600 font-bold">*</span></Label>
                   <Input className="mt-1 bg-card" value={form.navire || ""} onChange={e => setForm({ ...form, navire: e.target.value })} placeholder="Nom du navire" />
                 </div>
                 <div>
-                  <Label className="text-xs">Type de marchandise *</Label>
+                  <Label className="text-xs">Type de marchandise <span className="text-green-600 font-bold">*</span></Label>
                   <Select value={form.type_marchandise || "none"} onValueChange={v => setForm({ ...form, type_marchandise: v === "none" ? "" : v })}>
                     <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                     <SelectContent>
@@ -445,7 +445,7 @@ export default function CampaignsList() {
 
             {/* Clients & tonnage */}
             <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />Clients & tonnage</p>
+              <p className="text-sm font-bold text-emerald-700 flex items-center gap-1.5"><Users className="w-4 h-4" />Clients & tonnage</p>
               <p className="text-[11px] text-muted-foreground -mt-2">Un bateau peut être partagé par plusieurs clients</p>
               <div className="space-y-2">
                 {form.clients.map((row, i) => (
@@ -478,10 +478,10 @@ export default function CampaignsList() {
 
             {/* Itinéraire */}
             <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><MapPinned className="w-3.5 h-3.5" />Itinéraire</p>
+              <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><MapPinned className="w-4 h-4" />Itinéraire</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Point de départ *</Label>
+                  <Label className="text-xs">Point de départ <span className="text-green-600 font-bold">*</span></Label>
                   <Select value={form.point_origine || "none"} onValueChange={v => setForm({ ...form, point_origine: v === "none" ? "" : v })}>
                     <SelectTrigger className="mt-1 h-9 bg-card">
                       <SelectValue placeholder="Sélectionner" />
@@ -506,7 +506,7 @@ export default function CampaignsList() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs">Destination *</Label>
+                  <Label className="text-xs">Destination <span className="text-green-600 font-bold">*</span></Label>
                   <Select value={form.depot_destination_id || "none"} onValueChange={v => setForm({ ...form, depot_destination_id: v === "none" ? "" : v })}>
                     <SelectTrigger className="mt-1 h-9 bg-card">
                       <SelectValue placeholder="Sélectionner" />
@@ -545,7 +545,7 @@ export default function CampaignsList() {
 
             {/* Planification */}
             <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5" />Planification</p>
+              <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><CalendarClock className="w-4 h-4" />Planification</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Date début</Label>
@@ -557,7 +557,7 @@ export default function CampaignsList() {
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Durée prévue (jours) *</Label>
+                  <Label className="text-xs">Durée prévue (jours) <span className="text-green-600 font-bold">*</span></Label>
                   <Input
                     type="number"
                     className="mt-1 bg-card"
@@ -569,7 +569,7 @@ export default function CampaignsList() {
             </div>
 
             <div className="rounded-2xl border-2 border-secondary bg-secondary/10 p-4">
-              <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">Prévisions (calculées automatiquement)</p>
+              <p className="text-sm font-bold text-secondary uppercase tracking-wide mb-2">Prévisions (calculées automatiquement)</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Tonnage total</span><span className="font-semibold">{totalTonnage || 0} T</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Rotations prévues</span><span className="font-semibold">{rotationsPrevues}</span></div>

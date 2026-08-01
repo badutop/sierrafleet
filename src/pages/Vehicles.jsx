@@ -239,7 +239,7 @@ export default function Vehicles() {
           <div className="space-y-3 mt-2">
             {/* Identification */}
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Identification</p>
+              <p className="text-sm font-bold text-primary flex items-center gap-1.5"><IdCard className="w-4 h-4" />Identification</p>
               <div className="grid grid-cols-2 gap-3">
                 {[["code_camion","Code camion (CT)"],["immatriculation","Immatriculation"],["marque","Marque"],["modele","Modèle"]].map(([key, label]) => (
                   <div key={key}>
@@ -252,7 +252,7 @@ export default function Vehicles() {
 
             {/* Caractéristiques */}
             <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Settings2 className="w-3.5 h-3.5" />Caractéristiques</p>
+              <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Settings2 className="w-4 h-4" />Caractéristiques</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Type</Label>
@@ -285,7 +285,7 @@ export default function Vehicles() {
 
             {/* Documents & échéances */}
             <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5" />Documents & échéances</p>
+              <p className="text-sm font-bold text-amber-700 flex items-center gap-1.5"><CalendarClock className="w-4 h-4" />Documents & échéances</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Date assurance</Label>

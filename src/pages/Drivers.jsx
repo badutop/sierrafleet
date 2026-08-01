@@ -16,15 +16,16 @@ import DriverPhotoField from "@/components/drivers/DriverPhotoField";
 import DriverDocuments from "@/components/drivers/DriverDocuments";
 import { confirm } from "@/lib/confirm";
 import { logAudit } from "@/lib/auditLog";
+import { formatSenegalPhone, isBlankSenegalPhone } from "@/lib/phoneFormat";
 
 
 const statusLabels = { actif: "Actif", inactif: "Inactif", en_mission: "En mission" };
 const statusColors = { actif: "bg-emerald-500/10 text-emerald-600", inactif: "bg-muted text-muted-foreground", en_mission: "bg-blue-500/10 text-blue-600" };
 
 const emptyForm = {
-  prenom: "", nom: "", telephone: "", numero_permis: "", categorie_permis: "",
+  prenom: "", nom: "", telephone: "+221 ", numero_permis: "", categorie_permis: "",
   date_expiration_permis: "", date_embauche: "", contact_urgence_nom: "",
-  contact_urgence_telephone: "", statut: "actif", photo_url: "",
+  contact_urgence_telephone: "+221 ", statut: "actif", photo_url: "",
 };
 
 export default function Drivers() {
@@ -81,7 +82,11 @@ export default function Drivers() {
   });
 
   const openCreate = () => { setEditingDriver(null); setForm(emptyForm); setDialogOpen(true); };
-  const openEdit = (d) => { setEditingDriver(d); setForm({ ...emptyForm, ...d }); setDialogOpen(true); };
+  const openEdit = (d) => {
+    setEditingDriver(d);
+    setForm({ ...emptyForm, ...d, telephone: d.telephone || "+221 ", contact_urgence_telephone: d.contact_urgence_telephone || "+221 " });
+    setDialogOpen(true);
+  };
   const closeDialog = () => { setDialogOpen(false); setEditingDriver(null); setForm(emptyForm); };
 
   const handleSave = () => {
@@ -89,6 +94,8 @@ export default function Drivers() {
     const dateFields = ["date_expiration_permis", "date_embauche"];
     const data = { ...form };
     dateFields.forEach(f => { if (data[f] === "") data[f] = null; });
+    if (isBlankSenegalPhone(data.telephone)) data.telephone = null;
+    if (isBlankSenegalPhone(data.contact_urgence_telephone)) data.contact_urgence_telephone = null;
     if (editingDriver) updateMutation.mutate({ id: editingDriver.id, data, oldData: editingDriver });
     else createMutation.mutate(data);
   };
@@ -213,12 +220,17 @@ export default function Drivers() {
           <div className="space-y-3 mt-2">
             {/* Identification */}
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Identification</p>
+              <p className="text-sm font-bold text-primary flex items-center gap-1.5"><IdCard className="w-4 h-4" />Identification</p>
               <div className="grid grid-cols-2 gap-3">
                 <DriverPhotoField value={form.photo_url} onUploaded={(url) => setForm(f => ({ ...f, photo_url: url }))} />
-                {[["prenom","Prénom"],["nom","Nom"],["telephone","Téléphone"],["numero_permis","N° Permis"],["categorie_permis","Catégorie permis"]].map(([k, l]) => (
-                  <div key={k}><Label className="text-xs">{l}</Label><Input className="mt-1 bg-card" value={form[k] || ""} onChange={e => setForm({ ...form, [k]: e.target.value })} /></div>
-                ))}
+                <div><Label className="text-xs">Prénom</Label><Input className="mt-1 bg-card" value={form.prenom || ""} onChange={e => setForm({ ...form, prenom: e.target.value })} /></div>
+                <div><Label className="text-xs">Nom</Label><Input className="mt-1 bg-card" value={form.nom || ""} onChange={e => setForm({ ...form, nom: e.target.value })} /></div>
+                <div>
+                  <Label className="text-xs">Téléphone</Label>
+                  <Input className="mt-1 bg-card" value={form.telephone || "+221 "} onChange={e => setForm({ ...form, telephone: formatSenegalPhone(e.target.value) })} />
+                </div>
+                <div><Label className="text-xs">N° Permis</Label><Input className="mt-1 bg-card" value={form.numero_permis || ""} onChange={e => setForm({ ...form, numero_permis: e.target.value })} /></div>
+                <div><Label className="text-xs">Catégorie permis</Label><Input className="mt-1 bg-card" value={form.categorie_permis || ""} onChange={e => setForm({ ...form, categorie_permis: e.target.value })} /></div>
                 <div>
                   <Label className="text-xs">Expiration permis</Label>
                   <Input type="date" className="mt-1 bg-card" value={form.date_expiration_permis || ""} onChange={e => setForm({ ...form, date_expiration_permis: e.target.value })} />
@@ -232,7 +244,7 @@ export default function Drivers() {
 
             {/* Contact urgence */}
             <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5"><PhoneCall className="w-3.5 h-3.5" />Contact d'urgence</p>
+              <p className="text-sm font-bold text-amber-700 flex items-center gap-1.5"><PhoneCall className="w-4 h-4" />Contact d'urgence</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Nom du contact</Label>
@@ -240,7 +252,7 @@ export default function Drivers() {
                 </div>
                 <div>
                   <Label className="text-xs">Téléphone urgence</Label>
-                  <Input className="mt-1 bg-card" placeholder="+221..." value={form.contact_urgence_telephone || ""} onChange={e => setForm({ ...form, contact_urgence_telephone: e.target.value })} />
+                  <Input className="mt-1 bg-card" value={form.contact_urgence_telephone || "+221 "} onChange={e => setForm({ ...form, contact_urgence_telephone: formatSenegalPhone(e.target.value) })} />
                 </div>
               </div>
             </div>

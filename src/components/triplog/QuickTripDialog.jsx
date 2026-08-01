@@ -124,9 +124,9 @@ export default function QuickTripDialog({ open, onClose }) {
 
         <div className="space-y-3 mt-2">
           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Zap className="w-3.5 h-3.5" />Trajet</p>
+            <p className="text-sm font-bold text-primary flex items-center gap-1.5"><Zap className="w-4 h-4" />Trajet</p>
             <div>
-              <Label className="text-xs">Véhicule *</Label>
+              <Label className="text-xs">Véhicule <span className="text-green-600 font-bold">*</span></Label>
               <Autocomplete
                 className="mt-1"
                 placeholder="Immatriculation ou code camion..."
@@ -137,7 +137,7 @@ export default function QuickTripDialog({ open, onClose }) {
               />
             </div>
             <div>
-              <Label className="text-xs">Chauffeur *</Label>
+              <Label className="text-xs">Chauffeur <span className="text-green-600 font-bold">*</span></Label>
               <Autocomplete
                 className="mt-1"
                 placeholder="Nom du chauffeur..."
@@ -148,13 +148,13 @@ export default function QuickTripDialog({ open, onClose }) {
               />
             </div>
             <div>
-              <Label className="text-xs">Mission *</Label>
+              <Label className="text-xs">Mission <span className="text-green-600 font-bold">*</span></Label>
               <Input className="mt-1 bg-card" placeholder="Ex: Livraison client, transport marchandises..." value={form.mission} onChange={e => set("mission", e.target.value)} />
             </div>
           </div>
 
           <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Route className="w-3.5 h-3.5" />Itinéraire & horaires</p>
+            <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Route className="w-4 h-4" />Itinéraire & horaires</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Destination</Label>

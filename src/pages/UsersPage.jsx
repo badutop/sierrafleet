@@ -298,23 +298,23 @@ export default function UsersPage() {
 
           <div className="space-y-3 mt-2">
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Identification</p>
+              <p className="text-sm font-bold text-primary flex items-center gap-1.5"><IdCard className="w-4 h-4" />Identification</p>
               <div>
                 <Label className="text-xs">Nom complet</Label>
                 <Input className="mt-1 bg-card" placeholder="Ex: Amadou Diop" value={inviteFullName} onChange={e => setInviteFullName(e.target.value)} />
               </div>
               <div>
-                <Label className="text-xs">Adresse email *</Label>
+                <Label className="text-xs">Adresse email <span className="text-green-600 font-bold">*</span></Label>
                 <Input type="email" className="mt-1 bg-card" placeholder="utilisateur@exemple.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
               </div>
               <div>
-                <Label className="text-xs">Mot de passe * (8 caractères min.)</Label>
+                <Label className="text-xs">Mot de passe <span className="text-green-600 font-bold">*</span> (8 caractères min.)</Label>
                 <Input type="password" className="mt-1 bg-card" placeholder="Mot de passe" value={invitePassword} onChange={e => setInvitePassword(e.target.value)} />
               </div>
             </div>
 
             <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" />Rôle & accès</p>
+              <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><ShieldCheck className="w-4 h-4" />Rôle & accès</p>
               <div>
                 <Label className="text-xs">Rôle</Label>
                 <Select value={inviteRole} onValueChange={setInviteRole}>
@@ -378,7 +378,7 @@ export default function UsersPage() {
               </div>
 
               <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-                <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" />Rôle & accès</p>
+                <p className="text-sm font-bold text-primary flex items-center gap-1.5"><ShieldCheck className="w-4 h-4" />Rôle & accès</p>
                 <div>
                   <Label className="text-xs">Rôle</Label>
                   <Select value={editRole} onValueChange={setEditRole}>

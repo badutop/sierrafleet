@@ -100,9 +100,9 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers
         <div className="space-y-3 mt-2">
           {/* Véhicule & station */}
           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Fuel className="w-3.5 h-3.5" />Véhicule & station</p>
+            <p className="text-sm font-bold text-primary flex items-center gap-1.5"><Fuel className="w-4 h-4" />Véhicule & station</p>
             <div>
-              <Label className="text-sm font-medium">Véhicule *</Label>
+              <Label className="text-sm font-medium">Véhicule <span className="text-green-600 font-bold">*</span></Label>
               <Select value={form.vehicle_id} onValueChange={v => set("vehicle_id", v)}>
                 <SelectTrigger className="mt-1.5 h-12 text-sm bg-card">
                   <SelectValue placeholder="Sélectionner un véhicule" />
@@ -118,7 +118,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-sm font-medium">Date *</Label>
+                <Label className="text-sm font-medium">Date <span className="text-green-600 font-bold">*</span></Label>
                 <Input type="date" className="mt-1.5 h-12 text-sm bg-card" value={form.date} onChange={e => set("date", e.target.value)} />
               </div>
               <div>
@@ -143,10 +143,10 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers
 
           {/* Quantité & montant */}
           <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5"><Coins className="w-3.5 h-3.5" />Quantité & montant</p>
+            <p className="text-sm font-bold text-emerald-700 flex items-center gap-1.5"><Coins className="w-4 h-4" />Quantité & montant</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-sm font-medium">Litres *</Label>
+                <Label className="text-sm font-medium">Litres <span className="text-green-600 font-bold">*</span></Label>
                 <Input
                   type="number" inputMode="decimal" min="0"
                   className="mt-1.5 h-12 text-sm bg-card"

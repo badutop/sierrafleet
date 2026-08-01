@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 import { logAudit } from "@/lib/auditLog";
+import { displayThousands, parseThousandsInput } from "@/lib/numberFormat";
 
 const categorieLabels = { moteur: "Moteur", freinage: "Freinage", suspension: "Suspension", transmission: "Transmission", electricite: "Électricité", carrosserie: "Carrosserie", filtres: "Filtres", pneumatiques: "Pneumatiques", autre: "Autre" };
 const categorieColors = { moteur: "bg-red-500/10 text-red-600", freinage: "bg-orange-500/10 text-orange-600", suspension: "bg-yellow-500/10 text-yellow-700", transmission: "bg-blue-500/10 text-blue-600", electricite: "bg-purple-500/10 text-purple-600", carrosserie: "bg-slate-500/10 text-slate-600", filtres: "bg-green-500/10 text-green-600", pneumatiques: "bg-cyan-500/10 text-cyan-600", autre: "bg-muted text-muted-foreground" };
@@ -206,8 +207,8 @@ export default function SpareParts() {
 
           <div className="space-y-3 mt-2">
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Identification</p>
-              <div><Label className="text-xs">Désignation *</Label><Input className="mt-1 bg-card" value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} /></div>
+              <p className="text-sm font-bold text-primary flex items-center gap-1.5"><IdCard className="w-4 h-4" />Identification</p>
+              <div><Label className="text-xs">Désignation <span className="text-green-600 font-bold">*</span></Label><Input className="mt-1 bg-card" value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-xs">Référence</Label><Input className="mt-1 bg-card" value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></div>
                 <div>
@@ -221,7 +222,7 @@ export default function SpareParts() {
             </div>
 
             <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Boxes className="w-3.5 h-3.5" />Stock & état</p>
+              <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Boxes className="w-4 h-4" />Stock & état</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">État</Label>
@@ -236,8 +237,15 @@ export default function SpareParts() {
             </div>
 
             <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5"><Coins className="w-3.5 h-3.5" />Tarification & fournisseur</p>
-              <div><Label className="text-xs">Prix unitaire (FCFA)</Label><Input type="number" className="mt-1 bg-card" value={form.prix_unitaire} onChange={e => setForm({ ...form, prix_unitaire: e.target.value })} /></div>
+              <p className="text-sm font-bold text-emerald-700 flex items-center gap-1.5"><Coins className="w-4 h-4" />Tarification & fournisseur</p>
+              <div>
+                <Label className="text-xs">Prix unitaire (FCFA)</Label>
+                <Input
+                  type="text" inputMode="numeric" className="mt-1 bg-card"
+                  value={displayThousands(form.prix_unitaire)}
+                  onChange={e => setForm({ ...form, prix_unitaire: parseThousandsInput(e.target.value) ?? "" })}
+                />
+              </div>
               <div>
                 <Label className="text-xs">Fournisseur</Label>
                 <Select value={form.supplier_id || ""} onValueChange={v => setForm({ ...form, supplier_id: v })}>

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Fuel, ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import { FUEL_PRICE_KEY, getFuelPricePerLitre } from "@/pages/SettingsPage";
+import { displayThousands, parseThousandsInput } from "@/lib/numberFormat";
 
 export default function FuelPriceDialog({ open, onClose }) {
   const [fuelPrice, setFuelPrice] = useState(() => getFuelPricePerLitre());
@@ -31,10 +32,14 @@ export default function FuelPriceDialog({ open, onClose }) {
 
         <div className="space-y-3 mt-2">
           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Fuel className="w-3.5 h-3.5" />Prix du carburant</p>
+            <p className="text-sm font-bold text-primary flex items-center gap-1.5"><Fuel className="w-4 h-4" />Prix du carburant</p>
             <div>
               <Label className="text-xs">Prix du carburant (FCFA / litre)</Label>
-              <Input type="number" min="0" className="mt-1 bg-card" placeholder="Ex: 650" value={fuelPrice} onChange={e => setFuelPrice(Number(e.target.value))} />
+              <Input
+                type="text" inputMode="numeric" className="mt-1 bg-card" placeholder="Ex: 650"
+                value={displayThousands(fuelPrice)}
+                onChange={e => setFuelPrice(parseThousandsInput(e.target.value) || 0)}
+              />
             </div>
           </div>
         </div>

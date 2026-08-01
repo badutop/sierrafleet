@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { logAudit } from "@/lib/auditLog";
+import { displayThousands, parseThousandsInput } from "@/lib/numberFormat";
 
 const typeLabels = {
   vidange: "Vidange", revision: "Révision générale", pneus: "Pneus", filtres: "Filtres",
@@ -176,10 +177,10 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
 
         <div className="space-y-3 mt-2">
         <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-          <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Intervention</p>
+          <p className="text-sm font-bold text-primary flex items-center gap-1.5"><IdCard className="w-4 h-4" />Intervention</p>
           {/* Véhicule */}
           <div>
-            <Label className="text-xs">Véhicule *</Label>
+            <Label className="text-xs">Véhicule <span className="text-green-600 font-bold">*</span></Label>
             <Select value={form.vehicle_id || ""} onValueChange={v => set("vehicle_id", v)}>
               <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="— Sélectionner un véhicule —" /></SelectTrigger>
               <SelectContent>
@@ -196,7 +197,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
           <div className="grid grid-cols-2 gap-3">
             {/* Catégorie */}
             <div>
-              <Label className="text-xs">Catégorie *</Label>
+              <Label className="text-xs">Catégorie <span className="text-green-600 font-bold">*</span></Label>
               <Select value={form.categorie} onValueChange={v => set("categorie", v)}>
                 <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -207,7 +208,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
 
             {/* Type */}
             <div>
-              <Label className="text-xs">Type d'intervention *</Label>
+              <Label className="text-xs">Type d'intervention <span className="text-green-600 font-bold">*</span></Label>
               <Select value={form.type_entretien} onValueChange={v => set("type_entretien", v)}>
                 <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -219,7 +220,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
         </div>
 
         <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-          <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Package className="w-3.5 h-3.5" />Pièces & coût</p>
+          <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Package className="w-4 h-4" />Pièces & coût</p>
           {/* Pièces */}
           <div>
             <Label className="text-xs">Pièces remplacées</Label>
@@ -300,7 +301,11 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
             <div>
               <Label className="text-xs">Coût main d'œuvre (FCFA)</Label>
               {!isReadOnly ? (
-                <Input type="number" min="0" className="mt-1 bg-card" placeholder="0" value={form.cout_main_oeuvre} onChange={e => set("cout_main_oeuvre", e.target.value)} />
+                <Input
+                  type="text" inputMode="numeric" className="mt-1 bg-card" placeholder="0"
+                  value={displayThousands(form.cout_main_oeuvre)}
+                  onChange={e => set("cout_main_oeuvre", parseThousandsInput(e.target.value) ?? "")}
+                />
               ) : (
                 <p className="mt-1 h-9 flex items-center text-sm text-foreground">{(Number(form.cout_main_oeuvre) || 0).toLocaleString("fr-FR")} FCFA</p>
               )}
@@ -334,7 +339,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
 
         {isCorrective && (
           <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" />Détails de la panne</p>
+            <p className="text-sm font-bold text-amber-700 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />Détails de la panne</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Gravité</Label>
@@ -360,10 +365,10 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
         )}
 
         <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-          <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5" />Planification & suivi</p>
+          <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><CalendarClock className="w-4 h-4" />Planification & suivi</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Date intervention *</Label>
+              <Label className="text-xs">Date intervention <span className="text-green-600 font-bold">*</span></Label>
               <Input type="date" className="mt-1 bg-card" value={form.date_entretien} onChange={e => set("date_entretien", e.target.value)} />
             </div>
             <div>

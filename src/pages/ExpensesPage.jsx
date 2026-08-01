@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import ExpenseValidationPanel from "@/components/expenses/ExpenseValidationPanel";
 import { confirm } from "@/lib/confirm";
 import { logAudit } from "@/lib/auditLog";
+import { displayThousands, parseThousandsInput } from "@/lib/numberFormat";
 
 // "achat_pieces" n'apparaît pas dans typeLabelsForm : ce poste est généré
 // automatiquement au paiement d'une facture fournisseur (Commandes Garage),
@@ -277,10 +278,10 @@ export default function ExpensesPage() {
 
           <div className="space-y-3 mt-2">
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><FileStack className="w-3.5 h-3.5" />Détails du frais</p>
+              <p className="text-sm font-bold text-primary flex items-center gap-1.5"><FileStack className="w-4 h-4" />Détails du frais</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Type de frais {!viewOnly && "*"}</Label>
+                  <Label className="text-xs">Type de frais {!viewOnly && <span className="text-green-600 font-bold">*</span>}</Label>
                   <Select
                     value={form.type_frais}
                     onValueChange={v => !viewOnly && setForm(f => ({
@@ -297,12 +298,17 @@ export default function ExpensesPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs">Date {!viewOnly && "*"}</Label>
+                  <Label className="text-xs">Date {!viewOnly && <span className="text-green-600 font-bold">*</span>}</Label>
                   <Input type="date" className="mt-1 bg-card" value={form.date_frais} onChange={e => setForm({ ...form, date_frais: e.target.value })} disabled={viewOnly} />
                 </div>
                 <div>
-                  <Label className="text-xs">Montant (FCFA) {!viewOnly && "*"}</Label>
-                  <Input type="number" className="mt-1 bg-card" value={form.montant} onChange={e => setForm({ ...form, montant: e.target.value })} disabled={viewOnly} />
+                  <Label className="text-xs">Montant (FCFA) {!viewOnly && <span className="text-green-600 font-bold">*</span>}</Label>
+                  <Input
+                    type="text" inputMode="numeric" className="mt-1 bg-card"
+                    value={displayThousands(form.montant)}
+                    onChange={e => setForm({ ...form, montant: parseThousandsInput(e.target.value) ?? "" })}
+                    disabled={viewOnly}
+                  />
                 </div>
                 <div>
                   <Label className="text-xs">Statut</Label>
@@ -315,7 +321,7 @@ export default function ExpensesPage() {
 
             {form.type_frais !== "autre" && (
               <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-                <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Truck className="w-3.5 h-3.5" />Affectation</p>
+                <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Truck className="w-4 h-4" />Affectation</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs">Véhicule</Label>

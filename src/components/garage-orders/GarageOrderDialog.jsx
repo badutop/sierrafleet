@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { compressImageFile } from "@/lib/imageCompression";
+import { displayThousands, parseThousandsInput } from "@/lib/numberFormat";
 
 const STEPS = [
   { key: "en_attente",     label: "En attente",     icon: FileText },
@@ -221,7 +222,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
         {order.statut === "en_attente" && (
           <div className="grid grid-cols-2 gap-3 mt-3 border-t border-border pt-3">
             <div className="col-span-2">
-              <Label className="text-xs">Fournisseur *</Label>
+              <Label className="text-xs">Fournisseur <span className="text-green-600 font-bold">*</span></Label>
               <Select value={form.supplier_id || ""} onValueChange={v => setForm(f => ({ ...f, supplier_id: v }))}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="— Sélectionner un fournisseur —" /></SelectTrigger>
                 <SelectContent>
@@ -237,7 +238,11 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
             </div>
             <div>
               <Label className="text-xs">Prix unitaire (FCFA)</Label>
-              <Input type="number" min="0" className="mt-1" placeholder="0" value={form.prix_unitaire || ""} onChange={e => setForm(f => ({ ...f, prix_unitaire: e.target.value }))} />
+              <Input
+                type="text" inputMode="numeric" className="mt-1" placeholder="0"
+                value={displayThousands(form.prix_unitaire)}
+                onChange={e => setForm(f => ({ ...f, prix_unitaire: parseThousandsInput(e.target.value) }))}
+              />
             </div>
             <div>
               <Label className="text-xs">Conditions de paiement</Label>
@@ -280,8 +285,8 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
         {order.statut === "recue" && (
           canHandleInvoice ? (
             <div className="border-t border-border pt-3 mt-3 space-y-3">
-              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Receipt className="w-3.5 h-3.5 text-orange-600" /> Réception de la facture fournisseur
+              <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                <Receipt className="w-4 h-4 text-orange-600" /> Réception de la facture fournisseur
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -290,7 +295,11 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
                 </div>
                 <div>
                   <Label className="text-xs">Montant facture (FCFA)</Label>
-                  <Input type="number" min="0" className="mt-1" value={invoiceForm.montant_facture} onChange={e => setInvoiceForm(f => ({ ...f, montant_facture: e.target.value }))} />
+                  <Input
+                    type="text" inputMode="numeric" className="mt-1"
+                    value={displayThousands(invoiceForm.montant_facture)}
+                    onChange={e => setInvoiceForm(f => ({ ...f, montant_facture: parseThousandsInput(e.target.value) }))}
+                  />
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Scan de la facture</Label>

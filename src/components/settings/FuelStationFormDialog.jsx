@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Fuel, ArrowLeft, Save, Navigation, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { logAudit } from "@/lib/auditLog";
+import { formatSenegalPhone, isBlankSenegalPhone } from "@/lib/phoneFormat";
 
-const emptyForm = { nom: "", adresse: "", _coords: "", latitude: "", longitude: "", telephone_gerant: "" };
+const emptyForm = { nom: "", adresse: "", _coords: "", latitude: "", longitude: "", telephone_gerant: "+221 " };
 
 // Parse "lat,lng" en { latitude, longitude } — même convention que
 // DepotsEditor.jsx pour la saisie des coordonnées GPS.
@@ -37,7 +38,7 @@ export default function FuelStationFormDialog({ open, onClose, station }) {
           _coords: coords,
           latitude: station.latitude ?? "",
           longitude: station.longitude ?? "",
-          telephone_gerant: station.telephone_gerant || "",
+          telephone_gerant: station.telephone_gerant || "+221 ",
         });
       } else {
         setForm(emptyForm);
@@ -64,7 +65,7 @@ export default function FuelStationFormDialog({ open, onClose, station }) {
     adresse: form.adresse || null,
     latitude: form.latitude !== "" ? Number(form.latitude) : null,
     longitude: form.longitude !== "" ? Number(form.longitude) : null,
-    telephone_gerant: form.telephone_gerant || null,
+    telephone_gerant: isBlankSenegalPhone(form.telephone_gerant) ? null : form.telephone_gerant,
   });
 
   const createMutation = useMutation({
@@ -116,9 +117,9 @@ export default function FuelStationFormDialog({ open, onClose, station }) {
 
         <div className="space-y-3 mt-2">
           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Fuel className="w-3.5 h-3.5" />Détails de la station</p>
+            <p className="text-sm font-bold text-primary flex items-center gap-1.5"><Fuel className="w-4 h-4" />Détails de la station</p>
             <div>
-              <Label className="text-xs">Nom de la station *</Label>
+              <Label className="text-xs">Nom de la station <span className="text-green-600 font-bold">*</span></Label>
               <Input className="mt-1 bg-card" placeholder="Ex: Total Pompiers" value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} />
             </div>
             <div>
@@ -144,7 +145,7 @@ export default function FuelStationFormDialog({ open, onClose, station }) {
             </div>
             <div>
               <Label className="text-xs flex items-center gap-1"><Phone className="w-3 h-3" />Téléphone du gérant</Label>
-              <Input className="mt-1 bg-card" placeholder="+221 77 123 45 67" value={form.telephone_gerant} onChange={e => setForm({ ...form, telephone_gerant: e.target.value })} />
+              <Input className="mt-1 bg-card" value={form.telephone_gerant || "+221 "} onChange={e => setForm({ ...form, telephone_gerant: formatSenegalPhone(e.target.value) })} />
             </div>
           </div>
         </div>

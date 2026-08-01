@@ -17,19 +17,9 @@ import { confirm } from "@/lib/confirm";
 import { logAudit } from "@/lib/auditLog";
 import { useZones } from "@/hooks/use-zones";
 import { getZoneColors } from "@/lib/zoneColors";
+import { formatSenegalPhone, isBlankSenegalPhone } from "@/lib/phoneFormat";
 
 const emptyForm = { nom: "", code_client: "", zone: "zone1", contact_nom: "", contact_telephone: "+221 ", actif: true };
-
-// Formate au fil de la saisie au format sénégalais "+221 XX XXX XX XX" (9
-// chiffres, groupés 2-3-2-2) — ne garde que les chiffres tapés après
-// l'indicatif, qui reste fixe en tête, quoi que l'utilisateur édite.
-function formatSenegalPhone(raw) {
-  let digits = (raw || "").replace(/\D/g, "");
-  if (digits.startsWith("221")) digits = digits.slice(3);
-  digits = digits.slice(0, 9);
-  const groups = [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 7), digits.slice(7, 9)].filter(Boolean);
-  return "+221" + (groups.length ? " " + groups.join(" ") : "");
-}
 
 // Génère le prochain code client séquentiel (ex: CLI-0009), indépendamment
 // du nom (généré avant que l'utilisateur saisisse le nom du client).
@@ -161,7 +151,7 @@ export default function ClientsPage() {
   const handleSave = () => {
     const data = { ...form };
     // Pas de numéro réellement saisi au-delà de l'indicatif — ne rien enregistrer.
-    if (!(data.contact_telephone || "").replace("+221", "").replace(/\D/g, "")) data.contact_telephone = null;
+    if (isBlankSenegalPhone(data.contact_telephone)) data.contact_telephone = null;
     if (editingClient) updateMutation.mutate({ id: editingClient.id, data, oldData: editingClient });
     else createMutation.mutate(data);
   };

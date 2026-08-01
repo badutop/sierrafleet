@@ -78,7 +78,7 @@ export default function WhatsAppNotifDialog({ open, onClose }) {
 
         <div className="space-y-3 mt-2">
           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5" />Numéros destinataires</p>
+            <p className="text-sm font-bold text-primary flex items-center gap-1.5"><MessageCircle className="w-4 h-4" />Numéros destinataires</p>
             <div className="space-y-2">
               {numbers.map((n, i) => (
                 <div key={i} className="flex gap-2 items-center">

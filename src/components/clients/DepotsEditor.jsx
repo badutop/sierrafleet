@@ -82,7 +82,7 @@ export default function DepotsEditor({ depots, onChange, zones = [] }) {
           {/* Nom + Zone */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-[10px] text-muted-foreground">Nom du dépôt *</Label>
+              <Label className="text-[10px] text-muted-foreground">Nom du dépôt <span className="text-green-600 font-bold">*</span></Label>
               <Input
                 className="mt-0.5 h-8 text-xs"
                 placeholder="ex: Dépôt Nord"
@@ -91,7 +91,7 @@ export default function DepotsEditor({ depots, onChange, zones = [] }) {
               />
             </div>
             <div>
-              <Label className="text-[10px] text-muted-foreground">Zone *</Label>
+              <Label className="text-[10px] text-muted-foreground">Zone <span className="text-green-600 font-bold">*</span></Label>
               <Select value={depot.zone} onValueChange={v => update(i, "zone", v)}>
                 <SelectTrigger className="mt-0.5 h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>

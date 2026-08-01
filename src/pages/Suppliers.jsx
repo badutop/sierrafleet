@@ -13,8 +13,9 @@ import { Plus, Search, Building2, Factory, Pencil, Trash2, Phone, Mail, MapPin, 
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 import { cn } from "@/lib/utils";
+import { formatSenegalPhone, isBlankSenegalPhone } from "@/lib/phoneFormat";
 
-const emptyForm = { nom: "", telephone: "", email: "", adresse: "", actif: true };
+const emptyForm = { nom: "", telephone: "+221 ", email: "", adresse: "", actif: true };
 
 export default function Suppliers() {
   const [search, setSearch] = useState("");
@@ -57,13 +58,15 @@ export default function Suppliers() {
   });
 
   const openCreate = () => { setEditingSupplier(null); setForm(emptyForm); setDialogOpen(true); };
-  const openEdit = (s) => { setEditingSupplier(s); setForm({ ...emptyForm, ...s }); setDialogOpen(true); };
+  const openEdit = (s) => { setEditingSupplier(s); setForm({ ...emptyForm, ...s, telephone: s.telephone || "+221 " }); setDialogOpen(true); };
   const closeDialog = () => { setDialogOpen(false); setEditingSupplier(null); setForm(emptyForm); };
 
   const handleSave = () => {
     if (!form.nom.trim()) return;
-    if (editingSupplier) updateMutation.mutate({ id: editingSupplier.id, data: form });
-    else createMutation.mutate(form);
+    const data = { ...form };
+    if (isBlankSenegalPhone(data.telephone)) data.telephone = null;
+    if (editingSupplier) updateMutation.mutate({ id: editingSupplier.id, data });
+    else createMutation.mutate(data);
   };
 
   const handleDelete = async (s) => {
@@ -164,19 +167,19 @@ export default function Suppliers() {
 
           <div className="space-y-3 mt-2">
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Identification</p>
+              <p className="text-sm font-bold text-primary flex items-center gap-1.5"><IdCard className="w-4 h-4" />Identification</p>
               <div>
-                <Label className="text-xs">Nom du fournisseur *</Label>
+                <Label className="text-xs">Nom du fournisseur <span className="text-green-600 font-bold">*</span></Label>
                 <Input className="mt-1" value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} placeholder="ex: Pièces Auto Dakar" />
               </div>
             </div>
 
             <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />Coordonnées</p>
+              <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Phone className="w-4 h-4" />Coordonnées</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs flex items-center gap-1"><Phone className="w-3 h-3" />Téléphone</Label>
-                  <Input className="mt-1 bg-card" value={form.telephone} onChange={e => setForm({ ...form, telephone: e.target.value })} placeholder="+221 77 123 45 67" />
+                  <Input className="mt-1 bg-card" value={form.telephone || "+221 "} onChange={e => setForm({ ...form, telephone: formatSenegalPhone(e.target.value) })} />
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1"><Mail className="w-3 h-3" />Email</Label>
