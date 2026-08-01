@@ -146,6 +146,14 @@ export default function DocumentScanner({
   const startCamera = async () => {
     stopCamera();
     const myGeneration = streamGenerationRef.current;
+    // Diagnostic temporaire — remonte l'erreur réelle au lieu de l'avaler
+    // silencieusement, pour identifier précisément ce qui bloque sur iOS
+    // (NotAllowedError, NotFoundError, OverconstrainedError, contexte non
+    // sécurisé...) plutôt que de continuer à deviner à l'aveugle.
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error("Caméra indisponible : navigator.mediaDevices absent (contexte non sécurisé ou navigateur non supporté)");
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
@@ -166,12 +174,14 @@ export default function DocumentScanner({
         // aucune frame ne s'affiche (écran noir) et onloadedmetadata peut ne
         // jamais se déclencher, laissant le bouton de capture désactivé indéfiniment.
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().catch(() => {});
+          videoRef.current?.play().catch(err => toast.error(`Caméra : lecture bloquée — ${err.name || err.message}`));
           setReady(true);
         };
       }
-    } catch {
-      // Permission refusée ou caméra indisponible.
+    } catch (err) {
+      if (myGeneration === streamGenerationRef.current) {
+        toast.error(`Caméra : ${err.name || "erreur"} — ${err.message || "indisponible"}`);
+      }
     }
   };
 
