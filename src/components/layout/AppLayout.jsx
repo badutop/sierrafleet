@@ -7,6 +7,13 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
 import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
 
+// Page d'atterrissage dédiée à la connexion pour certains rôles, plutôt que
+// leur simple premier module accessible dans l'ordre de la barre latérale.
+const ROLE_LANDING_PAGE = {
+  responsable_operations: "/campaigns",
+  responsable_exploitation: "/fuel",
+};
+
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -28,11 +35,13 @@ export default function AppLayout() {
     ) {
       // Le Tableau de bord est réservé à Admin et Finances (voir
       // Sidebar.jsx/getVisibleNavItems) — la route elle-même n'a aucune
-      // protection, donc un autre rôle atterrissant sur "/" (première
-      // connexion, lien direct...) est redirigé vers son premier module
-      // réellement accessible plutôt que de voir le Tableau de bord.
-      const firstAccessible = getVisibleNavItems(currentUser).find(item => item.path && item.path !== "/");
-      if (firstAccessible) navigate(firstAccessible.path, { replace: true });
+      // protection, donc un autre rôle atterrissant sur "/" (connexion,
+      // lien direct...) est redirigé : vers sa page dédiée si définie
+      // (Resp. Opérations -> Campagnes, Resp. Exploitation -> Carburant),
+      // sinon vers son premier module réellement accessible.
+      const target = ROLE_LANDING_PAGE[currentUser.role]
+        || getVisibleNavItems(currentUser).find(item => item.path && item.path !== "/")?.path;
+      if (target) navigate(target, { replace: true });
     }
     // L'admin reste sur l'app principale mais peut accéder aux deux directement par leur URL
   }, [currentUser, location.pathname]);
