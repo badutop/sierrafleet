@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
-import Sidebar from "./Sidebar";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import Sidebar, { getVisibleNavItems } from "./Sidebar";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Les chauffeurs et les collecteurs de bons ont leur propre page dédiée
@@ -19,9 +20,22 @@ export default function AppLayout() {
       navigate("/refuel", { replace: true });
     } else if (currentUser?.role === "collecteur_bons") {
       navigate("/collecte-bons", { replace: true });
+    } else if (
+      location.pathname === "/" &&
+      currentUser &&
+      currentUser.role !== "admin" &&
+      currentUser.role !== "finances"
+    ) {
+      // Le Tableau de bord est réservé à Admin et Finances (voir
+      // Sidebar.jsx/getVisibleNavItems) — la route elle-même n'a aucune
+      // protection, donc un autre rôle atterrissant sur "/" (première
+      // connexion, lien direct...) est redirigé vers son premier module
+      // réellement accessible plutôt que de voir le Tableau de bord.
+      const firstAccessible = getVisibleNavItems(currentUser).find(item => item.path && item.path !== "/");
+      if (firstAccessible) navigate(firstAccessible.path, { replace: true });
     }
     // L'admin reste sur l'app principale mais peut accéder aux deux directement par leur URL
-  }, [currentUser]);
+  }, [currentUser, location.pathname]);
 
   return (
     <div className="min-h-viewport bg-background">

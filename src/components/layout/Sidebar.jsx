@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
 import GoalsLogo from "@/components/GoalsLogo";
 
-const navItems = [
+export const navItems = [
   { path: "/",            label: "Tableau de bord",          icon: LayoutDashboard, module: "dashboard" },
   { path: "/clients",     label: "Clients",                  icon: Building2,       module: "campaigns" },
   { path: "/suppliers",   label: "Fournisseurs",             icon: Factory,         module: "suppliers" },
@@ -31,10 +31,11 @@ const navItems = [
   { path: "/settings",    label: "Paramètres",               icon: Settings,        module: "settings" },
 ];
 
-export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, currentUser }) {
-  const location = useLocation();
-  const { logout } = useAuth();
-
+// Calcule les éléments de nav réellement visibles pour un utilisateur —
+// partagé avec AppLayout.jsx, qui s'en sert pour rediriger un utilisateur
+// atterrissant sur une page qu'il ne devrait pas voir (ex: Tableau de bord)
+// vers son premier module réellement accessible.
+export function getVisibleNavItems(currentUser) {
   // Admin = accès total. Sinon on filtre sur les modules autorisés.
   const moduleFilteredItems = !currentUser || currentUser.role === "admin" || !currentUser.modules?.length
     ? navItems
@@ -44,9 +45,24 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
   // distinction possible via les modules) — Resp. Opérations et Resp.
   // Exploitation ne doivent toutefois jamais voir Clients, d'où ce filtre
   // dédié au rôle.
-  const visibleItems = (currentUser?.role === "responsable_operations" || currentUser?.role === "responsable_exploitation")
+  const roleFilteredItems = (currentUser?.role === "responsable_operations" || currentUser?.role === "responsable_exploitation")
     ? moduleFilteredItems.filter(item => item.path !== "/clients")
     : moduleFilteredItems;
+
+  // Le Tableau de bord est réservé à Admin et Finances, quels que soient
+  // les modules assignés — les autres rôles (Resp. Opérations, Resp.
+  // Exploitation, Exécuteur Dépenses ; Chauffeur et Collecteur de bons ne
+  // voient de toute façon jamais cette barre latérale, voir AppLayout.jsx)
+  // ne doivent jamais l'avoir.
+  const canSeeDashboard = !currentUser || currentUser.role === "admin" || currentUser.role === "finances";
+  return roleFilteredItems.filter(item => canSeeDashboard || item.path !== "/");
+}
+
+export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, currentUser }) {
+  const location = useLocation();
+  const { logout } = useAuth();
+
+  const visibleItems = getVisibleNavItems(currentUser);
 
   return (
     <>
