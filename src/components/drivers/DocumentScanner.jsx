@@ -122,24 +122,48 @@ export default function DocumentScanner({
   // toujours visibles, quels que soient l'appareil et son orientation.
   const [cropMaxSize, setCropMaxSize] = useState(null);
 
+  // Compteur de génération : évite qu'un flux caméra obtenu APRÈS un
+  // démontage (ou un nouvel appel startCamera, ex: retake()) ne reste
+  // assigné et jamais arrêté. Sans ça, un getUserMedia toujours pendant au
+  // moment du cleanup fuit indéfiniment — et sur mobile (une seule caméra
+  // active à la fois), ce flux fantôme peut faire échouer silencieusement
+  // toute nouvelle tentative d'ouverture du scanner par la suite (symptôme :
+  // ça marche la première fois, plus du tout ensuite).
+  const streamGenerationRef = useRef(0);
+
   useEffect(() => {
     startCamera();
     return () => stopCamera();
   }, []);
 
-  const startCamera = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
-    });
-    streamRef.current = stream;
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.onloadedmetadata = () => setReady(true);
-    }
+  const stopCamera = () => {
+    streamGenerationRef.current += 1;
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
   };
 
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach(t => t.stop());
+  const startCamera = async () => {
+    stopCamera();
+    const myGeneration = streamGenerationRef.current;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
+      });
+      if (myGeneration !== streamGenerationRef.current) {
+        // Démonté (ou un autre startCamera a été déclenché) pendant l'attente
+        // de la permission caméra — ce flux est obsolète, on l'arrête tout
+        // de suite au lieu de le laisser fuir.
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => setReady(true);
+      }
+    } catch {
+      // Permission refusée ou caméra indisponible.
+    }
   };
 
   // Le cadre affiché EST la zone du flux vidéo qui sera capturée (le

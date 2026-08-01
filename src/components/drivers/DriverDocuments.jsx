@@ -28,9 +28,8 @@ const DOCS = [
   },
 ];
 
-function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
+function DocSlot({ doc, value, onUpload, onScan, onDelete, uploading }) {
   const inputRef = useRef();
-  const [scannerOpen, setScannerOpen] = useState(false);
   const Icon = doc.icon;
 
   const handleFileChange = async (e) => {
@@ -42,13 +41,6 @@ function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
 
   return (
     <div className={cn("rounded-xl border p-4 flex flex-col gap-3", value ? "border-border bg-card" : "border-dashed border-border bg-muted/30")}>
-      {scannerOpen && (
-        <DocumentScanner
-          onCapture={(file) => onUpload(doc.key, file)}
-          onClose={() => setScannerOpen(false)}
-          instructionText={`Alignez ${doc.label} dans le cadre`}
-        />
-      )}
       <div className="flex items-center gap-3">
         <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", doc.bg)}>
           <Icon className={cn("w-5 h-5", doc.color)} />
@@ -78,7 +70,7 @@ function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
               size="sm"
               variant="outline"
               className="h-8 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setScannerOpen(true)}
+              onClick={() => onScan(doc.key)}
               disabled={uploading}
               title="Scanner avec caméra"
             >
@@ -109,7 +101,7 @@ function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
               size="sm"
               variant="outline"
               className="flex-1 h-8 text-xs border-dashed"
-              onClick={() => setScannerOpen(true)}
+              onClick={() => onScan(doc.key)}
               disabled={uploading}
             >
               {uploading ? (
@@ -145,6 +137,14 @@ function DocSlot({ doc, value, onUpload, onDelete, uploading }) {
 
 export default function DriverDocuments({ driver, open, onClose }) {
   const [uploading, setUploading] = useState({});
+  // Le scanner est rendu hors du <Dialog> (voir plus bas) — même s'il n'était
+  // niché qu'à travers un portail (position DOM), le Dialog de Radix reste
+  // son ancêtre React logique tant qu'il est monté à l'intérieur, et son
+  // FocusScope/DismissableLayer peut alors intercepter des interactions qui
+  // ne sont pourtant pas de vrais clics "extérieurs". En le sortant
+  // complètement de l'arbre du Dialog (comme CollecteurBonsPage.jsx, qui n'a
+  // jamais eu ce problème), on élimine la cause plutôt que ses symptômes.
+  const [scanningKey, setScanningKey] = useState(null);
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
@@ -181,37 +181,53 @@ export default function DriverDocuments({ driver, open, onClose }) {
     toast.success("Document supprimé");
   };
 
+  const handleScanCapture = (file) => {
+    if (!scanningKey) return;
+    handleUpload(scanningKey, file);
+  };
+
   if (!driver) return null;
 
+  const scanningDoc = DOCS.find(d => d.key === scanningKey);
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent
-        className="max-w-md [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-      >
-        <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
-          <FileStack className="w-5 h-5 text-secondary shrink-0" />
-          <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
-            Documents — {driver.prenom} {driver.nom}
-          </DialogTitle>
-        </div>
-        <div className="space-y-3 mt-2">
-          {DOCS.map(doc => (
-            <DocSlot
-              key={doc.key}
-              doc={doc}
-              value={driver[doc.key]}
-              onUpload={handleUpload}
-              onDelete={handleDelete}
-              uploading={uploading[doc.key]}
-            />
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground text-center pt-2">
-          Formats acceptés : PDF, JPG, PNG, WEBP
-        </p>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-md [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+          <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
+            <FileStack className="w-5 h-5 text-secondary shrink-0" />
+            <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
+              Documents — {driver.prenom} {driver.nom}
+            </DialogTitle>
+          </div>
+          <div className="space-y-3 mt-2">
+            {DOCS.map(doc => (
+              <DocSlot
+                key={doc.key}
+                doc={doc}
+                value={driver[doc.key]}
+                onUpload={handleUpload}
+                onScan={setScanningKey}
+                onDelete={handleDelete}
+                uploading={uploading[doc.key]}
+              />
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground text-center pt-2">
+            Formats acceptés : PDF, JPG, PNG, WEBP
+          </p>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rendu en dehors du Dialog (pas seulement via portail DOM) — voir le
+          commentaire plus haut sur scanningKey. */}
+      {scanningDoc && (
+        <DocumentScanner
+          onCapture={handleScanCapture}
+          onClose={() => setScanningKey(null)}
+          instructionText={`Alignez ${scanningDoc.label} dans le cadre`}
+        />
+      )}
+    </>
   );
 }
