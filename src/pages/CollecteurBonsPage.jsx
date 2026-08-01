@@ -173,7 +173,7 @@ export default function CollecteurBonsPage() {
       const allCollected = cp.rotations.every(r => r.bon_final_scan_url);
       (allCollected ? done : pending).push(cp);
     });
-    pending.sort((a, b) => new Date(a.rotations[0]?.date_rotation || 0) - new Date(b.rotations[0]?.date_rotation || 0));
+    pending.sort((a, b) => new Date(b.rotations[0]?.date_rotation || 0) - new Date(a.rotations[0]?.date_rotation || 0));
     done.sort((a, b) => new Date(b.rotations[0]?.date_rotation || 0) - new Date(a.rotations[0]?.date_rotation || 0));
     return { pending, done };
   }, [checkpoints]);
