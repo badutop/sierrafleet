@@ -110,7 +110,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
                                     }
                                     className={cn(
                                       "w-6 h-6 rounded-full flex items-center justify-center shrink-0",
-                                      r.fuel_entry_id ? "bg-emerald-500" : r.refuel_effectue ? "bg-blue-500" : "bg-orange-500"
+                                      r.fuel_entry_id ? "bg-emerald-500" : r.refuel_effectue ? "bg-orange-500" : "bg-blue-500"
                                     )}
                                   >
                                     <Fuel className="w-3 h-3 text-white" />
@@ -128,7 +128,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
                                 {r.bon_physique_scan_url ? (
                                   <span
                                     title="Bon d'enlèvement saisi et validé par le Responsable des Opérations"
-                                    className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"
+                                    className="w-6 h-6 rounded-full bg-gray-500 flex items-center justify-center shrink-0"
                                   >
                                     <CheckCircle className="w-3 h-3 text-white" />
                                   </span>
@@ -157,7 +157,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
                                 ) : (
                                   <span
                                     title="Bon déchargement réconcilié — aucun écart"
-                                    className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"
+                                    className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center shrink-0"
                                   >
                                     <CheckCircle className="w-3 h-3 text-white" />
                                   </span>
