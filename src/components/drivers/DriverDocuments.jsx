@@ -193,7 +193,11 @@ export default function DriverDocuments({ driver, open, onClose }) {
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-md [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
+        <DialogContent
+          className="max-w-md [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100"
+          onPointerDownOutside={(e) => { if (scanningKey) e.preventDefault(); }}
+          onInteractOutside={(e) => { if (scanningKey) e.preventDefault(); }}
+        >
           <div className="-mx-6 -mt-6 mb-2 px-5 py-4 bg-primary text-primary-foreground rounded-t-lg flex items-center gap-2.5">
             <FileStack className="w-5 h-5 text-secondary shrink-0" />
             <DialogTitle className="text-base font-bold text-primary-foreground leading-none tracking-tight">
