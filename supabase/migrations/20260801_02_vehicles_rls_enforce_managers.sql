@@ -1,0 +1,21 @@
+-- ============================================================================
+-- La table vehicles portait deux jeux de policies RLS contradictoires :
+--   - vehicles_all_authenticated (migration 20260711_02_rls_policies.sql) :
+--     ouverte à tout utilisateur authentifié, sans restriction.
+--   - vehicles_write_managers / vehicles_update_managers / vehicles_delete_admin
+--     / vehicles_select_authenticated : restreignent l'écriture aux rôles
+--     admin/responsable_exploitation/responsable_operations (et la
+--     suppression à l'admin seul) — créées manuellement à un moment donné,
+--     hors de tout fichier de migration suivi.
+--
+-- Postgres combine les policies RLS permissives en OU logique : la policy
+-- ouverte suffisait à elle seule à tout autoriser, rendant les 4 autres
+-- totalement inopérantes (n'importe quel utilisateur authentifié pouvait
+-- modifier/supprimer n'importe quel véhicule via l'API, malgré l'intention
+-- apparente de restreindre). Voir aussi src/pages/Vehicles.jsx, qui reflète
+-- désormais ces mêmes restrictions côté UI (canWrite/canDelete) pour éviter
+-- l'équivalent du bug déjà rencontré sur drivers (bouton visible mais
+-- écriture bloquée silencieusement par RLS, 0 ligne affectée, sans erreur).
+-- ============================================================================
+
+drop policy if exists "vehicles_all_authenticated" on public.vehicles;

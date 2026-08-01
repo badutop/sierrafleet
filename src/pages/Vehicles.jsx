@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,15 @@ const generateNextVehicleCode = (vehicles) => {
 };
 
 export default function Vehicles() {
+  const { user: currentUser } = useAuth();
+  // Reflète les policies RLS sur vehicles (voir migration RLS) : écriture
+  // réservée à admin/resp. exploitation/resp. opérations, suppression à
+  // l'admin seul. Sans ce filtre côté UI, un autre rôle ayant simplement le
+  // module "Véhicules" activé verrait des boutons Modifier/Supprimer qui
+  // échoueraient silencieusement côté base (0 ligne affectée, aucune
+  // erreur) — même classe de bug que celui déjà rencontré sur drivers.
+  const canWrite = ["admin", "responsable_exploitation", "responsable_operations"].includes(currentUser?.role);
+  const canDelete = currentUser?.role === "admin";
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
@@ -140,9 +150,11 @@ export default function Vehicles() {
           </h1>
           <p className="text-sm text-muted-foreground">{vehicles.length} véhicules enregistrés</p>
         </div>
-        <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>
-          <Plus className="w-4 h-4 mr-2" /> Ajouter
-        </Button>
+        {canWrite && (
+          <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-2" /> Ajouter
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -208,9 +220,11 @@ export default function Vehicles() {
                       <TableCell><Badge className={cn("text-[10px]", statusColors[v.statut])}>{statusLabels[v.statut]}</Badge></TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(v)}>
-                            <Pencil className="w-3 h-3" />
-                          </Button>
+                          {canWrite && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(v)}>
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
@@ -220,9 +234,11 @@ export default function Vehicles() {
                           >
                             <FileText className="w-3 h-3" />
                           </Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(v)} disabled={deleteMutation.isPending}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                          {canDelete && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDelete(v)} disabled={deleteMutation.isPending}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
