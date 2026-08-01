@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Camera, X, RotateCcw, RotateCw, Crop, Check } from "lucide-react";
 import { toast } from "sonner";
+import { compressImageFile } from "@/lib/imageCompression";
 
 const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
 
@@ -100,6 +101,16 @@ export default function DocumentScanner({
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const nativeInputRef = useRef(null);
+  // Certains navigateurs/appareils n'exposent tout simplement pas
+  // navigator.mediaDevices.getUserMedia (ex: iOS 12 sur ancien matériel,
+  // resté à cette version car non éligible aux mises à jour ultérieures) —
+  // aucune permission ni code ne peut faire apparaître une API absente du
+  // navigateur. On bascule alors sur l'appareil photo natif du téléphone via
+  // un simple <input type="file" capture>, qui fonctionne indépendamment de
+  // cette API (c'est déjà le mécanisme du bouton "Galerie" ailleurs dans
+  // l'app), au prix de la prévisualisation/cadrage en direct.
+  const [noCameraApi] = useState(() => typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia);
   const [ready, setReady] = useState(false);
   const [captured, setCaptured] = useState(null);
   // Ajustement post-capture, en deux temps : d'abord rotation (quart de tour
@@ -133,9 +144,17 @@ export default function DocumentScanner({
   const streamGenerationRef = useRef(0);
 
   useEffect(() => {
-    startCamera();
+    if (!noCameraApi) startCamera();
     return () => stopCamera();
   }, []);
+
+  const handleNativeCapture = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const compressed = await compressImageFile(file);
+    setCaptured({ file: compressed, previewUrl: URL.createObjectURL(compressed) });
+  };
 
   const stopCamera = () => {
     streamGenerationRef.current += 1;
@@ -147,13 +166,10 @@ export default function DocumentScanner({
     stopCamera();
     const myGeneration = streamGenerationRef.current;
     // Diagnostic temporaire — remonte l'erreur réelle au lieu de l'avaler
-    // silencieusement, pour identifier précisément ce qui bloque sur iOS
-    // (NotAllowedError, NotFoundError, OverconstrainedError, contexte non
-    // sécurisé...) plutôt que de continuer à deviner à l'aveugle.
-    if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error("Caméra indisponible : navigator.mediaDevices absent (contexte non sécurisé ou navigateur non supporté)");
-      return;
-    }
+    // silencieusement, pour identifier précisément ce qui bloque (permission
+    // refusée, caméra indisponible, contrainte non supportée...) plutôt que
+    // de continuer à deviner à l'aveugle. noCameraApi (voir plus haut) gère
+    // déjà le cas où l'API est carrément absente du navigateur.
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
@@ -243,8 +259,12 @@ export default function DocumentScanner({
     setStraighten(0);
     setCropMode(false);
     setCrop(FULL_CROP);
-    setReady(false);
-    startCamera();
+    if (noCameraApi) {
+      nativeInputRef.current?.click();
+    } else {
+      setReady(false);
+      startCamera();
+    }
   };
 
   // Mesure la taille réellement disponible dans le viseur (pas une valeur en
@@ -391,6 +411,19 @@ export default function DocumentScanner({
       {/* Viewfinder */}
       <div ref={viewfinderRef} className="flex-1 relative flex items-center justify-center overflow-hidden p-4">
         {!captured ? (
+          noCameraApi ? (
+            /* Appareil/navigateur sans API caméra JS (ex: iOS 12 sur ancien
+               matériel) — repli sur l'appareil photo natif du téléphone. */
+            <div className="flex flex-col items-center gap-4 text-center px-6">
+              <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
+                <Camera className="w-8 h-8 text-white/70" />
+              </div>
+              <p className="text-white/80 text-sm max-w-xs">{instructionText}</p>
+              <p className="text-white/50 text-xs max-w-xs">
+                L'aperçu caméra en direct n'est pas disponible sur cet appareil — utilisez l'appareil photo natif de votre téléphone.
+              </p>
+            </div>
+          ) : (
           <div className="flex flex-col items-center gap-3 w-full">
             <div
               className="relative overflow-hidden shrink-0"
@@ -417,6 +450,7 @@ export default function DocumentScanner({
               <p className="text-center text-white/80 text-xs max-w-xs">{instructionText}</p>
             )}
           </div>
+          )
         ) : cropMode ? (
           /* Recadrage libre : cadre déplaçable (glisser à l'intérieur) et
              redimensionnable indépendamment depuis chacun de ses 4 côtés,
@@ -476,6 +510,16 @@ export default function DocumentScanner({
           />
         )}
         <canvas ref={canvasRef} className="hidden" />
+        {noCameraApi && (
+          <input
+            ref={nativeInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleNativeCapture}
+          />
+        )}
       </div>
 
       {/* Ajustement post-capture */}
@@ -511,8 +555,8 @@ export default function DocumentScanner({
       <div className="flex items-center justify-center gap-4 px-6 py-5 bg-black/80">
         {!captured ? (
           <button
-            onClick={takePhoto}
-            disabled={!ready}
+            onClick={() => noCameraApi ? nativeInputRef.current?.click() : takePhoto()}
+            disabled={!noCameraApi && !ready}
             className="w-16 h-16 rounded-full bg-white disabled:opacity-40 flex items-center justify-center shadow-lg"
           >
             <Camera className="w-7 h-7 text-black" />
