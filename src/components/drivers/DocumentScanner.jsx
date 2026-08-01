@@ -160,7 +160,15 @@ export default function DocumentScanner({
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => setReady(true);
+        // Sur iOS Safari, contrairement à Android/Chrome, l'attribut autoPlay
+        // seul ne suffit pas de façon fiable à démarrer la lecture d'un flux
+        // MediaStream assigné dynamiquement à srcObject : sans play() explicite,
+        // aucune frame ne s'affiche (écran noir) et onloadedmetadata peut ne
+        // jamais se déclencher, laissant le bouton de capture désactivé indéfiniment.
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(() => {});
+          setReady(true);
+        };
       }
     } catch {
       // Permission refusée ou caméra indisponible.
