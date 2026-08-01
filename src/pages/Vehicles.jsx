@@ -22,6 +22,18 @@ const typeLabels = { camion: "Camion", utilitaire: "Utilitaire", liaison: "Liais
 
 const emptyForm = { code_camion: "", immatriculation: "", marque: "", modele: "", type_vehicule: "camion", annee: "", couleur: "", km_actuel: "", capacite_charge_tonnes: "", date_assurance: "", date_visite_technique: "", date_carte_grise: "", driver_id: "" };
 
+// Génère le prochain code camion séquentiel (ex: CT-0009) — même logique que
+// generateNextClientCode dans ClientsPage.jsx, pour une numérotation interne
+// cohérente plutôt qu'une saisie libre.
+const generateNextVehicleCode = (vehicles) => {
+  const maxSeq = vehicles.reduce((max, v) => {
+    const match = /^CT-(\d+)$/.exec(v.code_camion || "");
+    return match ? Math.max(max, parseInt(match[1], 10)) : max;
+  }, 0);
+  const next = Math.max(maxSeq, vehicles.length) + 1;
+  return `CT-${String(next).padStart(4, "0")}`;
+};
+
 export default function Vehicles() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -85,8 +97,12 @@ export default function Vehicles() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); toast.success("Véhicule supprimé"); },
   });
 
-  const openCreate = () => { setEditingVehicle(null); setForm(emptyForm); setDialogOpen(true); };
-  const openEdit = (v) => { setEditingVehicle(v); setForm({ ...emptyForm, ...v }); setDialogOpen(true); };
+  const openCreate = () => { setEditingVehicle(null); setForm({ ...emptyForm, code_camion: generateNextVehicleCode(vehicles) }); setDialogOpen(true); };
+  const openEdit = (v) => {
+    setEditingVehicle(v);
+    setForm({ ...emptyForm, ...v, code_camion: v.code_camion || generateNextVehicleCode(vehicles) });
+    setDialogOpen(true);
+  };
   const closeDialog = () => { setDialogOpen(false); setEditingVehicle(null); setForm(emptyForm); };
 
   const handleSave = () => {
@@ -241,9 +257,13 @@ export default function Vehicles() {
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
               <p className="text-sm font-bold text-primary flex items-center gap-1.5"><IdCard className="w-4 h-4" />Identification</p>
               <div className="grid grid-cols-2 gap-3">
-                {[["code_camion","Code camion (CT)"],["immatriculation","Immatriculation"],["marque","Marque"],["modele","Modèle"]].map(([key, label]) => (
+                <div>
+                  <Label className="text-xs">Code camion (CT) <span className="text-muted-foreground font-normal">(généré automatiquement)</span></Label>
+                  <Input className="mt-1 bg-muted text-muted-foreground" value={form.code_camion || ""} disabled readOnly />
+                </div>
+                {[["immatriculation","Immatriculation",true],["marque","Marque",true],["modele","Modèle",true]].map(([key, label, required]) => (
                   <div key={key}>
-                    <Label className="text-xs">{label}</Label>
+                    <Label className="text-xs">{label} {required && <span className="text-green-600 font-bold">*</span>}</Label>
                     <Input className="mt-1 bg-card" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })} />
                   </div>
                 ))}
@@ -319,7 +339,7 @@ export default function Vehicles() {
             <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
               <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
             </Button>
-            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending}>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.immatriculation?.trim() || !form.marque?.trim() || !form.modele?.trim()}>
               <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>

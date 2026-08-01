@@ -183,6 +183,11 @@ export default function CampaignsList() {
   // Total tonnage = somme des tonnages saisis par client.
   const totalTonnage = (form.clients || []).reduce((sum, r) => sum + (parseFloat(r.tonnage_prevu) || 0), 0);
   const selectedClientIds = (form.clients || []).map(r => r.client_id).filter(Boolean);
+  // campaigns.client_id (NOT NULL) est dérivé de la première ligne complète
+  // (client + tonnage) — il faut donc au moins une ligne avec les deux
+  // renseignés, pas seulement un client_id quelque part et un tonnage
+  // quelque part ailleurs (voir handleSave, validClients).
+  const hasValidClientRow = (form.clients || []).some(r => r.client_id && r.tonnage_prevu);
 
   // Rotations prévues = tonnage total / tonnage moyen par rotation (31T).
   const rotationsPrevues = totalTonnage > 0 ? Math.ceil(totalTonnage / TONNAGE_PAR_ROTATION) : 0;
@@ -605,7 +610,7 @@ export default function CampaignsList() {
             <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
               <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
             </Button>
-            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.nom_campagne || !selectedClientIds.length || !totalTonnage || !form.type_marchandise || !form.point_origine || !form.depot_destination_id}>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.nom_campagne || !hasValidClientRow || !form.type_marchandise || !form.point_origine || !form.depot_destination_id}>
               <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>

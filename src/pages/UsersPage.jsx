@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import ModuleSelector, { ALL_MODULES } from "@/components/users/ModuleSelector";
 import { confirm } from "@/lib/confirm";
 import { logAudit } from "@/lib/auditLog";
+import { isValidEmail } from "@/lib/validation";
 
 const roleLabels = {
   admin: "Administrateur",
@@ -140,7 +141,7 @@ export default function UsersPage() {
   };
 
   const handleCreateUser = async () => {
-    if (!inviteEmail || invitePassword.length < 8) return;
+    if (!isValidEmail(inviteEmail) || invitePassword.length < 8) return;
     setInviting(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-create-user", {
@@ -306,6 +307,7 @@ export default function UsersPage() {
               <div>
                 <Label className="text-xs">Adresse email <span className="text-green-600 font-bold">*</span></Label>
                 <Input type="email" className="mt-1 bg-card" placeholder="utilisateur@exemple.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
+                {inviteEmail && !isValidEmail(inviteEmail) && <p className="text-[11px] text-destructive mt-1">Adresse email invalide</p>}
               </div>
               <div>
                 <Label className="text-xs">Mot de passe <span className="text-green-600 font-bold">*</span> (8 caractères min.)</Label>
@@ -350,7 +352,7 @@ export default function UsersPage() {
             <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={() => setInviteOpen(false)}>
               <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
             </Button>
-            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleCreateUser} disabled={inviting || !inviteEmail || invitePassword.length < 8}>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleCreateUser} disabled={inviting || !isValidEmail(inviteEmail) || invitePassword.length < 8}>
               <Save className="w-4 h-4 mr-2" />
               {inviting ? "Création..." : "Créer l'utilisateur"}
             </Button>

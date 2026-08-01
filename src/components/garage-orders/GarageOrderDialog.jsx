@@ -74,6 +74,13 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
   const vehicle = vMap?.[order.vehicle_id];
   const supplierMap = Object.fromEntries((suppliers || []).map(s => [s.id, s]));
 
+  const today = new Date().toISOString().split("T")[0];
+  // Une livraison ne peut pas être promise dans le passé au moment où la
+  // commande est (ou serait) lancée ; une facture fournisseur ne peut pas
+  // être datée dans le futur.
+  const livraisonDateInvalid = !!(form.date_livraison_prevue && form.date_livraison_prevue < today);
+  const factureDateInvalid = !!(invoiceForm.date_facture && invoiceForm.date_facture > today);
+
   const buildOrderPayload = () => ({
     designation: form.designation,
     quantite: Number(form.quantite) || 1,
@@ -175,7 +182,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
         {order.statut === "en_attente" ? (
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div className="col-span-2">
-              <Label className="text-xs">Désignation</Label>
+              <Label className="text-xs">Désignation <span className="text-green-600 font-bold">*</span></Label>
               <Input className="mt-1" value={form.designation} onChange={e => setForm(f => ({ ...f, designation: e.target.value }))} />
             </div>
             <div>
@@ -235,6 +242,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
             <div>
               <Label className="text-xs">Date de livraison prévue</Label>
               <Input type="date" className="mt-1" value={form.date_livraison_prevue || ""} onChange={e => setForm(f => ({ ...f, date_livraison_prevue: e.target.value }))} />
+              {livraisonDateInvalid && <p className="text-[11px] text-destructive mt-1">Ne peut pas être dans le passé</p>}
             </div>
             <div>
               <Label className="text-xs">Prix unitaire (FCFA)</Label>
@@ -292,6 +300,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
                 <div>
                   <Label className="text-xs">Date de facture</Label>
                   <Input type="date" className="mt-1" value={invoiceForm.date_facture} onChange={e => setInvoiceForm(f => ({ ...f, date_facture: e.target.value }))} />
+                  {factureDateInvalid && <p className="text-[11px] text-destructive mt-1">Ne peut pas être dans le futur</p>}
                 </div>
                 <div>
                   <Label className="text-xs">Montant facture (FCFA)</Label>
@@ -377,13 +386,13 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
             </Button>
           )}
           {order.statut === "en_attente" && (
-            <Button variant="outline" className="h-11 rounded-xl font-bold gap-1.5" onClick={handleSaveDraft} disabled={isPending}>
+            <Button variant="outline" className="h-11 rounded-xl font-bold gap-1.5" onClick={handleSaveDraft} disabled={isPending || !form.designation?.trim() || livraisonDateInvalid}>
               <Save className="w-3.5 h-3.5" /> Enregistrer
             </Button>
           )}
           <Button variant="outline" className="flex-1 h-11 rounded-xl font-bold" onClick={() => onOpenChange(false)}>Fermer</Button>
           {order.statut === "en_attente" && (
-            <Button className="flex-1 h-11 rounded-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-1.5" onClick={handleLaunch} disabled={!form.supplier_id || isPending}>
+            <Button className="flex-1 h-11 rounded-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-1.5" onClick={handleLaunch} disabled={!form.supplier_id || !form.designation?.trim() || livraisonDateInvalid || isPending}>
               <Send className="w-3.5 h-3.5" /> {isPending ? "Enregistrement..." : "Lancer la commande"} <ChevronRight className="w-3 h-3" />
             </Button>
           )}
@@ -398,7 +407,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
             </Button>
           )}
           {order.statut === "recue" && canHandleInvoice && (
-            <Button className="flex-1 h-11 rounded-xl font-bold bg-orange-600 hover:bg-orange-700 text-white gap-1.5" onClick={handleConfirmInvoice} disabled={!invoiceForm.date_facture || !invoiceForm.montant_facture || isPending}>
+            <Button className="flex-1 h-11 rounded-xl font-bold bg-orange-600 hover:bg-orange-700 text-white gap-1.5" onClick={handleConfirmInvoice} disabled={!invoiceForm.date_facture || !invoiceForm.montant_facture || factureDateInvalid || isPending}>
               <Receipt className="w-3.5 h-3.5" /> {isPending ? "Enregistrement..." : "Confirmer réception facture"}
             </Button>
           )}

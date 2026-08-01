@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 import { cn } from "@/lib/utils";
 import { formatSenegalPhone, isBlankSenegalPhone } from "@/lib/phoneFormat";
+import { isValidEmail } from "@/lib/validation";
 
 const emptyForm = { nom: "", telephone: "+221 ", email: "", adresse: "", actif: true };
 
@@ -184,6 +185,7 @@ export default function Suppliers() {
                 <div>
                   <Label className="text-xs flex items-center gap-1"><Mail className="w-3 h-3" />Email</Label>
                   <Input className="mt-1 bg-card" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="contact@fournisseur.sn" />
+                  {form.email && !isValidEmail(form.email) && <p className="text-[11px] text-destructive mt-1">Adresse email invalide</p>}
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs flex items-center gap-1"><MapPin className="w-3 h-3" />Adresse</Label>
@@ -205,7 +207,7 @@ export default function Suppliers() {
             <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
               <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
             </Button>
-            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.nom.trim()}>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.nom.trim() || (form.email && !isValidEmail(form.email))}>
               <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>

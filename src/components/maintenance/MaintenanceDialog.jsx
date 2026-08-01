@@ -135,7 +135,10 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
   // (selectedParts reste vide pour une fiche existante, voir useEffect ci-dessus).
   const displayCoutPieces = isReadOnly ? (Number(form.cout_pieces) || 0) : coutPieces;
   const isCorrective = form.categorie === "corrective";
-  const isValid = form.vehicle_id && form.vehicle_id !== "" && form.date_entretien && form.type_entretien;
+  // La prochaine échéance planifiée n'a de sens qu'après la date de
+  // l'intervention en cours — sinon on planifierait un entretien "avant" lui.
+  const prochaineDateInvalid = !!(form.prochaine_date && form.date_entretien && form.prochaine_date <= form.date_entretien);
+  const isValid = form.vehicle_id && form.vehicle_id !== "" && form.date_entretien && form.type_entretien && !prochaineDateInvalid;
   const allowedPartCategories = TYPE_TO_PART_CATEGORIES[form.type_entretien];
   const filteredSpareParts = allowedPartCategories ? spareParts.filter(p => allowedPartCategories.includes(p.categorie)) : spareParts;
 
@@ -378,6 +381,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
             <div>
               <Label className="text-xs">Prochaine date prévue</Label>
               <Input type="date" className="mt-1 bg-card" value={form.prochaine_date} onChange={e => set("prochaine_date", e.target.value)} />
+              {prochaineDateInvalid && <p className="text-[11px] text-destructive mt-1">Doit être postérieure à la date d'intervention</p>}
             </div>
             <div>
               <Label className="text-xs">Prochain Km</Label>

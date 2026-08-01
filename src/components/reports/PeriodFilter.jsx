@@ -91,6 +91,9 @@ export default function PeriodFilter({ filter, onChange }) {
             <Label className="text-xs text-muted-foreground">Au</Label>
             <Input type="date" className="h-8 text-xs w-36" value={filter.to} onChange={e => set({ to: e.target.value })} />
           </div>
+          {filter.from && filter.to && filter.from > filter.to && (
+            <p className="text-[11px] text-destructive self-center">La date "Au" doit être postérieure à "Du"</p>
+          )}
         </>
       )}
     </div>

@@ -223,8 +223,8 @@ export default function Drivers() {
               <p className="text-sm font-bold text-primary flex items-center gap-1.5"><IdCard className="w-4 h-4" />Identification</p>
               <div className="grid grid-cols-2 gap-3">
                 <DriverPhotoField value={form.photo_url} onUploaded={(url) => setForm(f => ({ ...f, photo_url: url }))} />
-                <div><Label className="text-xs">Prénom</Label><Input className="mt-1 bg-card" value={form.prenom || ""} onChange={e => setForm({ ...form, prenom: e.target.value })} /></div>
-                <div><Label className="text-xs">Nom</Label><Input className="mt-1 bg-card" value={form.nom || ""} onChange={e => setForm({ ...form, nom: e.target.value })} /></div>
+                <div><Label className="text-xs">Prénom <span className="text-green-600 font-bold">*</span></Label><Input className="mt-1 bg-card" value={form.prenom || ""} onChange={e => setForm({ ...form, prenom: e.target.value })} /></div>
+                <div><Label className="text-xs">Nom <span className="text-green-600 font-bold">*</span></Label><Input className="mt-1 bg-card" value={form.nom || ""} onChange={e => setForm({ ...form, nom: e.target.value })} /></div>
                 <div>
                   <Label className="text-xs">Téléphone</Label>
                   <Input className="mt-1 bg-card" value={form.telephone || "+221 "} onChange={e => setForm({ ...form, telephone: formatSenegalPhone(e.target.value) })} />
@@ -270,7 +270,7 @@ export default function Drivers() {
             <Button variant="outline" className="flex-1 h-12 rounded-xl text-base font-bold" onClick={closeDialog}>
               <ArrowLeft className="w-4 h-4 mr-2" /> Annuler
             </Button>
-            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending}>
+            <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.prenom?.trim() || !form.nom?.trim()}>
               <Save className="w-4 h-4 mr-2" />
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
