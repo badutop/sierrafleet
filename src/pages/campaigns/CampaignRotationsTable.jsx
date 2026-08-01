@@ -100,8 +100,8 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                             <TableCell>
                               {r.refuel_declenche && (
                                 <span
-                                  title="Bon éligible pour un refuel (groupe de 3 rotations)"
-                                  className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center shrink-0"
+                                  title={r.refuel_effectue ? "Rechargement validé par le Responsable Exploitation (Carburant > Validation)" : "Bon éligible pour un refuel (groupe de 3 rotations), en attente de validation Carburant"}
+                                  className={cn("w-6 h-6 rounded-full flex items-center justify-center shrink-0", r.refuel_effectue ? "bg-blue-500" : "bg-orange-500")}
                                 >
                                   <Fuel className="w-3 h-3 text-white" />
                                 </span>
