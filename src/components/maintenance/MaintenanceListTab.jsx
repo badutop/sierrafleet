@@ -137,9 +137,15 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, driv
                   <TableCell className="text-xs">
                     <div className="font-medium">{typeLabels[m.type_entretien] || m.type_entretien}</div>
                     {m.designation && <div className="text-muted-foreground text-[11px]">{m.designation}</div>}
+                    {m.prestataire && <div className="text-muted-foreground text-[11px]">🔧 {m.prestataire}</div>}
                   </TableCell>
                   <TableCell className="text-xs max-w-[120px] truncate" title={m.pieces_remplacees}>{m.pieces_remplacees || "—"}</TableCell>
-                  <TableCell className="text-xs text-right font-bold">{(m.cout || 0).toLocaleString("fr-FR")}</TableCell>
+                  <TableCell className="text-xs text-right">
+                    <div className="font-bold">{(m.cout || 0).toLocaleString("fr-FR")}</div>
+                    {Number(m.cout_main_oeuvre) > 0 && (
+                      <div className="text-muted-foreground text-[10px]">dont {Number(m.cout_main_oeuvre).toLocaleString("fr-FR")} MO</div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-center">
                     <Badge className={cn("text-[10px]", statutColors[m.statut])}>
                       {statutLabels[m.statut] || m.statut}

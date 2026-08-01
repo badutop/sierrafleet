@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search, Building2, Factory, Pencil, Trash2, Phone, Mail, MapPin, ArrowLeft, Save, IdCard } from "lucide-react";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
+import { cn } from "@/lib/utils";
 
 const emptyForm = { nom: "", telephone: "", email: "", adresse: "", actif: true };
 
@@ -111,13 +114,14 @@ export default function Suppliers() {
               </TableHeader>
               <TableBody>
                 {filtered.map(s => (
-                  <TableRow key={s.id}>
+                  <TableRow key={s.id} className={cn(s.actif === false && "opacity-60")}>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                           <Building2 className="w-4 h-4 text-primary" />
                         </div>
                         <span className="font-medium text-sm">{s.nom}</span>
+                        {s.actif === false && <Badge className="bg-muted text-muted-foreground text-[10px]">Inactif</Badge>}
                       </div>
                     </TableCell>
                     <TableCell className="text-xs">{s.telephone || "-"}</TableCell>
@@ -183,6 +187,14 @@ export default function Suppliers() {
                   <Input className="mt-1 bg-card" value={form.adresse} onChange={e => setForm({ ...form, adresse: e.target.value })} placeholder="123 Rue du Commerce, Dakar" />
                 </div>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between bg-muted/40 border border-border rounded-2xl p-4">
+              <div>
+                <Label className="text-xs">Fournisseur actif</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Un fournisseur inactif n'apparaît plus dans la liste pour lancer une nouvelle commande</p>
+              </div>
+              <Switch checked={form.actif !== false} onCheckedChange={v => setForm({ ...form, actif: v })} />
             </div>
           </div>
 

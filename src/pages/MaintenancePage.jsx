@@ -55,16 +55,20 @@ export default function MaintenancePage() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      if (data.id) {
-        const { id, ...rest } = data;
-        const { error } = await supabase.from("maintenance").update(rest).eq("id", id);
+      // isNew vient de MaintenanceDialog.jsx, qui génère désormais l'id dès
+      // l'ouverture (pour pouvoir déjà lier une éventuelle commande de pièce
+      // via garage_orders.maintenance_id) — data.id est donc toujours présent,
+      // on ne peut plus s'en servir pour distinguer création et modification.
+      const { isNew, ...rest } = data;
+      if (!isNew) {
+        const { id, ...updateFields } = rest;
+        const { error } = await supabase.from("maintenance").update(updateFields).eq("id", id);
         if (error) throw error;
-        await logAudit("Garage", id, "update", rest, null, Object.keys(rest));
+        await logAudit("Garage", id, "update", updateFields, null, Object.keys(updateFields));
       } else {
-        const id = crypto.randomUUID();
-        const { error } = await supabase.from("maintenance").insert({ id, ...data });
+        const { error } = await supabase.from("maintenance").insert(rest);
         if (error) throw error;
-        await logAudit("Garage", id, "create", data);
+        await logAudit("Garage", rest.id, "create", rest);
       }
     },
     onSuccess: () => {

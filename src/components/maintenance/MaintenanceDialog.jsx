@@ -42,8 +42,8 @@ const TYPE_TO_PART_CATEGORIES = {
 const emptyForm = {
   vehicle_id: "", categorie: "preventive", type_entretien: "vidange", designation: "",
   description_panne: "", date_entretien: new Date().toISOString().split("T")[0],
-  duree_immobilisation_jours: "",
-  cout_pieces: "", pieces_remplacees: "",
+  duree_immobilisation_jours: "", prestataire: "",
+  cout_pieces: "", cout_main_oeuvre: "", pieces_remplacees: "",
   km_entretien: "", prochaine_date: "", prochain_km: "", prochain_nb_rotations: "",
   statut: "planifie", gravite: "moyenne", observations: "",
 };
@@ -54,6 +54,12 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
   const [selectedParts, setSelectedParts] = useState([]);
   const [orderQty, setOrderQty] = useState({});
   const [orderedParts, setOrderedParts] = useState({});
+  // Id généré dès l'ouverture (avant tout enregistrement en base) pour que
+  // les commandes de pièces lancées pendant la saisie (rupture de stock,
+  // voir orderMutation) puissent déjà pointer vers cette intervention via
+  // garage_orders.maintenance_id — sinon ce lien serait irrémédiablement
+  // perdu, l'intervention n'existant pas encore en base à ce moment-là.
+  const [pendingId, setPendingId] = useState(null);
 
   const { data: spareParts = [] } = useQuery({
     queryKey: ["spare-parts"],
@@ -69,7 +75,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
   const orderMutation = useMutation({
     mutationFn: async (data) => {
       const id = crypto.randomUUID();
-      const payload = { id, statut: "en_attente", vehicle_id: form.vehicle_id || null, ...data };
+      const payload = { id, statut: "en_attente", vehicle_id: form.vehicle_id || null, maintenance_id: pendingId, ...data };
       const { error } = await supabase.from("garage_orders").insert(payload);
       if (error) throw error;
       await logAudit("Commande Garage", id, "create", payload);
@@ -108,6 +114,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
   useEffect(() => {
     if (entry) setForm({ ...emptyForm, ...entry });
     else setForm({ ...emptyForm, categorie: defaultCategorie || emptyForm.categorie });
+    setPendingId(entry ? entry.id : crypto.randomUUID());
     setSelectedParts([]);
     setSelectedPart("");
     setOrderQty({});
@@ -121,7 +128,11 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
   // fiches existantes (avant la fusion Maintenance/Réparations) peuvent encore
   // porter un coût main d'œuvre historique dans m.cout.
   const coutPieces = selectedParts.reduce((s, p) => s + (Number(p.prix_unitaire) || 0), 0);
-  const coutTotal = isReadOnly ? (Number(form.cout) || 0) : coutPieces;
+  const coutMainOeuvre = Number(form.cout_main_oeuvre) || 0;
+  const coutTotal = isReadOnly ? (Number(form.cout) || 0) : coutPieces + coutMainOeuvre;
+  // En lecture seule, le détail pièces/MO vient des colonnes déjà enregistrées
+  // (selectedParts reste vide pour une fiche existante, voir useEffect ci-dessus).
+  const displayCoutPieces = isReadOnly ? (Number(form.cout_pieces) || 0) : coutPieces;
   const isCorrective = form.categorie === "corrective";
   const isValid = form.vehicle_id && form.vehicle_id !== "" && form.date_entretien && form.type_entretien;
   const allowedPartCategories = TYPE_TO_PART_CATEGORIES[form.type_entretien];
@@ -139,9 +150,9 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
   }, [form.categorie, form.type_entretien, form.pieces_remplacees, selectedParts, isReadOnly]);
 
   const handleSave = () => {
-    const numericFields = ["km_entretien","prochain_km","prochain_nb_rotations","duree_immobilisation_jours"];
+    const numericFields = ["km_entretien","prochain_km","prochain_nb_rotations","duree_immobilisation_jours","cout_main_oeuvre"];
     const dateFields = ["prochaine_date"];
-    const payload = { ...form, cout: coutTotal, cout_pieces: coutPieces };
+    const payload = { ...form, id: pendingId, isNew: !entry, cout: coutTotal, cout_pieces: coutPieces };
     numericFields.forEach(k => {
       const v = payload[k];
       if (v === "" || v === null || v === undefined) delete payload[k];
@@ -276,10 +287,42 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
             ))}
           </div>
 
-          {/* Coût — provient du prix catalogue des pièces, jamais saisi ici */}
-          <div className="bg-card rounded-lg px-3 py-2 flex justify-between items-center text-xs border border-border">
-            <span className="text-muted-foreground">Coût pièces (prix catalogue)</span>
-            <span className="font-bold text-secondary text-sm">{coutTotal.toLocaleString("fr-FR")} FCFA</span>
+          {/* Prestataire externe & main d'œuvre */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Prestataire externe</Label>
+              {!isReadOnly ? (
+                <Input className="mt-1 bg-card" placeholder="Ex: Garage Ndiaye, Atelier interne..." value={form.prestataire} onChange={e => set("prestataire", e.target.value)} />
+              ) : (
+                <p className="mt-1 h-9 flex items-center text-sm text-foreground">{form.prestataire || "—"}</p>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">Coût main d'œuvre (FCFA)</Label>
+              {!isReadOnly ? (
+                <Input type="number" min="0" className="mt-1 bg-card" placeholder="0" value={form.cout_main_oeuvre} onChange={e => set("cout_main_oeuvre", e.target.value)} />
+              ) : (
+                <p className="mt-1 h-9 flex items-center text-sm text-foreground">{(Number(form.cout_main_oeuvre) || 0).toLocaleString("fr-FR")} FCFA</p>
+              )}
+            </div>
+          </div>
+
+          {/* Coût — pièces au prix catalogue (jamais saisi) + main d'œuvre éventuelle */}
+          <div className="bg-card rounded-lg px-3 py-2 space-y-1 text-xs border border-border">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Coût pièces (prix catalogue)</span>
+              <span className="font-medium">{displayCoutPieces.toLocaleString("fr-FR")} FCFA</span>
+            </div>
+            {coutMainOeuvre > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Coût main d'œuvre</span>
+                <span className="font-medium">{coutMainOeuvre.toLocaleString("fr-FR")} FCFA</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center border-t border-border pt-1">
+              <span className="text-muted-foreground font-semibold">Total</span>
+              <span className="font-bold text-secondary text-sm">{coutTotal.toLocaleString("fr-FR")} FCFA</span>
+            </div>
           </div>
 
           {/* Désignation — générée automatiquement */}

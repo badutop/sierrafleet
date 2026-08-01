@@ -19,6 +19,7 @@ export default function MaintenanceVehicleTab({ vehicles, maintenances, rotation
       const pannes = vMaints.filter(m => m.categorie === "corrective");
       const preventives = vMaints.filter(m => m.categorie === "preventive");
       const totalCout = vMaints.reduce((s, m) => s + (m.cout || 0), 0);
+      const totalMainOeuvre = vMaints.reduce((s, m) => s + (Number(m.cout_main_oeuvre) || 0), 0);
       const totalImmob = vMaints.reduce((s, m) => s + (m.duree_immobilisation_jours || 0), 0);
       const coutParRotation = vRotations.length > 0 ? totalCout / vRotations.length : 0;
       const enCours = maintenances.some(m => m.vehicle_id === vehicle.id && m.statut === "en_cours");
@@ -28,7 +29,7 @@ export default function MaintenanceVehicleTab({ vehicles, maintenances, rotation
       pannes.forEach(m => { typeCount[m.type_entretien] = (typeCount[m.type_entretien] || 0) + 1; });
       const topPanne = Object.entries(typeCount).sort((a, b) => b[1] - a[1])[0];
 
-      return { vehicle, vMaints, pannes, preventives, totalCout, totalImmob, coutParRotation, enCours, topPanne, nbRotations: vRotations.length };
+      return { vehicle, vMaints, pannes, preventives, totalCout, totalMainOeuvre, totalImmob, coutParRotation, enCours, topPanne, nbRotations: vRotations.length };
     }).filter(d => d.vMaints.length > 0 || d.enCours)
       .sort((a, b) => b.totalCout - a.totalCout);
   }, [vehicles, maintenances, rotations]);
@@ -44,7 +45,7 @@ export default function MaintenanceVehicleTab({ vehicles, maintenances, rotation
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {data.map(({ vehicle, pannes, preventives, totalCout, totalImmob, coutParRotation, enCours, topPanne, nbRotations }) => (
+      {data.map(({ vehicle, pannes, preventives, totalCout, totalMainOeuvre, totalImmob, coutParRotation, enCours, topPanne, nbRotations }) => (
         <div key={vehicle.id} className={cn(
           "bg-card border rounded-xl p-4 space-y-3",
           enCours ? "border-amber-400/40" : pannes.length > 2 ? "border-destructive/30" : "border-border"
@@ -91,6 +92,12 @@ export default function MaintenanceVehicleTab({ vehicles, maintenances, rotation
               <span className="text-muted-foreground flex items-center gap-1"><TrendingDown className="w-3 h-3" /> Coût total</span>
               <span className="font-bold text-secondary">{formatCFA(totalCout)}</span>
             </div>
+            {totalMainOeuvre > 0 && (
+              <div className="flex justify-between text-[11px]">
+                <span className="text-muted-foreground">dont main d'œuvre</span>
+                <span className="text-muted-foreground">{formatCFA(totalMainOeuvre)}</span>
+              </div>
+            )}
             {nbRotations > 0 && (
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Coût / rotation</span>

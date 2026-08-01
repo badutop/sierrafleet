@@ -43,7 +43,7 @@ const emptyLaunchForm = {
   conditions_paiement: "", delai_paiement_jours: 30, prix_unitaire: "", notes: "",
 };
 
-export default function GarageOrderDialog({ open, onOpenChange, order, vMap, driverMap = {}, suppliers, onLaunch, onSaveDraft, onConfirm, onReceive, onInvoiceReceived, onPaid, onCancel, isPending }) {
+export default function GarageOrderDialog({ open, onOpenChange, order, vMap, driverMap = {}, maintenanceMap = {}, suppliers, onLaunch, onSaveDraft, onConfirm, onReceive, onInvoiceReceived, onPaid, onCancel, isPending }) {
   const { user: currentUser } = useAuth();
   // La réception de facture et le paiement relèvent de Finances (Resp.
   // Exploitation suit la commande jusqu'à la réception de la pièce, pas
@@ -210,6 +210,13 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
           </div>
         )}
 
+        {order.maintenance_id && maintenanceMap[order.maintenance_id] && (
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl px-3 py-2 text-xs mt-3">
+            <span className="text-muted-foreground">Intervention à l'origine de la commande</span>
+            <p className="font-semibold text-sm mt-0.5">{maintenanceMap[order.maintenance_id].designation || "—"}</p>
+          </div>
+        )}
+
         {/* Formulaire de lancement (statut en_attente uniquement) */}
         {order.statut === "en_attente" && (
           <div className="grid grid-cols-2 gap-3 mt-3 border-t border-border pt-3">
@@ -218,7 +225,9 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
               <Select value={form.supplier_id || ""} onValueChange={v => setForm(f => ({ ...f, supplier_id: v }))}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="— Sélectionner un fournisseur —" /></SelectTrigger>
                 <SelectContent>
-                  {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.nom}</SelectItem>)}
+                  {(suppliers || [])
+                    .filter(s => s.actif !== false || s.id === form.supplier_id)
+                    .map(s => <SelectItem key={s.id} value={s.id}>{s.nom}{s.actif === false ? " (inactif)" : ""}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

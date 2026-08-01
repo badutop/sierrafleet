@@ -97,10 +97,19 @@ export default function GarageOrdersPage() {
       return data;
     },
   });
+  const { data: maintenances = [] } = useQuery({
+    queryKey: ["maintenances"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("maintenance").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const vMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const supplierMap = Object.fromEntries(suppliers.map(s => [s.id, s]));
   const driverMap = Object.fromEntries(drivers.map(d => [d.id, d]));
+  const maintenanceMap = Object.fromEntries(maintenances.map(m => [m.id, m]));
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["garage-orders"] });
 
@@ -420,6 +429,7 @@ export default function GarageOrdersPage() {
         order={selectedOrder}
         vMap={vMap}
         driverMap={driverMap}
+        maintenanceMap={maintenanceMap}
         suppliers={suppliers}
         onLaunch={(id, data) => launchMutation.mutate({ id, data })}
         onSaveDraft={(id, data) => saveDraftMutation.mutate({ id, data })}
