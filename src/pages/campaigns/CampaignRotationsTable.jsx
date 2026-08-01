@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 // refuelRules.getRefuelCheckpoints pour le détail du workflow carburant, qui
 // reste inchangé). "Bon déchargement" (bon_final_scan_url) n'est renseigné
 // que plus tard, par le Collecteur de bons (CollecteurBonsPage.jsx).
-export default function CampaignRotationsTable({ rotations, vehicles, drivers }) {
+export default function CampaignRotationsTable({ rotations, vehicles, drivers, fuelEntryMap = {} }) {
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const driverMap = Object.fromEntries(drivers.map(d => [d.id, `${d.prenom} ${d.nom}`]));
 
@@ -99,12 +99,28 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                             <TableCell className="text-right text-sm">{r.litres_carburant_alloues || 0}</TableCell>
                             <TableCell>
                               {r.refuel_declenche && (
-                                <span
-                                  title={r.refuel_effectue ? "Rechargement validé par le Responsable Exploitation (Carburant > Validation)" : "Bon éligible pour un refuel (groupe de 3 rotations), en attente de validation Carburant"}
-                                  className={cn("w-6 h-6 rounded-full flex items-center justify-center shrink-0", r.refuel_effectue ? "bg-blue-500" : "bg-orange-500")}
-                                >
-                                  <Fuel className="w-3 h-3 text-white" />
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    title={
+                                      r.fuel_entry_id
+                                        ? "Rechargement effectué par le chauffeur (photo pompe validée)"
+                                        : r.refuel_effectue
+                                        ? "Rechargement validé par le Responsable Exploitation (Carburant > Validation)"
+                                        : "Bon éligible pour un refuel (groupe de 3 rotations), en attente de validation Carburant"
+                                    }
+                                    className={cn(
+                                      "w-6 h-6 rounded-full flex items-center justify-center shrink-0",
+                                      r.fuel_entry_id ? "bg-emerald-500" : r.refuel_effectue ? "bg-blue-500" : "bg-orange-500"
+                                    )}
+                                  >
+                                    <Fuel className="w-3 h-3 text-white" />
+                                  </span>
+                                  {r.fuel_entry_id && fuelEntryMap[r.fuel_entry_id]?.recu_url && (
+                                    <a href={fuelEntryMap[r.fuel_entry_id].recu_url} target="_blank" rel="noreferrer" title="Voir la photo de la pompe" className="text-muted-foreground hover:text-secondary">
+                                      <ImageIcon className="w-3.5 h-3.5" />
+                                    </a>
+                                  )}
+                                </div>
                               )}
                             </TableCell>
                             <TableCell>

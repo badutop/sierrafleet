@@ -92,6 +92,17 @@ export default function CampaignDetail() {
       return data;
     },
   });
+  const fuelEntryIds = [...new Set(rotations.map(r => r.fuel_entry_id).filter(Boolean))];
+  const { data: fuelEntries = [] } = useQuery({
+    queryKey: ["fuel_entries", fuelEntryIds],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("fuel_entries").select("id, recu_url").in("id", fuelEntryIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: fuelEntryIds.length > 0,
+  });
+  const fuelEntryMap = Object.fromEntries(fuelEntries.map(f => [f.id, f]));
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
     queryFn: async () => {
@@ -423,7 +434,7 @@ export default function CampaignDetail() {
               </Button>
             </div>
           )}
-          <CampaignRotationsTable rotations={rotations} vehicles={vehicles} drivers={drivers} campaignId={id} />
+          <CampaignRotationsTable rotations={rotations} vehicles={vehicles} drivers={drivers} campaignId={id} fuelEntryMap={fuelEntryMap} />
         </TabsContent>
       </Tabs>
 
