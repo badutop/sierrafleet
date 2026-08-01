@@ -116,8 +116,8 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
                                     <Fuel className="w-3 h-3 text-white" />
                                   </span>
                                   {r.fuel_entry_id && fuelEntryMap[r.fuel_entry_id]?.recu_url && (
-                                    <a href={fuelEntryMap[r.fuel_entry_id].recu_url} target="_blank" rel="noreferrer" title="Voir la photo de la pompe" className="text-muted-foreground hover:text-secondary">
-                                      <ImageIcon className="w-3.5 h-3.5" />
+                                    <a href={fuelEntryMap[r.fuel_entry_id].recu_url} target="_blank" rel="noreferrer" title="Voir la photo de la pompe" className="text-muted-foreground hover:text-secondary p-1 -m-1">
+                                      <ImageIcon className="w-5 h-5" />
                                     </a>
                                   )}
                                 </div>
@@ -136,8 +136,8 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
                                   <span className="text-muted-foreground text-xs">—</span>
                                 )}
                                 {r.bon_physique_scan_url && (
-                                  <a href={r.bon_physique_scan_url} target="_blank" rel="noreferrer" title="Voir le scan du bon" className="text-muted-foreground hover:text-secondary">
-                                    <ImageIcon className="w-3.5 h-3.5" />
+                                  <a href={r.bon_physique_scan_url} target="_blank" rel="noreferrer" title="Voir le scan du bon" className="text-muted-foreground hover:text-secondary p-1 -m-1">
+                                    <ImageIcon className="w-5 h-5" />
                                   </a>
                                 )}
                               </div>
@@ -163,8 +163,8 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
                                   </span>
                                 )}
                                 {r.bon_final_scan_url && (
-                                  <a href={r.bon_final_scan_url} target="_blank" rel="noreferrer" title="Voir le scan du bon déchargement" className="text-muted-foreground hover:text-secondary">
-                                    <ImageIcon className="w-3.5 h-3.5" />
+                                  <a href={r.bon_final_scan_url} target="_blank" rel="noreferrer" title="Voir le scan du bon déchargement" className="text-muted-foreground hover:text-secondary p-1 -m-1">
+                                    <ImageIcon className="w-5 h-5" />
                                   </a>
                                 )}
                               </div>
