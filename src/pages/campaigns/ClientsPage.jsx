@@ -18,7 +18,18 @@ import { logAudit } from "@/lib/auditLog";
 import { useZones } from "@/hooks/use-zones";
 import { getZoneColors } from "@/lib/zoneColors";
 
-const emptyForm = { nom: "", code_client: "", zone: "zone1", contact_nom: "", contact_telephone: "", actif: true };
+const emptyForm = { nom: "", code_client: "", zone: "zone1", contact_nom: "", contact_telephone: "+221 ", actif: true };
+
+// Formate au fil de la saisie au format sénégalais "+221 XX XXX XX XX" (9
+// chiffres, groupés 2-3-2-2) — ne garde que les chiffres tapés après
+// l'indicatif, qui reste fixe en tête, quoi que l'utilisateur édite.
+function formatSenegalPhone(raw) {
+  let digits = (raw || "").replace(/\D/g, "");
+  if (digits.startsWith("221")) digits = digits.slice(3);
+  digits = digits.slice(0, 9);
+  const groups = [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 7), digits.slice(7, 9)].filter(Boolean);
+  return "+221" + (groups.length ? " " + groups.join(" ") : "");
+}
 
 // Génère le prochain code client séquentiel (ex: CLI-0009), indépendamment
 // du nom (généré avant que l'utilisateur saisisse le nom du client).
@@ -141,7 +152,7 @@ export default function ClientsPage() {
   };
   const openEdit = (c) => {
     setEditingClient(c);
-    setForm({ ...emptyForm, ...c });
+    setForm({ ...emptyForm, ...c, contact_telephone: c.contact_telephone || "+221 " });
     setDepots(allDepots.filter(d => d.client_id === c.id).map(d => ({ ...d })));
     setDialogOpen(true);
   };
@@ -149,6 +160,8 @@ export default function ClientsPage() {
 
   const handleSave = () => {
     const data = { ...form };
+    // Pas de numéro réellement saisi au-delà de l'indicatif — ne rien enregistrer.
+    if (!(data.contact_telephone || "").replace("+221", "").replace(/\D/g, "")) data.contact_telephone = null;
     if (editingClient) updateMutation.mutate({ id: editingClient.id, data, oldData: editingClient });
     else createMutation.mutate(data);
   };
@@ -262,20 +275,20 @@ export default function ClientsPage() {
           <div className="space-y-3 mt-2">
             {/* Identification */}
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" />Identification</p>
+              <p className="text-sm font-bold text-primary flex items-center gap-1.5"><IdCard className="w-4 h-4" />Identification</p>
               <div>
                 <Label className="text-xs">Code client <span className="text-muted-foreground font-normal">(généré automatiquement)</span></Label>
                 <Input className="mt-1 bg-muted text-muted-foreground" value={form.code_client || ""} disabled readOnly />
               </div>
               <div>
-                <Label className="text-xs">Nom du client *</Label>
+                <Label className="text-xs">Nom du client <span className="text-green-600 font-bold">*</span></Label>
                 <Input className="mt-1" placeholder="Ex: Moulins de Dakar" value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} />
               </div>
             </div>
 
             {/* Zone & tarification */}
             <div className={cn("border-2 rounded-2xl p-4 space-y-3", zoneMap[form.zone]?.colors.box || "bg-muted/40 border-border")}>
-              <p className="text-xs font-semibold flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />Zone & tarification</p>
+              <p className="text-sm font-bold flex items-center gap-1.5"><MapPin className="w-4 h-4" />Zone & tarification</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Zone principale</Label>
@@ -290,7 +303,14 @@ export default function ClientsPage() {
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1"><Coins className="w-3 h-3" />Tarif / tonne (FCFA)</Label>
-                  <Input type="number" className="mt-1 bg-card" placeholder="Ex: 15000" value={form.tarif_par_tonne || ""} onChange={e => setForm({ ...form, tarif_par_tonne: e.target.value ? Number(e.target.value) : undefined })} />
+                  <Input
+                    type="text" inputMode="numeric" className="mt-1 bg-card" placeholder="Ex: 15 000"
+                    value={form.tarif_par_tonne != null ? Number(form.tarif_par_tonne).toLocaleString("fr-FR") : ""}
+                    onChange={e => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      setForm({ ...form, tarif_par_tonne: digits ? Number(digits) : undefined });
+                    }}
+                  />
                 </div>
               </div>
               <Badge className={cn("text-[10px]", zoneMap[form.zone]?.colors.badge)}>
@@ -300,7 +320,7 @@ export default function ClientsPage() {
 
             {/* Contact */}
             <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><User className="w-3.5 h-3.5" />Contact</p>
+              <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><User className="w-4 h-4" />Contact</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Nom contact</Label>
@@ -308,7 +328,11 @@ export default function ClientsPage() {
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1"><Phone className="w-3 h-3" />Téléphone contact</Label>
-                  <Input className="mt-1 bg-card" value={form.contact_telephone || ""} onChange={e => setForm({ ...form, contact_telephone: e.target.value })} />
+                  <Input
+                    className="mt-1 bg-card" placeholder="+221 77 123 45 67"
+                    value={form.contact_telephone || "+221 "}
+                    onChange={e => setForm({ ...form, contact_telephone: formatSenegalPhone(e.target.value) })}
+                  />
                 </div>
               </div>
             </div>

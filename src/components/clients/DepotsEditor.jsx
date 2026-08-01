@@ -56,7 +56,7 @@ export default function DepotsEditor({ depots, onChange, zones = [] }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        <p className="text-sm font-bold text-foreground">
           Dépôts ({depots.length})
         </p>
         <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={add}>
