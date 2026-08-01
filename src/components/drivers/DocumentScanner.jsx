@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Camera, X, RotateCcw, RotateCw, Crop, Check } from "lucide-react";
+import { toast } from "sonner";
 
 const GUIDE_RATIO = 1.585; // largeur/hauteur (format carte d'identité / permis)
 
@@ -173,41 +174,49 @@ export default function DocumentScanner({
   // aucune lecture de position/taille DOM n'est nécessaire, ce qui évite
   // tout décalage lié au rendu CSS (device pixel ratio, timing, etc.).
   const takePhoto = () => {
+    // Diagnostic temporaire : chaque sortie anticipée/erreur remonte un
+    // toast visible au lieu d'échouer silencieusement, pour identifier
+    // précisément où ça coince plutôt que de continuer à deviner.
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    if (!video || !canvas) { toast.error("Scan : élément vidéo/canvas introuvable"); return; }
     const vw = video.videoWidth;
     const vh = video.videoHeight;
-    if (!vw || !vh) return;
+    if (!vw || !vh) { toast.error(`Scan : flux vidéo pas prêt (${vw}x${vh})`); return; }
 
-    const videoAspect = vw / vh;
-    let sx, sy, sw, sh;
-    if (videoAspect > guideRatio) {
-      // Flux plus large que le cadre cible : on rogne les côtés.
-      sh = vh;
-      sw = vh * guideRatio;
-      sx = (vw - sw) / 2;
-      sy = 0;
-    } else {
-      // Flux plus haut (ou étroit) que le cadre cible : on rogne haut/bas.
-      sw = vw;
-      sh = vw / guideRatio;
-      sx = 0;
-      sy = (vh - sh) / 2;
+    try {
+      const videoAspect = vw / vh;
+      let sx, sy, sw, sh;
+      if (videoAspect > guideRatio) {
+        // Flux plus large que le cadre cible : on rogne les côtés.
+        sh = vh;
+        sw = vh * guideRatio;
+        sx = (vw - sw) / 2;
+        sy = 0;
+      } else {
+        // Flux plus haut (ou étroit) que le cadre cible : on rogne haut/bas.
+        sw = vw;
+        sh = vw / guideRatio;
+        sx = 0;
+        sy = (vh - sh) / 2;
+      }
+
+      const scale = Math.min(1, MAX_DIMENSION / Math.max(sw, sh));
+      canvas.width = Math.round(sw * scale);
+      canvas.height = Math.round(sh * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob((blob) => {
+        if (!blob) { toast.error("Scan : échec de la conversion en image"); return; }
+        const file = new File([blob], "document.jpg", { type: "image/jpeg" });
+        const previewUrl = URL.createObjectURL(blob);
+        setCaptured({ file, previewUrl });
+        stopCamera();
+      }, "image/jpeg", JPEG_QUALITY);
+    } catch (err) {
+      toast.error(`Scan : erreur capture — ${err.message}`);
     }
-
-    const scale = Math.min(1, MAX_DIMENSION / Math.max(sw, sh));
-    canvas.width = Math.round(sw * scale);
-    canvas.height = Math.round(sh * scale);
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-
-    canvas.toBlob((blob) => {
-      const file = new File([blob], "document.jpg", { type: "image/jpeg" });
-      const previewUrl = URL.createObjectURL(blob);
-      setCaptured({ file, previewUrl });
-      stopCamera();
-    }, "image/jpeg", JPEG_QUALITY);
   };
 
   const retake = () => {
