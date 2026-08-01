@@ -4,14 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Fuel, RotateCw, ImageIcon, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Ce tableau est désormais purement consultatif pour les bons physiques : le
-// scan se fait à la saisie de la fiche du jour (RotationSheetEntry) et la
-// validation se fait exclusivement dans Carburant > Validation (Responsable
-// Exploitation ou Admin, par groupe de 3 rotations — voir
-// FuelValidationTab.jsx et refuelRules.getRefuelCheckpoints). Un bon reste
-// "À valider" ici sans aucune action possible tant que cette validation
-// carburant n'a pas eu lieu ; c'est seulement à ce moment que le chauffeur
-// peut voir ses bons dans son espace et recharger (bon_physique_recu).
+// Ce tableau est purement consultatif. "Bon enlèvement" (bon_physique_scan_url)
+// est considéré validé dès la saisie de la fiche du jour par le Responsable
+// des Opérations — pas d'état "à valider" ici, cette saisie fait foi. Le
+// "Refuel" (refuel_declenche) signale seulement qu'une rotation appartient à
+// un groupe de 3 éligible à un rechargement (voir FuelValidationTab.jsx et
+// refuelRules.getRefuelCheckpoints pour le détail du workflow carburant, qui
+// reste inchangé). "Bon déchargement" (bon_final_scan_url) n'est renseigné
+// que plus tard, par le Collecteur de bons (CollecteurBonsPage.jsx).
 export default function CampaignRotationsTable({ rotations, vehicles, drivers }) {
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const driverMap = Object.fromEntries(drivers.map(d => [d.id, `${d.prenom} ${d.nom}`]));
@@ -62,8 +62,8 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                     <TableHead className="text-right font-bold">POIDS (T)</TableHead>
                     <TableHead className="text-right font-bold">Conso. (L)</TableHead>
                     <TableHead className="font-bold">Refuel</TableHead>
-                    <TableHead className="font-bold">Bon physique</TableHead>
-                    <TableHead className="font-bold">Bon final</TableHead>
+                    <TableHead className="font-bold">Bon enlèvement</TableHead>
+                    <TableHead className="font-bold">Bon déchargement</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -98,29 +98,28 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                             <TableCell className="text-right text-sm font-semibold">{Number(r.poids_charge_tonnes || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                             <TableCell className="text-right text-sm">{r.litres_carburant_alloues || 0}</TableCell>
                             <TableCell>
-                              {r.fuel_entry_id ? (
-                                <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px]"><Fuel className="w-3 h-3 mr-1" />Rechargement effectué</Badge>
-                              ) : r.refuel_effectue ? (
-                                <Badge className="bg-blue-500/10 text-blue-600 text-[10px]"><Fuel className="w-3 h-3 mr-1" />Validé (Carburant)</Badge>
-                              ) : r.refuel_declenche ? (
-                                <Badge className="bg-amber-500/10 text-amber-600 text-[10px]"><Fuel className="w-3 h-3 mr-1" />En attente bons</Badge>
-                              ) : null}
+                              {r.refuel_declenche && (
+                                <span
+                                  title="Bon éligible pour un refuel (groupe de 3 rotations)"
+                                  className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center shrink-0"
+                                >
+                                  <Fuel className="w-3 h-3 text-white" />
+                                </span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1.5">
-                                {r.bon_physique_recu ? (
+                                {r.bon_physique_scan_url ? (
                                   <span
-                                    title="Bon validé — définitif"
+                                    title="Bon d'enlèvement saisi et validé par le Responsable des Opérations"
                                     className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"
                                   >
                                     <CheckCircle className="w-3 h-3 text-white" />
                                   </span>
                                 ) : (
-                                  <Badge className="bg-amber-500/10 text-amber-600 text-[10px]" title="Validation effectuée dans Carburant > Validation">
-                                    À valider
-                                  </Badge>
+                                  <span className="text-muted-foreground text-xs">—</span>
                                 )}
-                                {r.bon_physique_scan_url && !r.bon_physique_recu && (
+                                {r.bon_physique_scan_url && (
                                   <a href={r.bon_physique_scan_url} target="_blank" rel="noreferrer" title="Voir le scan du bon" className="text-muted-foreground hover:text-secondary">
                                     <ImageIcon className="w-3.5 h-3.5" />
                                   </a>
@@ -128,10 +127,10 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                               </div>
                             </TableCell>
                             <TableCell>
-                              {/* Réconciliation du bon final — voir CollecteurBonsPage.jsx.
-                                  Distinct du bon physique (enlèvement) ci-dessus : ceci ne
-                                  peut être renseigné qu'une fois le rechargement effectué
-                                  (fuel_entry_id), par le Collecteur de bons. */}
+                              {/* Bon déchargement (bon_final_scan_url) — voir
+                                  CollecteurBonsPage.jsx. Distinct du bon d'enlèvement
+                                  ci-dessus : reste vide tant que le Collecteur de bons
+                                  ne l'a pas collecté (après le rechargement). */}
                               <div className="flex items-center gap-1.5">
                                 {!r.bon_final_scan_url ? (
                                   <span className="text-muted-foreground text-xs">—</span>
@@ -141,14 +140,14 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers })
                                   </Badge>
                                 ) : (
                                   <span
-                                    title="Bon final réconcilié — aucun écart"
+                                    title="Bon déchargement réconcilié — aucun écart"
                                     className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"
                                   >
                                     <CheckCircle className="w-3 h-3 text-white" />
                                   </span>
                                 )}
                                 {r.bon_final_scan_url && (
-                                  <a href={r.bon_final_scan_url} target="_blank" rel="noreferrer" title="Voir le scan du bon final" className="text-muted-foreground hover:text-secondary">
+                                  <a href={r.bon_final_scan_url} target="_blank" rel="noreferrer" title="Voir le scan du bon déchargement" className="text-muted-foreground hover:text-secondary">
                                     <ImageIcon className="w-3.5 h-3.5" />
                                   </a>
                                 )}
