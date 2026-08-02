@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
-import { Zap, Truck, User, LogOut, AlertCircle, ChevronDown } from "lucide-react";
+import { Zap, Truck, User, LogOut, AlertCircle, ChevronDown, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
+import DriverBonEntryFlow from "@/components/rotations/driver/DriverBonEntryFlow";
+import { useAppSetting, isSettingOn } from "@/hooks/use-app-setting";
+import { DRIVER_BON_ENTRY_KEY } from "@/lib/driverBonEntry";
 import { toast } from "sonner";
 import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
 
@@ -22,6 +26,67 @@ export default function DriverRefuelPage() {
   const [allRotations, setAllRotations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [flowOpen, setFlowOpen] = useState(false);
+  const [bonFlowOpen, setBonFlowOpen] = useState(false);
+
+  // Nouveau flux "chauffeur saisit lui-même" (togglable, voir
+  // DriverBonEntryToggleCard.jsx dans Paramètres) — additif uniquement :
+  // si le réglage est OFF, aucune requête supplémentaire n'est faite et le
+  // reste de cette page se comporte exactement comme avant.
+  const { data: bonEntrySetting } = useAppSetting(DRIVER_BON_ENTRY_KEY);
+  const bonEntryActive = isSettingOn(bonEntrySetting);
+
+  const { data: campaign } = useQuery({
+    queryKey: ["campaign", vehicle?.campaign_id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaigns").select("*").eq("id", vehicle.campaign_id).single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: bonEntryActive && !!vehicle?.campaign_id,
+  });
+  const { data: campaignClientRows = [] } = useQuery({
+    queryKey: ["campaign_clients", vehicle?.campaign_id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campaign_clients").select("*").eq("campaign_id", vehicle.campaign_id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: bonEntryActive && !!vehicle?.campaign_id,
+  });
+  const { data: allClients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("*");
+      if (error) throw error;
+      return data;
+    },
+    enabled: bonEntryActive,
+  });
+  const { data: zones = [] } = useQuery({
+    queryKey: ["zones"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("zones").select("*");
+      if (error) throw error;
+      return data;
+    },
+    enabled: bonEntryActive,
+  });
+  const { data: campaignRotations = [] } = useQuery({
+    queryKey: ["rotations", vehicle?.campaign_id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rotations").select("*").eq("campaign_id", vehicle.campaign_id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: bonEntryActive && !!vehicle?.campaign_id,
+  });
+
+  // Même repli que CampaignDetail.jsx : les campagnes créées avant le
+  // multi-clients n'ont pas de ligne campaign_clients, juste campaign.client_id.
+  const clientMap = Object.fromEntries(allClients.map(c => [c.id, c]));
+  const campaignClients = campaignClientRows.length
+    ? campaignClientRows.map(cc => ({ client_id: cc.client_id, tonnage_prevu: cc.tonnage_prevu, client: clientMap[cc.client_id] }))
+    : (campaign?.client_id ? [{ client_id: campaign.client_id, tonnage_prevu: campaign.tonnage_total_prevu, client: clientMap[campaign.client_id] }] : []);
 
   useEffect(() => {
     loadData();
@@ -171,6 +236,24 @@ export default function DriverRefuelPage() {
             </div>
           )}
 
+          {/* Nouveau flux (togglable) : scan du bon d'enlèvement */}
+          {bonEntryActive && (
+            <>
+              <Button
+                variant="outline"
+                className="w-full h-14 text-base font-bold rounded-2xl border-2 border-secondary/50 text-secondary"
+                disabled={!driver || !vehicle || !vehicle?.campaign_id}
+                onClick={() => setBonFlowOpen(true)}
+              >
+                <ScanLine className="w-5 h-5 mr-2" />
+                Scanner mon bon d'enlèvement
+              </Button>
+              {driver && vehicle && !vehicle.campaign_id && (
+                <p className="text-xs text-amber-600 text-center -mt-2">Véhicule non affecté à une campagne en cours</p>
+              )}
+            </>
+          )}
+
           {/* Bouton principal */}
           <Button
             className="w-full h-14 text-base font-bold bg-secondary hover:bg-secondary/90 text-white rounded-2xl"
@@ -182,6 +265,28 @@ export default function DriverRefuelPage() {
           </Button>
         </div>
       </main>
+
+      {/* Nouveau flux : scan + saisie du bon d'enlèvement par le chauffeur */}
+      {bonFlowOpen && driver && vehicle && campaign && (
+        <DriverBonEntryFlow
+          driver={driver}
+          vehicle={vehicle}
+          campaign={campaign}
+          campaignClients={campaignClients}
+          zones={zones}
+          campaignRotations={campaignRotations}
+          onClose={() => setBonFlowOpen(false)}
+          onSaved={({ autoValidated }) => {
+            setBonFlowOpen(false);
+            loadData();
+            // Le refuel vient d'être validé automatiquement (3e bon) : on
+            // enchaîne directement sur le flux de rechargement existant,
+            // strictement inchangé (BonCaptureStep verra les 3 bons déjà
+            // confirmés et laissera continuer jusqu'à la pompe).
+            if (autoValidated) setFlowOpen(true);
+          }}
+        />
+      )}
 
       {/* Flow rechargement */}
       {flowOpen && driver && vehicle && (

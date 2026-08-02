@@ -8,6 +8,7 @@ import ZonesSettingsCard from "@/components/settings/ZonesSettingsCard";
 import WhatsAppNotifCard from "@/components/settings/WhatsAppNotifCard";
 import FuelStationsCard from "@/components/settings/FuelStationsCard";
 import CollecteBonsAccessCard from "@/components/settings/CollecteBonsAccessCard";
+import DriverBonEntryToggleCard from "@/components/settings/DriverBonEntryToggleCard";
 
 export const FUEL_PRICE_KEY = "sierra_fuel_price_per_litre";
 export function getFuelPricePerLitre() {
@@ -44,6 +45,7 @@ export default function SettingsPage() {
         <WhatsAppNotifCard />
         <FuelStationsCard />
         {currentUser?.role === "admin" && <CollecteBonsAccessCard />}
+        {currentUser?.role === "admin" && <DriverBonEntryToggleCard />}
       </div>
     </div>
   );
