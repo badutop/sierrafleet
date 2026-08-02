@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,20 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
   const resolvedClientId = isSingleClient ? soleClientId : form.client_id;
   const resolvedClient = clientMap[resolvedClientId];
 
+  // DocumentScanner appelle systématiquement son propre onClose() juste
+  // après onCapture() lors d'une confirmation réussie (voir confirm() dans
+  // DocumentScanner.jsx — pensé pour fermer la caméra, pas tout ce flux).
+  // Sans ce garde-fou, cet appel fermerait immédiatement DriverBonEntryFlow
+  // (bonFlowOpen -> false côté DriverRefuelPage.jsx) juste après la
+  // capture, avant même l'analyse — le chauffeur revenait alors à l'écran
+  // d'accueil sans rien voir se passer.
+  const capturedRef = useRef(false);
+  const handleScannerClose = () => {
+    if (!capturedRef.current) onClose();
+  };
+
   const handleCapture = async (file, previewUrl) => {
+    capturedRef.current = true;
     setStep("analyzing");
     try {
       const { file_url } = await uploadFile(file, "bon-scans");
@@ -130,7 +143,7 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
         guideRatio={1.4}
         instructionText="Alignez le bon d'enlèvement dans le cadre"
         onCapture={handleCapture}
-        onClose={onClose}
+        onClose={handleScannerClose}
       />
     );
   }
