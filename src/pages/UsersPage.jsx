@@ -300,10 +300,12 @@ export default function UsersPage() {
           <div className="space-y-3 mt-2">
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
               <p className="text-sm font-bold text-primary flex items-center gap-1.5"><IdCard className="w-4 h-4" />Identification</p>
-              <div>
-                <Label className="text-xs">Nom complet</Label>
-                <Input className="mt-1 bg-card" placeholder="Ex: Amadou Diop" value={inviteFullName} onChange={e => setInviteFullName(e.target.value)} />
-              </div>
+              {inviteRole !== "chauffeur" && (
+                <div>
+                  <Label className="text-xs">Nom complet</Label>
+                  <Input className="mt-1 bg-card" placeholder="Ex: Amadou Diop" value={inviteFullName} onChange={e => setInviteFullName(e.target.value)} />
+                </div>
+              )}
               <div>
                 <Label className="text-xs">Adresse email <span className="text-green-600 font-bold">*</span></Label>
                 <Input type="email" className="mt-1 bg-card" placeholder="utilisateur@exemple.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
@@ -326,8 +328,15 @@ export default function UsersPage() {
               </div>
               {inviteRole === "chauffeur" ? (
                 <div>
-                  <Label className="text-xs">Chauffeur associé</Label>
-                  <Select value={inviteDriverId} onValueChange={setInviteDriverId}>
+                  <Label className="text-xs">Chauffeur</Label>
+                  <Select
+                    value={inviteDriverId}
+                    onValueChange={v => {
+                      setInviteDriverId(v);
+                      const d = drivers.find(d => d.id === v);
+                      if (d) setInviteFullName(`${d.prenom} ${d.nom}`);
+                    }}
+                  >
                     <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Sélectionner un chauffeur..." /></SelectTrigger>
                     <SelectContent>
                       {drivers.filter(d => d.statut !== "inactif").map(d => (
@@ -390,7 +399,7 @@ export default function UsersPage() {
                 </div>
                 {editRole === "chauffeur" ? (
                   <div>
-                    <Label className="text-xs">Chauffeur associé</Label>
+                    <Label className="text-xs">Chauffeur</Label>
                     <Select value={editDriverId} onValueChange={setEditDriverId}>
                       <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Sélectionner un chauffeur..." /></SelectTrigger>
                       <SelectContent>
