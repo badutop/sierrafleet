@@ -102,17 +102,20 @@ Deno.serve(async (req) => {
 
   // Extraction best-effort : toute erreur ici renvoie des champs null
   // plutôt qu'une erreur HTTP — le chauffeur reste toujours capable de
-  // saisir manuellement à l'écran de confirmation.
+  // saisir manuellement à l'écran de confirmation. Le champ debug
+  // (temporaire, à retirer une fois l'extraction fiabilisée) remonte la
+  // cause exacte jusqu'au téléphone, faute d'accès direct aux logs serveur.
   if (!ANTHROPIC_API_KEY) {
     console.error('[analyze-bon] ANTHROPIC_API_KEY absente — extraction ignorée');
-    return jsonResponse({ poids_tonnes: null, numero_bon_client: null, warning: 'IA non configurée' });
+    return jsonResponse({ poids_tonnes: null, numero_bon_client: null, debug: 'ANTHROPIC_API_KEY absente côté serveur' });
   }
 
   try {
     const imgResp = await fetch(body.image_url);
     if (!imgResp.ok) {
-      console.error(`[analyze-bon] téléchargement image échoué: ${imgResp.status}`);
-      return jsonResponse({ poids_tonnes: null, numero_bon_client: null });
+      const msg = `téléchargement image échoué (${imgResp.status})`;
+      console.error(`[analyze-bon] ${msg}`);
+      return jsonResponse({ poids_tonnes: null, numero_bon_client: null, debug: msg });
     }
     const mediaType = imgResp.headers.get('content-type') || 'image/jpeg';
     const base64 = arrayBufferToBase64(await imgResp.arrayBuffer());
@@ -140,16 +143,17 @@ Deno.serve(async (req) => {
     if (!aiResp.ok) {
       const errText = await aiResp.text();
       console.error(`[analyze-bon] appel Anthropic échoué (${aiResp.status}): ${errText}`);
-      return jsonResponse({ poids_tonnes: null, numero_bon_client: null });
+      return jsonResponse({ poids_tonnes: null, numero_bon_client: null, debug: `Anthropic ${aiResp.status}: ${errText.slice(0, 300)}` });
     }
 
     const aiData = await aiResp.json();
     const text = aiData?.content?.[0]?.text || '';
     const extracted = extractJson(text);
     console.log(`[analyze-bon] appelant=${callerData.user.id} extrait=${JSON.stringify(extracted)}`);
-    return jsonResponse(extracted);
+    return jsonResponse({ ...extracted, debug: `ok, texte brut: ${text.slice(0, 200)}` });
   } catch (err) {
-    console.error(`[analyze-bon] erreur inattendue: ${err instanceof Error ? err.message : String(err)}`);
-    return jsonResponse({ poids_tonnes: null, numero_bon_client: null });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[analyze-bon] erreur inattendue: ${msg}`);
+    return jsonResponse({ poids_tonnes: null, numero_bon_client: null, debug: `exception: ${msg}` });
   }
 });

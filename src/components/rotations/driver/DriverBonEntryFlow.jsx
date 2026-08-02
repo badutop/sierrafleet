@@ -64,6 +64,8 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
 
       const { data, error } = await supabase.functions.invoke("analyze-bon", { body: { image_url: file_url } });
       if (error) throw error;
+      // Diagnostic temporaire — à retirer une fois l'extraction fiabilisée.
+      if (data?.debug) toast.info(`[debug analyse] ${data.debug}`, { duration: 10000 });
       setForm(f => ({
         ...f,
         poids_tonnes: data?.poids_tonnes != null ? String(data.poids_tonnes) : "",
