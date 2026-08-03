@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { X, Zap } from "lucide-react";
 import BonCaptureStep from "./BonCaptureStep";
 import BonValidationStep from "./BonValidationStep";
@@ -14,9 +13,14 @@ import AutoRefuelSuccess from "./AutoRefuelSuccess";
  *     les 3 bons ont déjà été scannés et confirmés à l'étape Rotations de la
  *     campagne : on saute directement les étapes de scan/validation des bons
  *     et on lie juste le fuel_entries créé à ce checkpoint (voir PumpPhotoStep).
+ *   skipValidationStep — si vrai, saute l'étape "validation" (récapitulatif
+ *     redondant avec celui déjà affiché à l'étape capture) et va directement
+ *     de capture à pump. Utilisé par le nouveau cycle chauffeur
+ *     (DriverRefuelPage.jsx) où ce second récap n'apporte rien de plus.
+ *     false par défaut : n'affecte aucun appelant existant.
  *   onClose(fuelEntry?) — appelé à la fermeture (avec la FuelEntry créée si succès)
  */
-export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries = [], onClose, preselectedDriver = null, preselectedVehicle = null, checkpointRotationId = null }) {
+export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries = [], onClose, preselectedDriver = null, preselectedVehicle = null, checkpointRotationId = null, skipValidationStep = false }) {
   const [step, setStep] = useState(checkpointRotationId ? "pump" : "capture"); // capture | validation | pump | success
   const [bons, setBons] = useState([]); // [{file, previewUrl, ocrNumber, rotation}]
   const [selectedDriver, setSelectedDriver] = useState(preselectedDriver);
@@ -27,7 +31,7 @@ export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries =
     setBons(bons);
     setSelectedDriver(driver);
     setSelectedVehicle(vehicle);
-    setStep("validation");
+    setStep(skipValidationStep ? "pump" : "validation");
   };
 
   const handleValidationOk = (validatedBons) => {
@@ -52,9 +56,10 @@ export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries =
           <div className="flex items-center gap-3">
             {/* Indicateur d'étape — bons déjà scannés/confirmés en amont
                 (Rotations de la campagne) quand checkpointRotationId est fourni,
-                donc capture/validation ne sont même pas affichées. */}
+                donc capture/validation ne sont même pas affichées ; validation
+                sautée aussi quand skipValidationStep (récap déjà vu à capture). */}
             <div className="flex items-center gap-1">
-              {(checkpointRotationId ? ["pump", "success"] : ["capture", "validation", "pump", "success"]).map((s, i, steps) => (
+              {(checkpointRotationId ? ["pump", "success"] : skipValidationStep ? ["capture", "pump", "success"] : ["capture", "validation", "pump", "success"]).map((s, i, steps) => (
                 <div
                   key={s}
                   className={`w-2 h-2 rounded-full transition-all ${
@@ -99,7 +104,7 @@ export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries =
               bons={bons}
               rotations={rotations}
               checkpointRotationId={checkpointRotationId}
-              onBack={() => checkpointRotationId ? onClose() : setStep("validation")}
+              onBack={() => checkpointRotationId ? onClose() : setStep(skipValidationStep ? "capture" : "validation")}
               onDone={handlePumpDone}
             />
           )}

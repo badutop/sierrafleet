@@ -331,8 +331,10 @@ export default function DriverRefuelPage() {
           le chauffeur voit d'abord le récap des 3 bons (déjà validés
           automatiquement) avant de poursuivre vers la pompe, comme avant ce
           nouveau cycle — pertinent maintenant que chaque bon a été scanné
-          lors d'une connexion précédente et distincte. Reste dans l'app à la
-          fin (pas de déconnexion forcée), voir AutoRefuelFlow/AutoRefuelSuccess. */}
+          lors d'une connexion précédente et distincte. skipValidationStep
+          saute le second récap (BonValidationStep), redondant avec celui de
+          capture. Reste dans l'app à la fin (pas de déconnexion forcée), voir
+          AutoRefuelFlow/AutoRefuelSuccess. */}
       {flowOpen && driver && vehicle && (
         <AutoRefuelFlow
           drivers={allDrivers}
@@ -340,6 +342,7 @@ export default function DriverRefuelPage() {
           rotations={allRotations}
           preselectedDriver={driver}
           preselectedVehicle={vehicle}
+          skipValidationStep
           onClose={() => {
             setFlowOpen(false);
             loadData();
