@@ -327,8 +327,12 @@ export default function DriverRefuelPage() {
         />
       )}
 
-      {/* Flow rechargement — inchangé : reste dans l'app à la fin (pas de
-          déconnexion forcée), voir AutoRefuelFlow/AutoRefuelSuccess. */}
+      {/* Flow rechargement — démarre à "capture" (pas de checkpointRotationId) :
+          le chauffeur voit d'abord le récap des 3 bons (déjà validés
+          automatiquement) avant de poursuivre vers la pompe, comme avant ce
+          nouveau cycle — pertinent maintenant que chaque bon a été scanné
+          lors d'une connexion précédente et distincte. Reste dans l'app à la
+          fin (pas de déconnexion forcée), voir AutoRefuelFlow/AutoRefuelSuccess. */}
       {flowOpen && driver && vehicle && (
         <AutoRefuelFlow
           drivers={allDrivers}
@@ -336,7 +340,6 @@ export default function DriverRefuelPage() {
           rotations={allRotations}
           preselectedDriver={driver}
           preselectedVehicle={vehicle}
-          checkpointRotationId={cycleState.action === "refuel" ? cycleState.checkpointRotationId : null}
           onClose={() => {
             setFlowOpen(false);
             loadData();
