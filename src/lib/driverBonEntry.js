@@ -108,3 +108,47 @@ export function computeBonFinalEcart({ poidsBonFinal, numeroBonFinal, poidsEnlev
     observation: diffs.length ? `Écart détecté automatiquement — ${diffs.join(" · ")}` : "",
   };
 }
+
+// Détermine la seule action que le chauffeur doit voir sur son écran
+// d'accueil (voir DriverRefuelPage.jsx) : un cycle "enlèvement → livraison/
+// bon de déchargement" par rotation, répété 3 fois, puis rechargement — le
+// chauffeur se déconnecte (et l'app vide son cache) après chaque étape, donc
+// à chaque connexion il ne doit voir qu'un seul bouton, celui de l'étape où
+// il en est.
+//
+// Parcourt les rotations de ce (client, véhicule) triées par numero_rotation,
+// par groupes de 3 : un groupe déjà rechargé (chunk[2].fuel_entry_id) est
+// "consommé" et on repart à zéro pour le groupe suivant. Dans le groupe
+// courant (pas encore rechargé) :
+//   - la dernière rotation a un bon d'enlèvement mais pas de bon de
+//     déchargement → il reste à scanner ce bon de déchargement.
+//   - le groupe a moins de 3 rotations → il reste à scanner un bon
+//     d'enlèvement (nouvelle rotation).
+//   - le groupe a ses 3 rotations, chacune avec les deux bons → le
+//     rechargement est possible.
+export function getDriverCycleState(rotations, clientId, vehicleId) {
+  const sorted = rotations
+    .filter(r => r.client_id === clientId && r.vehicle_id === vehicleId)
+    .sort((a, b) => (a.numero_rotation || 0) - (b.numero_rotation || 0));
+
+  let group = [];
+  for (const r of sorted) {
+    group.push(r);
+    if (group.length === 3) {
+      if (group[2].fuel_entry_id) {
+        group = []; // groupe déjà rechargé : repart à zéro pour le suivant
+      } else {
+        break; // groupe courant, pas encore rechargé
+      }
+    }
+  }
+
+  const last = group[group.length - 1];
+  if (last && last.bon_physique_scan_url && !last.bon_final_scan_url) {
+    return { action: "discharge", rotationId: last.id };
+  }
+  if (group.length < 3) {
+    return { action: "pickup" };
+  }
+  return { action: "refuel", checkpointRotationId: group[2].id };
+}

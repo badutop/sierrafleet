@@ -1,42 +1,43 @@
 import React, { useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, ScanLine, Loader2, CheckCircle2, ImageIcon, Fuel } from "lucide-react";
+import { X, ScanLine, Loader2, CheckCircle2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { uploadFile } from "@/lib/storage";
 import { logAudit } from "@/lib/auditLog";
 import { consoLitresPourClient, countExistingForClientVehicle } from "@/lib/refuelRules";
-import { buildDriverRotationPayload, maybeAutoValidateCheckpoint } from "@/lib/driverBonEntry";
+import { buildDriverRotationPayload } from "@/lib/driverBonEntry";
 
 // Nouveau flux "chauffeur saisit lui-même" (togglable, voir
 // DriverBonEntryToggleCard.jsx) : le chauffeur scanne son bon d'enlèvement
 // dès réception, une IA de vision (Edge Function analyze-bon) pré-remplit
 // poids et N° de BL, il confirme (ou corrige), et la rotation est créée —
 // avec la même forme et les mêmes règles que RotationSheetEntry.jsx
-// (fichier non modifié, non touché par ce flux). Si cette rotation
-// complète un groupe de 3 bons pour son (client, véhicule), le refuel est
-// validé automatiquement (maybeAutoValidateCheckpoint) au lieu d'attendre
-// le Responsable Exploitation.
+// (fichier non modifié, non touché par ce flux).
+//
+// Le cycle complet (voir DriverRefuelPage.jsx / getDriverCycleState) est
+// enlèvement → déchargement, répété 3 fois, puis rechargement — chaque étape
+// se termine par une déconnexion (l'app revient à l'écran de login, cache
+// vidé) plutôt que d'enchaîner dans la même session : à la prochaine
+// connexion, le chauffeur ne voit que le bouton de l'étape suivante. La
+// validation du refuel (une fois les 3 bons de déchargement obtenus) se fait
+// désormais dans DriverBonFinalEntryFlow.jsx, pas ici.
 //
 // Props :
 //   driver, vehicle — déjà résolus par DriverRefuelPage.jsx
 //   campaign, campaignClients, zones — contexte de la campagne en cours du véhicule
 //   onClose() — ferme sans suite
-//   onSaved({ checkpointRotationId }) — rotation enregistrée ; si non-null,
-//     le checkpoint (3e bon) vient d'être auto-validé et le chauffeur peut
-//     enchaîner directement sur la pompe (AutoRefuelFlow avec ce même id,
-//     qui saute alors le scan/récap des bons déjà faits ici)
-export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaignClients = [], zones = [], onClose, onSaved }) {
+export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaignClients = [], zones = [], onClose }) {
+  const { logout } = useAuth();
   const [step, setStep] = useState("capture"); // capture | analyzing | confirm | success
   const [scan, setScan] = useState(null); // { file, previewUrl, url }
   const [form, setForm] = useState({ poids_tonnes: "", numero_bon_client: "", client_id: "" });
   const [saving, setSaving] = useState(false);
-  const [checkpointRotationId, setCheckpointRotationId] = useState(null);
-  const [savedRotationNumber, setSavedRotationNumber] = useState(null);
 
   const isSingleClient = campaignClients.length <= 1;
   const soleClientId = campaignClients[0]?.client_id || campaign?.client_id || null;
@@ -85,14 +86,12 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
 
     setSaving(true);
     try {
-      // Lus juste avant l'insertion plutôt que depuis les props (campaign,
-      // campaignRotations) : ces dernières viennent du cache react-query de
-      // DriverRefuelPage, qui ne se rafraîchit qu'en tâche de fond après
-      // invalidation — pas assez fiable pour un calcul aussi critique que la
-      // position dans le groupe de 3 (numero_rotation/position dupliqués
-      // observés en test réel, refuel jamais déclenché automatiquement). Un
-      // aller-retour DB de plus ici garantit un compte toujours à jour, y
-      // compris sur une connexion mobile lente entre deux scans.
+      // Lus juste avant l'insertion plutôt que depuis les props (campaign) :
+      // ces dernières viennent du cache react-query de DriverRefuelPage, qui
+      // ne se rafraîchit qu'en tâche de fond après invalidation — pas assez
+      // fiable pour un calcul aussi critique que la position dans le groupe
+      // de 3 (numero_rotation/position dupliqués observés en test réel). Un
+      // aller-retour DB de plus ici garantit un compte toujours à jour.
       const { data: freshRotations, error: rotFetchError } = await supabase
         .from("rotations").select("*").eq("campaign_id", campaign.id);
       if (rotFetchError) throw rotFetchError;
@@ -107,7 +106,6 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
 
       const numeroRotation = freshRotations.length + 1;
       const position = countExistingForClientVehicle(freshRotations, resolvedClientId, vehicle.id) + 1;
-      const refuelDeclenche = position % 3 === 0;
       const litresAlloues = consoLitresPourClient(resolvedClient, zones);
 
       const rotData = buildDriverRotationPayload({
@@ -119,7 +117,7 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
         numeroBonClient: form.numero_bon_client,
         poidsTonnes: form.poids_tonnes,
         litresAlloues,
-        refuelDeclenche,
+        refuelDeclenche: position % 3 === 0,
         bonScanUrl: scan?.url,
       });
 
@@ -133,19 +131,6 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
       }).eq("id", campaign.id);
       if (campaignError) throw campaignError;
 
-      let validatedCheckpointId = null;
-      if (refuelDeclenche) {
-        validatedCheckpointId = await maybeAutoValidateCheckpoint({
-          allRotationsAfterInsert: [...freshRotations, rotData],
-          clientId: resolvedClientId,
-          vehicleId: vehicle.id,
-          client: resolvedClient,
-          zones,
-        });
-      }
-
-      setCheckpointRotationId(validatedCheckpointId);
-      setSavedRotationNumber(numeroRotation);
       setStep("success");
     } catch (err) {
       toast.error(`Erreur lors de l'enregistrement : ${err.message}`);
@@ -173,9 +158,11 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
             <ScanLine className="w-5 h-5 text-secondary" />
             <span className="font-bold text-sm">Bon d'enlèvement</span>
           </div>
-          <button onClick={onClose} className="text-white/80 hover:text-white p-1">
-            <X className="w-5 h-5" />
-          </button>
+          {step !== "success" && (
+            <button onClick={onClose} className="text-white/80 hover:text-white p-1">
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
@@ -250,25 +237,15 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
 
           {step === "success" && (
             // Écran volontairement minimal (peu de texte, un grand check
-            // vert) — pensé pour des chauffeurs qui lisent/écrivent souvent
-            // peu.
+            // vert). "Terminer" déconnecte le chauffeur (retour à l'écran de
+            // login, cache vidé) plutôt que de rester dans l'app — à la
+            // prochaine connexion, il ne verra que le bouton de l'étape
+            // suivante (voir getDriverCycleState).
             <div className="flex flex-col items-center text-center gap-6 py-12">
               <div className="w-28 h-28 rounded-full bg-green-100 flex items-center justify-center">
                 <CheckCircle2 className="w-16 h-16 text-green-600" />
               </div>
-              <p className="text-xs text-muted-foreground">N° {savedRotationNumber}</p>
-
-              {checkpointRotationId && (
-                <Button
-                  className="w-full h-16 rounded-2xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground flex flex-col gap-1"
-                  onClick={() => onSaved({ checkpointRotationId })}
-                >
-                  <Fuel className="w-6 h-6" />
-                  Rechargement
-                </Button>
-              )}
-
-              <Button variant="outline" className="w-full h-11 rounded-xl font-bold" onClick={() => onSaved({ checkpointRotationId: null })}>
+              <Button className="w-full h-11 rounded-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={logout}>
                 Terminer
               </Button>
             </div>

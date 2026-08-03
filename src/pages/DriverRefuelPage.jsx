@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
-import { Zap, Truck, User, LogOut, AlertCircle } from "lucide-react";
+import { Zap, Truck, User, LogOut, AlertCircle, PackageCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
 import DriverBonEntryFlow from "@/components/rotations/driver/DriverBonEntryFlow";
+import DriverBonFinalEntryFlow from "@/components/rotations/driver/DriverBonFinalEntryFlow";
 import { useAppSetting, isSettingOn } from "@/hooks/use-app-setting";
-import { DRIVER_BON_ENTRY_KEY } from "@/lib/driverBonEntry";
+import { DRIVER_BON_ENTRY_KEY, getDriverCycleState } from "@/lib/driverBonEntry";
 import { toast } from "sonner";
 import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
 
@@ -19,7 +20,6 @@ import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
  */
 export default function DriverRefuelPage() {
   const { user: currentUser, logout } = useAuth();
-  const queryClient = useQueryClient();
   const [driver, setDriver] = useState(null);
   const [vehicle, setVehicle] = useState(null);
   const [allDrivers, setAllDrivers] = useState([]);
@@ -28,7 +28,7 @@ export default function DriverRefuelPage() {
   const [loading, setLoading] = useState(true);
   const [flowOpen, setFlowOpen] = useState(false);
   const [bonFlowOpen, setBonFlowOpen] = useState(false);
-  const [pendingCheckpointId, setPendingCheckpointId] = useState(null);
+  const [dischargeRotationId, setDischargeRotationId] = useState(null);
 
   // Nouveau flux "chauffeur saisit lui-même" (togglable, voir
   // DriverBonEntryToggleCard.jsx dans Paramètres) — additif uniquement :
@@ -79,6 +79,24 @@ export default function DriverRefuelPage() {
   const campaignClients = campaignClientRows.length
     ? campaignClientRows.map(cc => ({ client_id: cc.client_id, tonnage_prevu: cc.tonnage_prevu, client: clientMap[cc.client_id] }))
     : (campaign?.client_id ? [{ client_id: campaign.client_id, tonnage_prevu: campaign.tonnage_total_prevu, client: clientMap[campaign.client_id] }] : []);
+
+  // Un seul bouton à la fois (voir getDriverCycleState) : enlèvement →
+  // déchargement, répété 3 fois, puis rechargement — le chauffeur se
+  // déconnecte après chaque étape (voir DriverBonEntryFlow/
+  // DriverBonFinalEntryFlow), donc à chaque connexion cet état repart d'une
+  // lecture fraîche de allRotations. En multi-clients, un cycle déjà entamé
+  // (discharge/refuel) pour n'importe quel client prend priorité — sinon on
+  // retombe sur "pickup" par défaut (le client sera résolu/choisi dans
+  // DriverBonEntryFlow comme avant).
+  let cycleState = { action: "pickup" };
+  let cycleClientId = null;
+  if (bonEntryActive && vehicle?.campaign_id) {
+    for (const cc of campaignClients) {
+      const s = getDriverCycleState(allRotations, cc.client_id, vehicle.id);
+      if (s.action !== "pickup") { cycleState = s; cycleClientId = cc.client_id; break; }
+    }
+  }
+  const cycleClient = clientMap[cycleClientId];
 
   useEffect(() => {
     loadData();
@@ -228,31 +246,46 @@ export default function DriverRefuelPage() {
             </div>
           )}
 
-          {/* Nouveau flux (togglable) : boutons en photos plutôt qu'en texte —
-              beaucoup de chauffeurs lisent/écrivent peu, l'image (pont-bascule,
-              pompe) doit suffire à reconnaître l'action sans avoir à lire le
-              libellé. */}
+          {/* Nouveau flux (togglable) : un seul bouton à la fois, celui de
+              l'étape où le chauffeur en est (voir cycleState plus haut) —
+              en photo (pont-bascule, pompe) plutôt qu'en texte, beaucoup de
+              chauffeurs lisent/écrivent peu. */}
           {bonEntryActive ? (
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                disabled={!driver || !vehicle || !vehicle?.campaign_id}
-                onClick={() => setBonFlowOpen(true)}
-                className="relative h-36 rounded-2xl border-2 border-secondary/50 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
-              >
-                <img src="/assets/pont-bascule.jpeg" alt="Bon d'enlèvement" className="absolute inset-0 w-full h-full object-cover" />
-                <span className="absolute inset-x-0 bottom-0 bg-secondary/90 text-white text-xs font-bold py-1.5">Bon d'enlèvement</span>
-              </button>
-              <button
-                type="button"
-                disabled={!driver || !vehicle}
-                onClick={() => setFlowOpen(true)}
-                className="relative h-36 rounded-2xl border-2 border-secondary/50 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
-              >
-                <img src="/assets/pompe.jpeg" alt="Rechargement" className="absolute inset-0 w-full h-full object-cover" />
-                <span className="absolute inset-x-0 bottom-0 bg-secondary/90 text-white text-xs font-bold py-1.5">Rechargement</span>
-              </button>
-            </div>
+            <>
+              {cycleState.action === "pickup" && (
+                <button
+                  type="button"
+                  disabled={!driver || !vehicle || !vehicle?.campaign_id}
+                  onClick={() => setBonFlowOpen(true)}
+                  className="relative w-full h-40 rounded-2xl border-2 border-secondary/50 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <img src="/assets/pont-bascule.jpeg" alt="Bon d'enlèvement" className="absolute inset-0 w-full h-full object-cover" />
+                  <span className="absolute inset-x-0 bottom-0 bg-secondary/90 text-white text-sm font-bold py-2">Bon d'enlèvement</span>
+                </button>
+              )}
+              {cycleState.action === "discharge" && (
+                <button
+                  type="button"
+                  disabled={!driver || !vehicle}
+                  onClick={() => setDischargeRotationId(cycleState.rotationId)}
+                  className="w-full h-40 rounded-2xl bg-secondary text-white flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <PackageCheck className="w-12 h-12" />
+                  <span className="text-sm font-bold">Bon de déchargement</span>
+                </button>
+              )}
+              {cycleState.action === "refuel" && (
+                <button
+                  type="button"
+                  disabled={!driver || !vehicle}
+                  onClick={() => setFlowOpen(true)}
+                  className="relative w-full h-40 rounded-2xl border-2 border-secondary/50 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <img src="/assets/pompe.jpeg" alt="Rechargement" className="absolute inset-0 w-full h-full object-cover" />
+                  <span className="absolute inset-x-0 bottom-0 bg-secondary/90 text-white text-sm font-bold py-2">Rechargement</span>
+                </button>
+              )}
+            </>
           ) : (
             <Button
               className="w-full h-14 text-base font-bold bg-secondary hover:bg-secondary/90 text-white rounded-2xl"
@@ -269,7 +302,9 @@ export default function DriverRefuelPage() {
         </div>
       </main>
 
-      {/* Nouveau flux : scan + saisie du bon d'enlèvement par le chauffeur */}
+      {/* Nouveau flux : scan + saisie du bon d'enlèvement par le chauffeur —
+          se termine par une déconnexion (voir DriverBonEntryFlow), pas de
+          onSaved à gérer ici. */}
       {bonFlowOpen && driver && vehicle && campaign && (
         <DriverBonEntryFlow
           driver={driver}
@@ -278,31 +313,22 @@ export default function DriverRefuelPage() {
           campaignClients={campaignClients}
           zones={zones}
           onClose={() => setBonFlowOpen(false)}
-          onSaved={({ checkpointRotationId }) => {
-            setBonFlowOpen(false);
-            loadData();
-            // DriverBonEntryFlow lit désormais rotations/campaign en direct
-            // depuis la DB au moment de la confirmation (voir son
-            // handleConfirm) plutôt que depuis ce cache react-query — évite
-            // tout risque de compte périmé d'un scan à l'autre. On invalide
-            // quand même ces clés pour que les autres écrans (Carburant,
-            // Campagnes > Rotations) reflètent ce nouveau bon sans attendre
-            // leur prochain remount.
-            queryClient.invalidateQueries({ queryKey: ["rotations", vehicle.campaign_id] });
-            queryClient.invalidateQueries({ queryKey: ["campaign", vehicle.campaign_id] });
-            // Le refuel vient d'être validé automatiquement (3e bon) : on
-            // enchaîne directement sur la pompe via le checkpointRotationId,
-            // qu'AutoRefuelFlow (strictement inchangé) sait déjà interpréter
-            // pour sauter le scan/récap des bons — superflu ici, déjà faits.
-            if (checkpointRotationId) {
-              setPendingCheckpointId(checkpointRotationId);
-              setFlowOpen(true);
-            }
-          }}
         />
       )}
 
-      {/* Flow rechargement */}
+      {/* Nouveau flux : scan du bon de déchargement par le chauffeur —
+          idem, se termine par une déconnexion. */}
+      {dischargeRotationId && (
+        <DriverBonFinalEntryFlow
+          rotationId={dischargeRotationId}
+          client={cycleClient}
+          zones={zones}
+          onClose={() => setDischargeRotationId(null)}
+        />
+      )}
+
+      {/* Flow rechargement — inchangé : reste dans l'app à la fin (pas de
+          déconnexion forcée), voir AutoRefuelFlow/AutoRefuelSuccess. */}
       {flowOpen && driver && vehicle && (
         <AutoRefuelFlow
           drivers={allDrivers}
@@ -310,10 +336,9 @@ export default function DriverRefuelPage() {
           rotations={allRotations}
           preselectedDriver={driver}
           preselectedVehicle={vehicle}
-          checkpointRotationId={pendingCheckpointId}
+          checkpointRotationId={cycleState.action === "refuel" ? cycleState.checkpointRotationId : null}
           onClose={() => {
             setFlowOpen(false);
-            setPendingCheckpointId(null);
             loadData();
           }}
         />
