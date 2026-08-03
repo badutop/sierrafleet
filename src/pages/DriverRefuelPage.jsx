@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
-import { Zap, Truck, User, LogOut, AlertCircle, ScanLine } from "lucide-react";
+import { Zap, Truck, User, LogOut, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
@@ -228,28 +228,29 @@ export default function DriverRefuelPage() {
             </div>
           )}
 
-          {/* Nouveau flux (togglable) : boutons en icônes plutôt qu'en texte —
-              beaucoup de chauffeurs lisent/écrivent peu, l'icône doit suffire
-              à reconnaître l'action sans avoir à lire le libellé. */}
+          {/* Nouveau flux (togglable) : boutons en photos plutôt qu'en texte —
+              beaucoup de chauffeurs lisent/écrivent peu, l'image (pont-bascule,
+              pompe) doit suffire à reconnaître l'action sans avoir à lire le
+              libellé. */}
           {bonEntryActive ? (
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 disabled={!driver || !vehicle || !vehicle?.campaign_id}
                 onClick={() => setBonFlowOpen(true)}
-                className="flex flex-col items-center justify-center gap-2 h-28 rounded-2xl border-2 border-secondary/50 text-secondary bg-secondary/5 active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+                className="flex flex-col items-center justify-center gap-2 h-28 rounded-2xl border-2 border-secondary/50 bg-secondary/5 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
               >
-                <ScanLine className="w-9 h-9" />
-                <span className="text-xs font-bold">Bon d'enlèvement</span>
+                <img src="/assets/pont-bascule.jpeg" alt="Bon d'enlèvement" className="w-14 h-14 rounded-xl object-cover" />
+                <span className="text-xs font-bold text-secondary">Bon d'enlèvement</span>
               </button>
               <button
                 type="button"
                 disabled={!driver || !vehicle}
                 onClick={() => setFlowOpen(true)}
-                className="flex flex-col items-center justify-center gap-2 h-28 rounded-2xl bg-secondary text-white active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+                className="flex flex-col items-center justify-center gap-2 h-28 rounded-2xl bg-secondary overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
               >
-                <Zap className="w-9 h-9" />
-                <span className="text-xs font-bold">Rechargement</span>
+                <img src="/assets/pompe.jpeg" alt="Rechargement" className="w-14 h-14 rounded-xl object-cover" />
+                <span className="text-xs font-bold text-white">Rechargement</span>
               </button>
             </div>
           ) : (
