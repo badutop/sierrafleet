@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
 import { Zap, Truck, User, LogOut, AlertCircle, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
  */
 export default function DriverRefuelPage() {
   const { user: currentUser, logout } = useAuth();
+  const queryClient = useQueryClient();
   const [driver, setDriver] = useState(null);
   const [vehicle, setVehicle] = useState(null);
   const [allDrivers, setAllDrivers] = useState([]);
@@ -290,6 +291,16 @@ export default function DriverRefuelPage() {
           onSaved={({ checkpointRotationId }) => {
             setBonFlowOpen(false);
             loadData();
+            // La rotation vient d'être insérée directement (hors mutation
+            // react-query) : sans invalidation, campaignRotations/campaign
+            // restent en cache tels qu'au premier chargement de cette page.
+            // Un 2e (ou 3e) scan dans la même session verrait alors le même
+            // numero_rotation/position qu'avant (toujours "1re du groupe"),
+            // et refuelDeclenche ne deviendrait jamais vrai — bug observé en
+            // test réel (bons toujours "non validés", auto-validation jamais
+            // déclenchée). D'où cette invalidation avant le scan suivant.
+            queryClient.invalidateQueries({ queryKey: ["rotations", vehicle.campaign_id] });
+            queryClient.invalidateQueries({ queryKey: ["campaign", vehicle.campaign_id] });
             // Le refuel vient d'être validé automatiquement (3e bon) : on
             // enchaîne directement sur la pompe via le checkpointRotationId,
             // qu'AutoRefuelFlow (strictement inchangé) sait déjà interpréter
