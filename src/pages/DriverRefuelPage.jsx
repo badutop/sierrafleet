@@ -238,19 +238,19 @@ export default function DriverRefuelPage() {
                 type="button"
                 disabled={!driver || !vehicle || !vehicle?.campaign_id}
                 onClick={() => setBonFlowOpen(true)}
-                className="flex flex-col items-center justify-center gap-2 h-28 rounded-2xl border-2 border-secondary/50 bg-secondary/5 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+                className="relative h-36 rounded-2xl border-2 border-secondary/50 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
               >
-                <img src="/assets/pont-bascule.jpeg" alt="Bon d'enlèvement" className="w-14 h-14 rounded-xl object-cover" />
-                <span className="text-xs font-bold text-secondary">Bon d'enlèvement</span>
+                <img src="/assets/pont-bascule.jpeg" alt="Bon d'enlèvement" className="absolute inset-0 w-full h-full object-cover" />
+                <span className="absolute inset-x-0 bottom-0 bg-secondary/90 text-white text-xs font-bold py-1.5">Bon d'enlèvement</span>
               </button>
               <button
                 type="button"
                 disabled={!driver || !vehicle}
                 onClick={() => setFlowOpen(true)}
-                className="flex flex-col items-center justify-center gap-2 h-28 rounded-2xl bg-secondary overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+                className="relative h-36 rounded-2xl border-2 border-secondary/50 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
               >
-                <img src="/assets/pompe.jpeg" alt="Rechargement" className="w-14 h-14 rounded-xl object-cover" />
-                <span className="text-xs font-bold text-white">Rechargement</span>
+                <img src="/assets/pompe.jpeg" alt="Rechargement" className="absolute inset-0 w-full h-full object-cover" />
+                <span className="absolute inset-x-0 bottom-0 bg-secondary/90 text-white text-xs font-bold py-1.5">Rechargement</span>
               </button>
             </div>
           ) : (
