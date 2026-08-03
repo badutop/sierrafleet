@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,18 +21,17 @@ import { buildDriverRotationPayload } from "@/lib/driverBonEntry";
 //
 // Le cycle complet (voir DriverRefuelPage.jsx / getDriverCycleState) est
 // enlèvement → déchargement, répété 3 fois, puis rechargement — chaque étape
-// se termine par une déconnexion (l'app revient à l'écran de login, cache
-// vidé) plutôt que d'enchaîner dans la même session : à la prochaine
-// connexion, le chauffeur ne voit que le bouton de l'étape suivante. La
-// validation du refuel (une fois les 3 bons de déchargement obtenus) se fait
-// désormais dans DriverBonFinalEntryFlow.jsx, pas ici.
+// terminée ramène à l'écran principal du chauffeur (toujours connecté), qui
+// affiche alors le bouton de l'étape suivante. La validation du refuel (une
+// fois les 3 bons de déchargement obtenus) se fait désormais dans
+// DriverBonFinalEntryFlow.jsx, pas ici.
 //
 // Props :
 //   driver, vehicle — déjà résolus par DriverRefuelPage.jsx
 //   campaign, campaignClients, zones — contexte de la campagne en cours du véhicule
 //   onClose() — ferme sans suite
-export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaignClients = [], zones = [], onClose }) {
-  const { logout } = useAuth();
+//   onDone() — rotation enregistrée, l'utilisateur a fermé l'écran de succès
+export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaignClients = [], zones = [], onClose, onDone }) {
   const [step, setStep] = useState("capture"); // capture | analyzing | confirm | success
   const [scan, setScan] = useState(null); // { file, previewUrl, url }
   const [form, setForm] = useState({ poids_tonnes: "", numero_bon_client: "", client_id: "" });
@@ -237,15 +235,14 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
 
           {step === "success" && (
             // Écran volontairement minimal (peu de texte, un grand check
-            // vert). "Terminer" déconnecte le chauffeur (retour à l'écran de
-            // login, cache vidé) plutôt que de rester dans l'app — à la
-            // prochaine connexion, il ne verra que le bouton de l'étape
+            // vert). "Terminer" ramène à l'écran principal du chauffeur
+            // (toujours connecté), qui affichera le bouton de l'étape
             // suivante (voir getDriverCycleState).
             <div className="flex flex-col items-center text-center gap-6 py-12">
               <div className="w-28 h-28 rounded-full bg-green-100 flex items-center justify-center">
                 <CheckCircle2 className="w-16 h-16 text-green-600" />
               </div>
-              <Button className="w-full h-11 rounded-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={logout}>
+              <Button className="w-full h-11 rounded-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={onDone}>
                 Terminer
               </Button>
             </div>

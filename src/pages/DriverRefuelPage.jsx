@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
-import { Zap, Truck, User, LogOut, AlertCircle, PackageCheck } from "lucide-react";
+import { Zap, Truck, User, LogOut, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
@@ -170,7 +170,13 @@ export default function DriverRefuelPage() {
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
               <Zap className="w-8 h-8 text-secondary" />
             </div>
-            <h1 className="text-xl font-bold">Rechargement Carburant</h1>
+            <h1 className="text-xl font-bold">
+              {bonEntryActive
+                ? (cycleState.action === "pickup" ? "Saisie Bon Enlèvement"
+                  : cycleState.action === "discharge" ? "Saisie Bon Déchargement"
+                  : "Recharge Carburant")
+                : "Rechargement Carburant"}
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">Module chauffeur</p>
           </div>
 
@@ -268,10 +274,10 @@ export default function DriverRefuelPage() {
                   type="button"
                   disabled={!driver || !vehicle}
                   onClick={() => setDischargeRotationId(cycleState.rotationId)}
-                  className="w-full h-40 rounded-2xl bg-secondary text-white flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+                  className="relative w-full h-40 rounded-2xl border-2 border-secondary/50 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
                 >
-                  <PackageCheck className="w-12 h-12" />
-                  <span className="text-sm font-bold">Bon de déchargement</span>
+                  <img src="/assets/dechargement.jpeg" alt="Bon de déchargement" className="absolute inset-0 w-full h-full object-cover" />
+                  <span className="absolute inset-x-0 bottom-0 bg-secondary/90 text-white text-sm font-bold py-2">Bon de déchargement</span>
                 </button>
               )}
               {cycleState.action === "refuel" && (
@@ -303,8 +309,8 @@ export default function DriverRefuelPage() {
       </main>
 
       {/* Nouveau flux : scan + saisie du bon d'enlèvement par le chauffeur —
-          se termine par une déconnexion (voir DriverBonEntryFlow), pas de
-          onSaved à gérer ici. */}
+          onDone ramène à l'écran principal (toujours connecté), comme le
+          flow rechargement plus bas. */}
       {bonFlowOpen && driver && vehicle && campaign && (
         <DriverBonEntryFlow
           driver={driver}
@@ -313,17 +319,18 @@ export default function DriverRefuelPage() {
           campaignClients={campaignClients}
           zones={zones}
           onClose={() => setBonFlowOpen(false)}
+          onDone={() => { setBonFlowOpen(false); loadData(); }}
         />
       )}
 
-      {/* Nouveau flux : scan du bon de déchargement par le chauffeur —
-          idem, se termine par une déconnexion. */}
+      {/* Nouveau flux : scan du bon de déchargement par le chauffeur — idem. */}
       {dischargeRotationId && (
         <DriverBonFinalEntryFlow
           rotationId={dischargeRotationId}
           client={cycleClient}
           zones={zones}
           onClose={() => setDischargeRotationId(null)}
+          onDone={() => { setDischargeRotationId(null); loadData(); }}
         />
       )}
 

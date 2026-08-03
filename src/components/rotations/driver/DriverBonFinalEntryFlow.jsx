@@ -23,7 +23,7 @@ import { computeBonFinalEcart, maybeAutoValidateCheckpoint, getDriverCycleState 
 //
 // Si cette rotation est la 3e du groupe à obtenir son bon de déchargement,
 // le refuel est validé automatiquement (maybeAutoValidateCheckpoint) — le
-// chauffeur pourra recharger à sa prochaine connexion (voir
+// chauffeur pourra recharger dès qu'il reviendra à l'écran principal (voir
 // getDriverCycleState / DriverRefuelPage.jsx).
 //
 // Props :
@@ -31,8 +31,9 @@ import { computeBonFinalEcart, maybeAutoValidateCheckpoint, getDriverCycleState 
 //   client, zones — nécessaires pour calculer les litres si le refuel se
 //     valide automatiquement à cette étape
 //   onClose() — ferme sans suite
-export default function DriverBonFinalEntryFlow({ rotationId, client, zones = [], onClose }) {
-  const { user: currentUser, logout } = useAuth();
+//   onDone() — bon enregistré, l'utilisateur a fermé l'écran de succès
+export default function DriverBonFinalEntryFlow({ rotationId, client, zones = [], onClose, onDone }) {
+  const { user: currentUser } = useAuth();
   const [step, setStep] = useState("capture"); // capture | analyzing | confirm | success
   const [scan, setScan] = useState(null);
   const [rotation, setRotation] = useState(null);
@@ -205,7 +206,7 @@ export default function DriverBonFinalEntryFlow({ rotationId, client, zones = []
               <div className="w-28 h-28 rounded-full bg-green-100 flex items-center justify-center">
                 <CheckCircle2 className="w-16 h-16 text-green-600" />
               </div>
-              <Button className="w-full h-11 rounded-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={logout}>
+              <Button className="w-full h-11 rounded-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={onDone}>
                 Terminer
               </Button>
             </div>
