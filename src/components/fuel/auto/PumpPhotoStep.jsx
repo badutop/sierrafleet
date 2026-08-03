@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabaseClient";
 import { uploadFile } from "@/lib/storage";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
-import { compressImageFile } from "@/lib/imageCompression";
 import { getFuelPricePerLitre } from "@/pages/SettingsPage";
 import { getRefuelCheckpoints } from "@/lib/refuelRules";
 import { logAudit } from "@/lib/auditLog";
@@ -33,7 +32,6 @@ export default function PumpPhotoStep({ driver, vehicle, bons, rotations = [], c
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
-  const fileInputRef = useRef(null);
 
   // GPS silencieux : sert uniquement à déterminer automatiquement la station
   // (pas de validation demandée à l'utilisateur).
@@ -75,17 +73,6 @@ export default function PumpPhotoStep({ driver, vehicle, bons, rotations = [], c
   const handleCapture = (file, previewUrl) => {
     setPumpPhoto({ file, previewUrl });
     setScanning(false);
-  };
-
-  const handleFileInput = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    // Photo native du téléphone (galerie/appareil photo, pas le scan
-    // DocumentScanner déjà compressé à la capture) — peut arriver en
-    // plusieurs Mo, à recompresser avant upload.
-    const compressed = await compressImageFile(file);
-    setPumpPhoto({ file: compressed, previewUrl: URL.createObjectURL(compressed) });
   };
 
   const handleConfirm = async () => {
@@ -227,22 +214,17 @@ export default function PumpPhotoStep({ driver, vehicle, bons, rotations = [], c
         <DocumentScanner onCapture={handleCapture} onClose={() => setScanning(false)} />
       )}
 
-      {/* Photo pompe */}
+      {/* Photo pompe — uniquement via la caméra (pas de galerie), pour
+          garantir qu'il s'agit bien d'une photo prise sur place à l'instant. */}
       {!pumpPhoto ? (
         <div className="border-2 border-dashed border-muted-foreground/30 rounded-xl p-6 text-center space-y-3">
           <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
             <Camera className="w-8 h-8 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground">Aucune photo de la pompe</p>
-          <div className="flex gap-2 justify-center">
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-              <Camera className="w-4 h-4 mr-1" /> Galerie
-            </Button>
-            <Button size="sm" className="bg-primary" onClick={() => setScanning(true)}>
-              <Camera className="w-4 h-4 mr-1" /> Scanner
-            </Button>
-          </div>
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileInput} />
+          <Button size="sm" className="bg-primary" onClick={() => setScanning(true)}>
+            <Camera className="w-4 h-4 mr-1" /> Scanner
+          </Button>
         </div>
       ) : (
         <div className="relative rounded-xl overflow-hidden">
