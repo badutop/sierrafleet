@@ -284,13 +284,7 @@ export default function ExpensesPage() {
                   <Label className="text-xs">Type de frais {!viewOnly && <span className="text-green-600 font-bold">*</span>}</Label>
                   <Select
                     value={form.type_frais}
-                    onValueChange={v => !viewOnly && setForm(f => ({
-                      ...f,
-                      type_frais: v,
-                      // "Autre" ne se rapporte pas nécessairement à un véhicule —
-                      // on efface l'affectation véhicule/chauffeur en changeant vers ce type.
-                      ...(v === "autre" ? { vehicle_id: "", driver_id: "" } : {}),
-                    }))}
+                    onValueChange={v => !viewOnly && setForm(f => ({ ...f, type_frais: v }))}
                     disabled={viewOnly}
                   >
                     <SelectTrigger className="mt-1 bg-card"><SelectValue /></SelectTrigger>
@@ -319,42 +313,47 @@ export default function ExpensesPage() {
               </div>
             </div>
 
-            {form.type_frais !== "autre" && (
-              <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
-                <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Truck className="w-4 h-4" />Affectation</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Véhicule</Label>
-                    <Select
-                      value={form.vehicle_id || "none"}
-                      onValueChange={v => {
-                        if (viewOnly) return;
-                        const vehicleId = v === "none" ? "" : v;
-                        const vehicle = vehicles.find(x => x.id === vehicleId);
-                        setForm(f => ({ ...f, vehicle_id: vehicleId, driver_id: vehicle?.driver_id || "" }));
-                      }}
-                      disabled={viewOnly}
-                    >
-                      <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">-- Aucun --</SelectItem>
-                        {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Chauffeur <span className="font-normal text-muted-foreground">(auto — véhicule)</span></Label>
-                    <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-card text-sm text-muted-foreground">
-                      {form.vehicle_id ? (driverMap[form.driver_id] || "Aucun chauffeur affecté à ce véhicule") : "Sélectionnez d'abord un véhicule"}
-                    </div>
+            <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+              <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Truck className="w-4 h-4" />Affectation</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Véhicule {!viewOnly && <span className="text-green-600 font-bold">*</span>}</Label>
+                  <Select
+                    value={form.vehicle_id || ""}
+                    onValueChange={v => {
+                      if (viewOnly) return;
+                      const vehicle = vehicles.find(x => x.id === v);
+                      setForm(f => ({ ...f, vehicle_id: v, driver_id: vehicle?.driver_id || "" }));
+                    }}
+                    disabled={viewOnly}
+                  >
+                    <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                    <SelectContent>
+                      {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.immatriculation}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Chauffeur <span className="font-normal text-muted-foreground">(auto — véhicule)</span></Label>
+                  <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-input bg-card text-sm text-muted-foreground">
+                    {form.vehicle_id ? (driverMap[form.driver_id] || "Aucun chauffeur affecté à ce véhicule") : "Sélectionnez d'abord un véhicule"}
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
             <div>
-              <Label className="text-xs">Description</Label>
-              <Input className="mt-1" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} disabled={viewOnly} />
+              <Label className="text-xs">
+                {form.type_frais === "autre" ? "Libellé" : "Description"}
+                {form.type_frais === "autre" && !viewOnly && <span className="text-green-600 font-bold"> *</span>}
+              </Label>
+              <Input
+                className="mt-1"
+                placeholder={form.type_frais === "autre" ? "Précisez la nature de ce frais" : undefined}
+                value={form.description}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+                disabled={viewOnly}
+              />
             </div>
           </div>
 
@@ -363,7 +362,7 @@ export default function ExpensesPage() {
               <ArrowLeft className="w-4 h-4 mr-2" /> {viewOnly ? "Fermer" : "Annuler"}
             </Button>
             {!viewOnly && (
-              <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.montant || !form.date_frais}>
+              <Button className="flex-1 h-12 rounded-xl text-base font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={handleSave} disabled={isPending || !form.montant || !form.date_frais || !form.vehicle_id || (form.type_frais === "autre" && !form.description)}>
                 <Save className="w-4 h-4 mr-2" />
                 {isPending ? "Enregistrement..." : "Enregistrer"}
               </Button>
