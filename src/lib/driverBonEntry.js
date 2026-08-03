@@ -41,12 +41,21 @@ export function buildDriverRotationPayload({
 // Responsable Exploitation ferait manuellement dans Carburant >
 // Validation (FuelValidationTab.jsx), sans intervention humaine :
 // bon_physique_recu sur les 3 rotations, refuel_effectue + litres_valides
-// (théorique — plus personne ne l'ajuste dans ce flux) sur la 3e.
+// (théorique — plus personne ne l'ajuste dans ce flux) sur la 3e. Cette
+// validation devient un contrôle a posteriori pour Resp. Opérations/
+// Exploitation (Carburant > Validation affiche déjà l'état "validé").
 // `allRotationsAfterInsert` doit inclure la rotation qui vient d'être créée.
+//
+// Retourne l'id de la rotation-checkpoint (3e du groupe) si l'auto-
+// validation a eu lieu, sinon null — cet id est le même
+// `checkpointRotationId` que AutoRefuelFlow.jsx sait déjà consommer
+// (déclenché jusqu'ici uniquement par Admin depuis Carburant > Validation)
+// pour sauter directement à l'étape pompe, sans repasser par le scan des
+// bons ni leur récapitulatif (déjà faits/inutiles à ce stade).
 export async function maybeAutoValidateCheckpoint({ allRotationsAfterInsert, clientId, vehicleId, client, zones }) {
   const checkpoints = getRefuelCheckpoints(allRotationsAfterInsert);
   const match = checkpoints.find(cp => cp.clientId === clientId && cp.vehicleId === vehicleId && !cp.validated);
-  if (!match) return false;
+  if (!match) return null;
 
   const rotationIds = match.rotations.map(r => r.id);
   const litresValides = consoLitresPourClient(client, zones) * 3;
@@ -66,5 +75,36 @@ export async function maybeAutoValidateCheckpoint({ allRotationsAfterInsert, cli
     null,
     [...Object.keys(payload), "bon_physique_recu"]
   );
-  return true;
+  return match.checkpoint.id;
+}
+
+// Tolérance au-delà de laquelle un écart de poids entre le bon d'enlèvement
+// et le bon de déchargement est considéré comme un vrai écart plutôt qu'un
+// simple arrondi/pesée différente selon les balances.
+const POIDS_ECART_TOLERANCE_TONNES = 0.5;
+
+// Comparaison automatique bon d'enlèvement vs bon de déchargement — utilisée
+// par CollecteurBonsPage.jsx (togglable) pour remplacer la comparaison à
+// l'œil que faisait le Collecteur : ce n'est plus qu'un contrôle a
+// posteriori pour les Responsables des Opérations/Exploitation.
+export function computeBonFinalEcart({ poidsBonFinal, numeroBonFinal, poidsEnlevement, numeroEnlevement }) {
+  const diffs = [];
+
+  if (poidsBonFinal != null) {
+    const ecartPoids = Math.abs(Number(poidsBonFinal) - Number(poidsEnlevement || 0));
+    if (ecartPoids > POIDS_ECART_TOLERANCE_TONNES) {
+      diffs.push(`Poids : ${Number(poidsBonFinal).toFixed(2)} T (déchargement) vs ${Number(poidsEnlevement || 0).toFixed(2)} T (enlèvement)`);
+    }
+  }
+
+  const numFinal = (numeroBonFinal || "").trim().toLowerCase();
+  const numEnlev = (numeroEnlevement || "").trim().toLowerCase();
+  if (numFinal && numEnlev && numFinal !== numEnlev) {
+    diffs.push(`N° de bon : ${numeroBonFinal} (déchargement) vs ${numeroEnlevement} (enlèvement)`);
+  }
+
+  return {
+    ecart: diffs.length > 0,
+    observation: diffs.length ? `Écart détecté automatiquement — ${diffs.join(" · ")}` : "",
+  };
 }

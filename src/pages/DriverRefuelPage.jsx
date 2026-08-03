@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
-import { Zap, Truck, User, LogOut, AlertCircle, ChevronDown, ScanLine } from "lucide-react";
+import { Zap, Truck, User, LogOut, AlertCircle, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
@@ -27,6 +27,7 @@ export default function DriverRefuelPage() {
   const [loading, setLoading] = useState(true);
   const [flowOpen, setFlowOpen] = useState(false);
   const [bonFlowOpen, setBonFlowOpen] = useState(false);
+  const [pendingCheckpointId, setPendingCheckpointId] = useState(null);
 
   // Nouveau flux "chauffeur saisit lui-même" (togglable, voir
   // DriverBonEntryToggleCard.jsx dans Paramètres) — additif uniquement :
@@ -236,33 +237,43 @@ export default function DriverRefuelPage() {
             </div>
           )}
 
-          {/* Nouveau flux (togglable) : scan du bon d'enlèvement */}
-          {bonEntryActive && (
-            <>
-              <Button
-                variant="outline"
-                className="w-full h-14 text-base font-bold rounded-2xl border-2 border-secondary/50 text-secondary"
+          {/* Nouveau flux (togglable) : boutons en icônes plutôt qu'en texte —
+              beaucoup de chauffeurs lisent/écrivent peu, l'icône doit suffire
+              à reconnaître l'action sans avoir à lire le libellé. */}
+          {bonEntryActive ? (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
                 disabled={!driver || !vehicle || !vehicle?.campaign_id}
                 onClick={() => setBonFlowOpen(true)}
+                className="flex flex-col items-center justify-center gap-2 h-28 rounded-2xl border-2 border-secondary/50 text-secondary bg-secondary/5 active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
               >
-                <ScanLine className="w-5 h-5 mr-2" />
-                Scanner mon bon d'enlèvement
-              </Button>
-              {driver && vehicle && !vehicle.campaign_id && (
-                <p className="text-xs text-amber-600 text-center -mt-2">Véhicule non affecté à une campagne en cours</p>
-              )}
-            </>
+                <ScanLine className="w-9 h-9" />
+                <span className="text-xs font-bold">Bon d'enlèvement</span>
+              </button>
+              <button
+                type="button"
+                disabled={!driver || !vehicle}
+                onClick={() => setFlowOpen(true)}
+                className="flex flex-col items-center justify-center gap-2 h-28 rounded-2xl bg-secondary text-white active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+              >
+                <Zap className="w-9 h-9" />
+                <span className="text-xs font-bold">Rechargement</span>
+              </button>
+            </div>
+          ) : (
+            <Button
+              className="w-full h-14 text-base font-bold bg-secondary hover:bg-secondary/90 text-white rounded-2xl"
+              disabled={!driver || !vehicle}
+              onClick={() => setFlowOpen(true)}
+            >
+              <Zap className="w-5 h-5 mr-2" />
+              Démarrer un rechargement
+            </Button>
           )}
-
-          {/* Bouton principal */}
-          <Button
-            className="w-full h-14 text-base font-bold bg-secondary hover:bg-secondary/90 text-white rounded-2xl"
-            disabled={!driver || !vehicle}
-            onClick={() => setFlowOpen(true)}
-          >
-            <Zap className="w-5 h-5 mr-2" />
-            Démarrer un rechargement
-          </Button>
+          {bonEntryActive && driver && vehicle && !vehicle.campaign_id && (
+            <p className="text-xs text-amber-600 text-center -mt-2">Véhicule non affecté à une campagne en cours</p>
+          )}
         </div>
       </main>
 
@@ -276,14 +287,17 @@ export default function DriverRefuelPage() {
           zones={zones}
           campaignRotations={campaignRotations}
           onClose={() => setBonFlowOpen(false)}
-          onSaved={({ autoValidated }) => {
+          onSaved={({ checkpointRotationId }) => {
             setBonFlowOpen(false);
             loadData();
             // Le refuel vient d'être validé automatiquement (3e bon) : on
-            // enchaîne directement sur le flux de rechargement existant,
-            // strictement inchangé (BonCaptureStep verra les 3 bons déjà
-            // confirmés et laissera continuer jusqu'à la pompe).
-            if (autoValidated) setFlowOpen(true);
+            // enchaîne directement sur la pompe via le checkpointRotationId,
+            // qu'AutoRefuelFlow (strictement inchangé) sait déjà interpréter
+            // pour sauter le scan/récap des bons — superflu ici, déjà faits.
+            if (checkpointRotationId) {
+              setPendingCheckpointId(checkpointRotationId);
+              setFlowOpen(true);
+            }
           }}
         />
       )}
@@ -296,8 +310,10 @@ export default function DriverRefuelPage() {
           rotations={allRotations}
           preselectedDriver={driver}
           preselectedVehicle={vehicle}
+          checkpointRotationId={pendingCheckpointId}
           onClose={() => {
             setFlowOpen(false);
+            setPendingCheckpointId(null);
             loadData();
           }}
         />

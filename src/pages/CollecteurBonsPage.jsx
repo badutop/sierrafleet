@@ -12,6 +12,8 @@ import { uploadFile } from "@/lib/storage";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { logAudit } from "@/lib/auditLog";
 import { getCompletedRefuelCheckpoints } from "@/lib/refuelRules";
+import { useAppSetting, isSettingOn } from "@/hooks/use-app-setting";
+import { DRIVER_BON_ENTRY_KEY, computeBonFinalEcart } from "@/lib/driverBonEntry";
 import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR") : "—";
@@ -19,9 +21,13 @@ const fmtDateTime = (d) => d ? new Date(d).toLocaleString("fr-FR", { day: "2-dig
 
 // Une rotation d'un groupe déjà rechargé (voir getCompletedRefuelCheckpoints) :
 // bon d'enlèvement (Resp. Opérations) à gauche, bon final (client) à droite —
-// à scanner puis comparer. "Écart constaté" reste une appréciation manuelle
-// du collecteur (les bons sont des photos, pas de l'OCR), avec une note libre.
-function RotationBonRow({ rotation, onScan, onToggleEcart, onSaveObservation }) {
+// à scanner puis comparer. Si le nouveau flux (chauffeur_saisie_bon_actif)
+// est actif, l'IA lit aussi le bon final et l'écart est calculé
+// automatiquement (bonEntryActive) — le Collecteur n'a plus qu'à consulter
+// le résultat, en contrôle a posteriori. Sinon, "Écart constaté" reste une
+// appréciation manuelle du collecteur, avec une note libre (comportement
+// historique, inchangé).
+function RotationBonRow({ rotation, onScan, onToggleEcart, onSaveObservation, bonEntryActive }) {
   const [obs, setObs] = useState(rotation.observation_bon_final || "");
   const hasUnsavedObs = obs !== (rotation.observation_bon_final || "");
 
@@ -70,26 +76,45 @@ function RotationBonRow({ rotation, onScan, onToggleEcart, onSaveObservation }) 
 
       {rotation.bon_final_scan_url && (
         <div className="pt-2 border-t border-border space-y-1.5">
-          <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <Checkbox checked={rotation.ecart_bon_final} onCheckedChange={(checked) => onToggleEcart(!!checked)} />
-            <span className={rotation.ecart_bon_final ? "text-destructive font-semibold" : "text-muted-foreground"}>
-              Écart constaté
-            </span>
-          </label>
-          {rotation.ecart_bon_final && (
-            <div className="space-y-1">
-              <Textarea
-                className="text-xs min-h-[50px]"
-                placeholder="Décrire l'écart (poids, numéro de bon...)"
-                value={obs}
-                onChange={e => setObs(e.target.value)}
-              />
-              {hasUnsavedObs && (
-                <Button size="sm" className="h-7 text-xs" onClick={() => onSaveObservation(obs)}>
-                  Enregistrer la note
-                </Button>
+          {bonEntryActive ? (
+            <>
+              {(rotation.poids_bon_final != null || rotation.numero_bon_final) && (
+                <p className="text-[10px] text-muted-foreground">
+                  Lu par IA : {rotation.poids_bon_final != null ? `${Number(rotation.poids_bon_final).toFixed(2)} T` : "—"}
+                  {rotation.numero_bon_final ? ` · BL ${rotation.numero_bon_final}` : ""}
+                </p>
               )}
-            </div>
+              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${rotation.ecart_bon_final ? "text-destructive" : "text-emerald-600"}`}>
+                {rotation.ecart_bon_final ? "⚠ Écart détecté (auto)" : "✓ Conforme (auto)"}
+              </span>
+              {rotation.ecart_bon_final && rotation.observation_bon_final && (
+                <p className="text-xs text-destructive/90">{rotation.observation_bon_final}</p>
+              )}
+            </>
+          ) : (
+            <>
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox checked={rotation.ecart_bon_final} onCheckedChange={(checked) => onToggleEcart(!!checked)} />
+                <span className={rotation.ecart_bon_final ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                  Écart constaté
+                </span>
+              </label>
+              {rotation.ecart_bon_final && (
+                <div className="space-y-1">
+                  <Textarea
+                    className="text-xs min-h-[50px]"
+                    placeholder="Décrire l'écart (poids, numéro de bon...)"
+                    value={obs}
+                    onChange={e => setObs(e.target.value)}
+                  />
+                  {hasUnsavedObs && (
+                    <Button size="sm" className="h-7 text-xs" onClick={() => onSaveObservation(obs)}>
+                      Enregistrer la note
+                    </Button>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -108,6 +133,9 @@ export default function CollecteurBonsPage() {
   const queryClient = useQueryClient();
   const [scanningRotationId, setScanningRotationId] = useState(null);
   const [tab, setTab] = useState("a_traiter");
+
+  const { data: bonEntrySetting } = useAppSetting(DRIVER_BON_ENTRY_KEY);
+  const bonEntryActive = isSettingOn(bonEntrySetting);
 
   const { data: rotations = [], isLoading } = useQuery({
     queryKey: ["rotations"],
@@ -197,15 +225,37 @@ export default function CollecteurBonsPage() {
     try {
       const { file_url } = await uploadFile(file, "bon-final-scans");
       const oldData = rotations.find(r => r.id === rotationId);
-      await updateRotation.mutateAsync({
-        id: rotationId,
-        payload: {
-          bon_final_scan_url: file_url,
-          bon_final_collecte_le: new Date().toISOString(),
-          bon_final_collecte_par: currentUser?.id || null,
-        },
-        oldData,
-      });
+      const payload = {
+        bon_final_scan_url: file_url,
+        bon_final_collecte_le: new Date().toISOString(),
+        bon_final_collecte_par: currentUser?.id || null,
+      };
+
+      // Nouveau flux (togglable) : la même IA que pour le bon d'enlèvement
+      // lit le bon final, et l'écart est calculé automatiquement — le
+      // Collecteur n'a plus à comparer lui-même les deux bons. Best-effort :
+      // si l'extraction échoue, le scan reste enregistré (comme avant),
+      // simplement sans écart auto-détecté.
+      if (bonEntryActive) {
+        try {
+          const { data, error } = await supabase.functions.invoke("analyze-bon", { body: { image_url: file_url } });
+          if (error) throw error;
+          payload.poids_bon_final = data?.poids_tonnes ?? null;
+          payload.numero_bon_final = data?.numero_bon_client || null;
+          const { ecart, observation } = computeBonFinalEcart({
+            poidsBonFinal: data?.poids_tonnes,
+            numeroBonFinal: data?.numero_bon_client,
+            poidsEnlevement: oldData?.poids_charge_tonnes,
+            numeroEnlevement: oldData?.numero_bon_client,
+          });
+          payload.ecart_bon_final = ecart;
+          payload.observation_bon_final = observation || null;
+        } catch (err) {
+          toast.warning(`Lecture automatique indisponible pour ce bon (${err.message})`);
+        }
+      }
+
+      await updateRotation.mutateAsync({ id: rotationId, payload, oldData });
       toast.success("Bon final scanné");
     } catch (err) {
       toast.error(`Erreur lors de l'envoi du scan : ${err.message}`);
@@ -342,6 +392,7 @@ export default function CollecteurBonsPage() {
                       <RotationBonRow
                         key={r.id}
                         rotation={r}
+                        bonEntryActive={bonEntryActive}
                         onScan={() => setScanningRotationId(r.id)}
                         onToggleEcart={(checked) => handleToggleEcart(r, checked)}
                         onSaveObservation={(text) => handleSaveObservation(r, text)}

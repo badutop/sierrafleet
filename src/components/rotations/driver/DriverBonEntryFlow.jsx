@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, ScanLine, Loader2, CheckCircle2, ImageIcon, Fuel, Zap } from "lucide-react";
+import { X, ScanLine, Loader2, CheckCircle2, ImageIcon, Fuel } from "lucide-react";
 import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { uploadFile } from "@/lib/storage";
@@ -27,14 +27,16 @@ import { buildDriverRotationPayload, maybeAutoValidateCheckpoint } from "@/lib/d
 //   campaign, campaignClients, zones — contexte de la campagne en cours du véhicule
 //   campaignRotations — rotations de CETTE campagne (pour numérotation + auto-validation)
 //   onClose() — ferme sans suite
-//   onSaved({ autoValidated }) — rotation enregistrée ; si autoValidated, le
-//     chauffeur peut enchaîner directement sur le rechargement existant
+//   onSaved({ checkpointRotationId }) — rotation enregistrée ; si non-null,
+//     le checkpoint (3e bon) vient d'être auto-validé et le chauffeur peut
+//     enchaîner directement sur la pompe (AutoRefuelFlow avec ce même id,
+//     qui saute alors le scan/récap des bons déjà faits ici)
 export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaignClients = [], zones = [], campaignRotations = [], onClose, onSaved }) {
   const [step, setStep] = useState("capture"); // capture | analyzing | confirm | success
   const [scan, setScan] = useState(null); // { file, previewUrl, url }
   const [form, setForm] = useState({ poids_tonnes: "", numero_bon_client: "", client_id: "" });
   const [saving, setSaving] = useState(false);
-  const [autoValidated, setAutoValidated] = useState(false);
+  const [checkpointRotationId, setCheckpointRotationId] = useState(null);
   const [savedRotationNumber, setSavedRotationNumber] = useState(null);
 
   const isSingleClient = campaignClients.length <= 1;
@@ -64,8 +66,6 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
 
       const { data, error } = await supabase.functions.invoke("analyze-bon", { body: { image_url: file_url } });
       if (error) throw error;
-      // Diagnostic temporaire — à retirer une fois l'extraction fiabilisée.
-      if (data?.debug) toast.info(`[debug analyse] ${data.debug}`, { duration: 10000 });
       setForm(f => ({
         ...f,
         poids_tonnes: data?.poids_tonnes != null ? String(data.poids_tonnes) : "",
@@ -118,9 +118,9 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
       }).eq("id", campaign.id);
       if (campaignError) throw campaignError;
 
-      let didAutoValidate = false;
+      let validatedCheckpointId = null;
       if (refuelDeclenche) {
-        didAutoValidate = await maybeAutoValidateCheckpoint({
+        validatedCheckpointId = await maybeAutoValidateCheckpoint({
           allRotationsAfterInsert: [...campaignRotations, rotData],
           clientId: resolvedClientId,
           vehicleId: vehicle.id,
@@ -129,7 +129,7 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
         });
       }
 
-      setAutoValidated(didAutoValidate);
+      setCheckpointRotationId(validatedCheckpointId);
       setSavedRotationNumber(numeroRotation);
       setStep("success");
     } catch (err) {
@@ -234,26 +234,26 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
           )}
 
           {step === "success" && (
-            <div className="flex flex-col items-center text-center gap-3 py-6">
-              <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center">
-                <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+            // Écran volontairement minimal (peu de texte, un grand check
+            // vert) — pensé pour des chauffeurs qui lisent/écrivent souvent
+            // peu.
+            <div className="flex flex-col items-center text-center gap-6 py-12">
+              <div className="w-28 h-28 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle2 className="w-16 h-16 text-green-600" />
               </div>
-              <p className="font-bold text-base">Rotation n°{savedRotationNumber} enregistrée</p>
-              <p className="text-sm text-muted-foreground">Le bon d'enlèvement a bien été pris en compte.</p>
+              <p className="text-xs text-muted-foreground">N° {savedRotationNumber}</p>
 
-              {autoValidated && (
-                <div className="w-full bg-amber-500/10 border border-amber-400/30 rounded-xl p-4 mt-2 space-y-2">
-                  <p className="text-sm font-semibold text-amber-700 flex items-center justify-center gap-1.5">
-                    <Fuel className="w-4 h-4" /> Rechargement disponible
-                  </p>
-                  <p className="text-xs text-muted-foreground">Les 3 bons sont validés — vous pouvez démarrer votre rechargement.</p>
-                  <Button className="w-full h-11 rounded-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={() => onSaved({ autoValidated: true })}>
-                    <Zap className="w-4 h-4 mr-2" /> Démarrer le rechargement
-                  </Button>
-                </div>
+              {checkpointRotationId && (
+                <Button
+                  className="w-full h-16 rounded-2xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground flex flex-col gap-1"
+                  onClick={() => onSaved({ checkpointRotationId })}
+                >
+                  <Fuel className="w-6 h-6" />
+                  Rechargement
+                </Button>
               )}
 
-              <Button variant="outline" className="w-full h-11 rounded-xl font-bold mt-2" onClick={() => onSaved({ autoValidated })}>
+              <Button variant="outline" className="w-full h-11 rounded-xl font-bold" onClick={() => onSaved({ checkpointRotationId: null })}>
                 Terminer
               </Button>
             </div>
