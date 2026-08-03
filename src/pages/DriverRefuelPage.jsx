@@ -73,16 +73,6 @@ export default function DriverRefuelPage() {
     },
     enabled: bonEntryActive,
   });
-  const { data: campaignRotations = [] } = useQuery({
-    queryKey: ["rotations", vehicle?.campaign_id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("rotations").select("*").eq("campaign_id", vehicle.campaign_id);
-      if (error) throw error;
-      return data;
-    },
-    enabled: bonEntryActive && !!vehicle?.campaign_id,
-  });
-
   // Même repli que CampaignDetail.jsx : les campagnes créées avant le
   // multi-clients n'ont pas de ligne campaign_clients, juste campaign.client_id.
   const clientMap = Object.fromEntries(allClients.map(c => [c.id, c]));
@@ -286,19 +276,17 @@ export default function DriverRefuelPage() {
           campaign={campaign}
           campaignClients={campaignClients}
           zones={zones}
-          campaignRotations={campaignRotations}
           onClose={() => setBonFlowOpen(false)}
           onSaved={({ checkpointRotationId }) => {
             setBonFlowOpen(false);
             loadData();
-            // La rotation vient d'être insérée directement (hors mutation
-            // react-query) : sans invalidation, campaignRotations/campaign
-            // restent en cache tels qu'au premier chargement de cette page.
-            // Un 2e (ou 3e) scan dans la même session verrait alors le même
-            // numero_rotation/position qu'avant (toujours "1re du groupe"),
-            // et refuelDeclenche ne deviendrait jamais vrai — bug observé en
-            // test réel (bons toujours "non validés", auto-validation jamais
-            // déclenchée). D'où cette invalidation avant le scan suivant.
+            // DriverBonEntryFlow lit désormais rotations/campaign en direct
+            // depuis la DB au moment de la confirmation (voir son
+            // handleConfirm) plutôt que depuis ce cache react-query — évite
+            // tout risque de compte périmé d'un scan à l'autre. On invalide
+            // quand même ces clés pour que les autres écrans (Carburant,
+            // Campagnes > Rotations) reflètent ce nouveau bon sans attendre
+            // leur prochain remount.
             queryClient.invalidateQueries({ queryKey: ["rotations", vehicle.campaign_id] });
             queryClient.invalidateQueries({ queryKey: ["campaign", vehicle.campaign_id] });
             // Le refuel vient d'être validé automatiquement (3e bon) : on

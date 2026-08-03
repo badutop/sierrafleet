@@ -25,13 +25,12 @@ import { buildDriverRotationPayload, maybeAutoValidateCheckpoint } from "@/lib/d
 // Props :
 //   driver, vehicle — déjà résolus par DriverRefuelPage.jsx
 //   campaign, campaignClients, zones — contexte de la campagne en cours du véhicule
-//   campaignRotations — rotations de CETTE campagne (pour numérotation + auto-validation)
 //   onClose() — ferme sans suite
 //   onSaved({ checkpointRotationId }) — rotation enregistrée ; si non-null,
 //     le checkpoint (3e bon) vient d'être auto-validé et le chauffeur peut
 //     enchaîner directement sur la pompe (AutoRefuelFlow avec ce même id,
 //     qui saute alors le scan/récap des bons déjà faits ici)
-export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaignClients = [], zones = [], campaignRotations = [], onClose, onSaved }) {
+export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaignClients = [], zones = [], onClose, onSaved }) {
   const [step, setStep] = useState("capture"); // capture | analyzing | confirm | success
   const [scan, setScan] = useState(null); // { file, previewUrl, url }
   const [form, setForm] = useState({ poids_tonnes: "", numero_bon_client: "", client_id: "" });
@@ -83,15 +82,31 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
   const handleConfirm = async () => {
     if (!resolvedClientId) { toast.error("Sélectionnez le client"); return; }
     if (!form.poids_tonnes || Number(form.poids_tonnes) <= 0) { toast.error("Poids requis (supérieur à 0)"); return; }
-    if (campaign?.tonnage_total_prevu > 0 && (campaign.tonnage_realise || 0) + Number(form.poids_tonnes) > campaign.tonnage_total_prevu) {
-      toast.error(`Le cumul dépasserait le tonnage prévu de la campagne (${Number(campaign.tonnage_total_prevu).toFixed(2)} T)`);
-      return;
-    }
 
     setSaving(true);
     try {
-      const numeroRotation = campaignRotations.length + 1;
-      const position = countExistingForClientVehicle(campaignRotations, resolvedClientId, vehicle.id) + 1;
+      // Lus juste avant l'insertion plutôt que depuis les props (campaign,
+      // campaignRotations) : ces dernières viennent du cache react-query de
+      // DriverRefuelPage, qui ne se rafraîchit qu'en tâche de fond après
+      // invalidation — pas assez fiable pour un calcul aussi critique que la
+      // position dans le groupe de 3 (numero_rotation/position dupliqués
+      // observés en test réel, refuel jamais déclenché automatiquement). Un
+      // aller-retour DB de plus ici garantit un compte toujours à jour, y
+      // compris sur une connexion mobile lente entre deux scans.
+      const { data: freshRotations, error: rotFetchError } = await supabase
+        .from("rotations").select("*").eq("campaign_id", campaign.id);
+      if (rotFetchError) throw rotFetchError;
+      const { data: freshCampaign, error: campFetchError } = await supabase
+        .from("campaigns").select("*").eq("id", campaign.id).single();
+      if (campFetchError) throw campFetchError;
+
+      if (freshCampaign.tonnage_total_prevu > 0 && (freshCampaign.tonnage_realise || 0) + Number(form.poids_tonnes) > freshCampaign.tonnage_total_prevu) {
+        toast.error(`Le cumul dépasserait le tonnage prévu de la campagne (${Number(freshCampaign.tonnage_total_prevu).toFixed(2)} T)`);
+        return;
+      }
+
+      const numeroRotation = freshRotations.length + 1;
+      const position = countExistingForClientVehicle(freshRotations, resolvedClientId, vehicle.id) + 1;
       const refuelDeclenche = position % 3 === 0;
       const litresAlloues = consoLitresPourClient(resolvedClient, zones);
 
@@ -113,15 +128,15 @@ export default function DriverBonEntryFlow({ driver, vehicle, campaign, campaign
       await logAudit("Rotation", rotData.id, "create", rotData);
 
       const { error: campaignError } = await supabase.from("campaigns").update({
-        nombre_rotations_realisees: (campaign.nombre_rotations_realisees || 0) + 1,
-        tonnage_realise: (campaign.tonnage_realise || 0) + Number(form.poids_tonnes),
+        nombre_rotations_realisees: (freshCampaign.nombre_rotations_realisees || 0) + 1,
+        tonnage_realise: (freshCampaign.tonnage_realise || 0) + Number(form.poids_tonnes),
       }).eq("id", campaign.id);
       if (campaignError) throw campaignError;
 
       let validatedCheckpointId = null;
       if (refuelDeclenche) {
         validatedCheckpointId = await maybeAutoValidateCheckpoint({
-          allRotationsAfterInsert: [...campaignRotations, rotData],
+          allRotationsAfterInsert: [...freshRotations, rotData],
           clientId: resolvedClientId,
           vehicleId: vehicle.id,
           client: resolvedClient,
