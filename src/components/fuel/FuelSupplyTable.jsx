@@ -87,88 +87,117 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, driverMap = 
         </div>
       </div>
 
-      <div className="bg-card rounded-xl border border-border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="text-xs">Date</TableHead>
-              <TableHead className="text-xs min-w-[160px]">Véhicule</TableHead>
-              <TableHead className="text-xs">Station / Source</TableHead>
-              <TableHead className="text-xs text-right">Litres</TableHead>
-              <TableHead className="text-xs text-right">Montant (FCFA)</TableHead>
-              <TableHead className="text-xs text-center">Type</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-10">
-                  <div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" />
-                </TableCell>
-              </TableRow>
-            ) : filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground text-sm">
-                  Aucun enregistrement trouvé
-                </TableCell>
-              </TableRow>
-            ) : filtered.slice(0, 100).map(e => {
-              const isAuto = e.station?.startsWith("Refuel auto");
-              const vehicle = vMap[e.vehicle_id];
-              return (
-                <TableRow key={e.id} className="hover:bg-muted/30">
-                  <TableCell className="text-xs">{e.date}{e.heure ? ` · ${e.heure}` : ""}</TableCell>
-                  <TableCell className="text-xs">
-                    <div className="font-semibold font-mono">{vehicle?.immatriculation || "—"}</div>
-                    {(driverMap[e.driver_id] || driverMap[vehicle?.driver_id]) && (
-                      <div className="text-muted-foreground mt-0.5">
-                        {(driverMap[e.driver_id] || driverMap[vehicle?.driver_id]).prenom} {(driverMap[e.driver_id] || driverMap[vehicle?.driver_id]).nom}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs max-w-[200px] truncate" title={e.station}>
-                    {e.station || "—"}
-                  </TableCell>
-                  <TableCell className="text-xs text-right font-medium">
-                    {(e.litres || 0).toLocaleString("fr-FR")}
-                  </TableCell>
-                  <TableCell className="text-xs text-right font-bold">
-                    {(e.montant_total || 0).toLocaleString("fr-FR")}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {isAuto ? (
-                      <Badge className="bg-amber-500/15 text-amber-700 border-amber-400/30 text-[10px] gap-1">
-                        <Zap className="w-2.5 h-2.5" /> Auto
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px]">Manuel</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1 justify-end">
-                      {isAuto ? (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewEntry(e)} title="Consulter">
-                          <Eye className="w-3 h-3" />
-                        </Button>
-                      ) : (
-                        <>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(e)}>
-                            <Pencil className="w-3 h-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(e.id)}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+      {isLoading ? (
+        <div className="bg-card rounded-xl border border-border py-10 text-center">
+          <div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-card rounded-xl border border-border py-10 text-center text-muted-foreground text-sm">
+          Aucun enregistrement trouvé
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Regroupées par jour, du plus récent au plus ancien — même
+              présentation que Campagnes > Rotations (CampaignRotationsTable.jsx). */}
+          {Object.entries(
+            filtered.slice(0, 100).reduce((acc, e) => {
+              const day = e.date ? new Date(e.date).toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : "Sans date";
+              if (!acc[day]) acc[day] = [];
+              acc[day].push(e);
+              return acc;
+            }, {})
+          ).map(([day, dayEntries]) => {
+            const totalLitres = dayEntries.reduce((s, e) => s + (Number(e.litres) || 0), 0);
+            const totalMontant = dayEntries.reduce((s, e) => s + (Number(e.montant_total) || 0), 0);
+            return (
+              <div key={day}>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-foreground capitalize">{day}</h3>
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-secondary">{dayEntries.length} transaction{dayEntries.length > 1 ? "s" : ""}</span> — {totalLitres.toLocaleString("fr-FR")} L
+                  </div>
+                </div>
+                <div className="bg-card rounded-xl border border-border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="text-xs">Heure</TableHead>
+                        <TableHead className="text-xs min-w-[160px]">Véhicule</TableHead>
+                        <TableHead className="text-xs">Station / Source</TableHead>
+                        <TableHead className="text-xs text-right">Litres</TableHead>
+                        <TableHead className="text-xs text-right">Montant (FCFA)</TableHead>
+                        <TableHead className="text-xs text-center">Type</TableHead>
+                        <TableHead className="w-20" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {dayEntries.map(e => {
+                        const isAuto = e.station?.startsWith("Refuel auto");
+                        const vehicle = vMap[e.vehicle_id];
+                        return (
+                          <TableRow key={e.id} className="hover:bg-muted/30">
+                            <TableCell className="text-xs">{e.heure || "—"}</TableCell>
+                            <TableCell className="text-xs">
+                              <div className="font-semibold font-mono">{vehicle?.immatriculation || "—"}</div>
+                              {(driverMap[e.driver_id] || driverMap[vehicle?.driver_id]) && (
+                                <div className="text-muted-foreground mt-0.5">
+                                  {(driverMap[e.driver_id] || driverMap[vehicle?.driver_id]).prenom} {(driverMap[e.driver_id] || driverMap[vehicle?.driver_id]).nom}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs max-w-[200px] truncate" title={e.station}>
+                              {e.station || "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-medium">
+                              {(e.litres || 0).toLocaleString("fr-FR")}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-bold">
+                              {(e.montant_total || 0).toLocaleString("fr-FR")}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {isAuto ? (
+                                <Badge className="bg-amber-500/15 text-amber-700 border-amber-400/30 text-[10px] gap-1">
+                                  <Zap className="w-2.5 h-2.5" /> Auto
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px]">Manuel</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1 justify-end">
+                                {isAuto ? (
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewEntry(e)} title="Consulter">
+                                    <Eye className="w-3 h-3" />
+                                  </Button>
+                                ) : (
+                                  <>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(e)}>
+                                      <Pencil className="w-3 h-3" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(e.id)}>
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      <TableRow className="bg-secondary/10 font-bold">
+                        <TableCell colSpan={3} className="text-right text-xs font-bold uppercase text-secondary">Total journée</TableCell>
+                        <TableCell className="text-right text-sm font-bold text-secondary">{totalLitres.toLocaleString("fr-FR")}</TableCell>
+                        <TableCell className="text-right text-sm font-bold text-secondary">{totalMontant.toLocaleString("fr-FR")}</TableCell>
+                        <TableCell colSpan={2} />
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {viewEntry && (
         <FuelEntryDetailSheet entry={viewEntry} vehicle={vMap[viewEntry.vehicle_id]} driver={driverMap[viewEntry.driver_id]} onClose={() => setViewEntry(null)} />

@@ -53,20 +53,29 @@ export function buildDriverRotationPayload({
 // (déclenché jusqu'ici uniquement par Admin depuis Carburant > Validation)
 // pour sauter directement à l'étape pompe, sans repasser par le scan des
 // bons ni leur récapitulatif (déjà faits/inutiles à ce stade).
+//
+// La mise à jour du checkpoint est conditionnée à `refuel_effectue = false`
+// (exclusivité avec FuelValidationTab.jsx) : si le Responsable des
+// Opérations vient de valider manuellement au même instant, cette requête
+// n'affecte 0 ligne et on abandonne silencieusement plutôt que d'écraser sa
+// validation (litres_valides différent, doublon d'audit log).
 export async function maybeAutoValidateCheckpoint({ allRotationsAfterInsert, clientId, vehicleId, client, zones }) {
   const checkpoints = getRefuelCheckpoints(allRotationsAfterInsert);
   const match = checkpoints.find(cp => cp.clientId === clientId && cp.vehicleId === vehicleId && !cp.validated);
   if (!match) return null;
 
-  const rotationIds = match.rotations.map(r => r.id);
   const litresValides = consoLitresPourClient(client, zones) * 3;
+  const payload = { refuel_effectue: true, litres_valides: litresValides };
+  const { data: updated, error: refuelError } = await supabase
+    .from("rotations").update(payload)
+    .eq("id", match.checkpoint.id).eq("refuel_effectue", false)
+    .select("id");
+  if (refuelError) throw refuelError;
+  if (!updated?.length) return null; // déjà validé entre-temps (validation manuelle concurrente)
 
+  const rotationIds = match.rotations.map(r => r.id);
   const { error: bonError } = await supabase.from("rotations").update({ bon_physique_recu: true }).in("id", rotationIds);
   if (bonError) throw bonError;
-
-  const payload = { refuel_effectue: true, litres_valides: litresValides };
-  const { error: refuelError } = await supabase.from("rotations").update(payload).eq("id", match.checkpoint.id);
-  if (refuelError) throw refuelError;
 
   await logAudit(
     "Carburant",

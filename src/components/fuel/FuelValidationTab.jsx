@@ -37,24 +37,34 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
   const { data: bonEntrySetting } = useAppSetting(DRIVER_BON_ENTRY_KEY);
   const bonEntryActive = isSettingOn(bonEntrySetting);
 
-  // Seuls Admin et Resp. Exploitation peuvent valider un camion pour
-  // rechargement (Finances et Resp. Opérations n'y ont pas accès) — c'est
-  // aussi lui qui peut ajuster le litrage théorique avant de valider (voir
+  // Admin, Resp. Exploitation et Resp. des Opérations peuvent valider un
+  // camion pour rechargement (Finances n'y a pas accès) — c'est aussi lui
+  // qui peut ajuster le litrage théorique avant de valider (voir
   // CheckpointCard). Le déclenchement du rechargement auto lui-même reste
   // réservé à Admin, sauf si le nouveau flux chauffeur est actif.
-  const canValidateRecharge = currentUser?.role === "admin" || currentUser?.role === "responsable_exploitation";
+  const canValidateRecharge = ["admin", "responsable_exploitation", "responsable_operations"].includes(currentUser?.role);
   const canTriggerRecharge = currentUser?.role === "admin" && !bonEntryActive;
 
   const validateMutation = useMutation({
     mutationFn: async ({ item, litres }) => {
+      // Mise à jour du checkpoint conditionnée à refuel_effectue=false :
+      // exclusivité avec l'auto-validation système (voir
+      // maybeAutoValidateCheckpoint, driverBonEntry.js) — si le système
+      // vient de valider automatiquement au même instant, cette requête
+      // n'affecte 0 ligne et on prévient plutôt que d'écraser sa validation.
+      const payload = { refuel_effectue: true, litres_valides: Number(litres) || 0 };
+      const { data: updated, error } = await supabase
+        .from("rotations").update(payload)
+        .eq("id", item.checkpoint.id).eq("refuel_effectue", false)
+        .select("id");
+      if (error) throw error;
+      if (!updated?.length) throw new Error("Déjà validé entre-temps (probablement par le système)");
+
       // Valide les 3 bons du groupe d'un coup — c'est la seule étape qui
       // renseigne bon_physique_recu désormais (plus dans Campagnes > Rotations).
       const rotationIds = item.rotations.map(r => r.id);
       const { error: bonError } = await supabase.from("rotations").update({ bon_physique_recu: true }).in("id", rotationIds);
       if (bonError) throw bonError;
-      const payload = { refuel_effectue: true, litres_valides: Number(litres) || 0 };
-      const { error } = await supabase.from("rotations").update(payload).eq("id", item.checkpoint.id);
-      if (error) throw error;
       await logAudit("Carburant", item.checkpoint.id, "update", { ...payload, bon_physique_recu: true }, null, [...Object.keys(payload), "bon_physique_recu"]);
     },
     onSuccess: () => {

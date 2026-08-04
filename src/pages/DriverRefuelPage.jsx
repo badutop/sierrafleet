@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
-import { Zap, Truck, User, LogOut, AlertCircle, Clock } from "lucide-react";
+import { Zap, Truck, User, LogOut, AlertCircle, Clock, Scale, PackageCheck, Fuel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
@@ -12,6 +12,16 @@ import { useAppSetting, isSettingOn } from "@/hooks/use-app-setting";
 import { DRIVER_BON_ENTRY_KEY, getDriverCycleState } from "@/lib/driverBonEntry";
 import { toast } from "sonner";
 import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
+
+// Une couleur par étape du cycle chauffeur (togglable) — simplifie la
+// lecture visuelle pour des chauffeurs qui lisent/écrivent peu : l'icône et
+// la teinte de la page suffisent à reconnaître où on en est, sans avoir à
+// lire le titre. Le flux OFF (ancien, toujours Zap/bleu primaire) est inchangé.
+const STAGE_THEME = {
+  pickup: { icon: Scale, iconBg: "bg-blue-100", iconColor: "text-blue-600", border: "border-blue-500/60", caption: "bg-blue-600/90" },
+  discharge: { icon: PackageCheck, iconBg: "bg-purple-100", iconColor: "text-purple-600", border: "border-purple-500/60", caption: "bg-purple-600/90" },
+  refuel: { icon: Fuel, iconBg: "bg-orange-100", iconColor: "text-orange-600", border: "border-orange-500/60", caption: "bg-orange-600/90" },
+};
 
 /**
  * Page dédiée aux chauffeurs — accès unique au module Rechargement Auto.
@@ -97,6 +107,8 @@ export default function DriverRefuelPage() {
     }
   }
   const cycleClient = clientMap[cycleClientId];
+  const stage = bonEntryActive ? STAGE_THEME[cycleState.action] : null;
+  const StageIcon = stage?.icon || Zap;
 
   useEffect(() => {
     loadData();
@@ -167,8 +179,8 @@ export default function DriverRefuelPage() {
         {/* Carte chauffeur / véhicule */}
         <div className="w-full max-w-sm space-y-4">
           <div className="text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Zap className="w-8 h-8 text-secondary" />
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 ${stage?.iconBg || "bg-primary/10"}`}>
+              <StageIcon className={`w-8 h-8 ${stage?.iconColor || "text-secondary"}`} />
             </div>
             <h1 className="text-xl font-bold">
               {bonEntryActive
@@ -264,10 +276,10 @@ export default function DriverRefuelPage() {
                   type="button"
                   disabled={!driver || !vehicle || !vehicle?.campaign_id}
                   onClick={() => setBonFlowOpen(true)}
-                  className="relative w-full h-40 rounded-2xl border-2 border-secondary/50 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+                  className={`relative w-full h-40 rounded-2xl border-2 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none ${stage.border}`}
                 >
                   <img src="/assets/pont-bascule.jpeg" alt="Bon d'enlèvement" className="absolute inset-0 w-full h-full object-cover" />
-                  <span className="absolute inset-x-0 bottom-0 bg-secondary/90 text-white text-sm font-bold py-2">Bon d'enlèvement</span>
+                  <span className={`absolute inset-x-0 bottom-0 text-white text-sm font-bold py-2 ${stage.caption}`}>Bon d'enlèvement</span>
                 </button>
               )}
               {cycleState.action === "discharge" && (
@@ -275,10 +287,10 @@ export default function DriverRefuelPage() {
                   type="button"
                   disabled={!driver || !vehicle}
                   onClick={() => setDischargeRotationId(cycleState.rotationId)}
-                  className="relative w-full h-40 rounded-2xl border-2 border-secondary/50 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+                  className={`relative w-full h-40 rounded-2xl border-2 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none ${stage.border}`}
                 >
                   <img src="/assets/dechargement.jpeg" alt="Bon de déchargement" className="absolute inset-0 w-full h-full object-cover" />
-                  <span className="absolute inset-x-0 bottom-0 bg-secondary/90 text-white text-sm font-bold py-2">Bon de déchargement</span>
+                  <span className={`absolute inset-x-0 bottom-0 text-white text-sm font-bold py-2 ${stage.caption}`}>Bon de déchargement</span>
                 </button>
               )}
               {cycleState.action === "refuel" && (
@@ -286,10 +298,10 @@ export default function DriverRefuelPage() {
                   type="button"
                   disabled={!driver || !vehicle}
                   onClick={() => setFlowOpen(true)}
-                  className="relative w-full h-40 rounded-2xl border-2 border-secondary/50 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+                  className={`relative w-full h-40 rounded-2xl border-2 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none ${stage.border}`}
                 >
                   <img src="/assets/pompe.jpeg" alt="Rechargement" className="absolute inset-0 w-full h-full object-cover" />
-                  <span className="absolute inset-x-0 bottom-0 bg-secondary/90 text-white text-sm font-bold py-2">Rechargement</span>
+                  <span className={`absolute inset-x-0 bottom-0 text-white text-sm font-bold py-2 ${stage.caption}`}>Rechargement</span>
                 </button>
               )}
               {cycleState.action === "waiting_validation" && (
