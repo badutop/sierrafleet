@@ -395,7 +395,14 @@ export default function FuelManagementV2() {
 
         <TabsContent value="approvisionnements" className="mt-4 space-y-6">
           <FuelSupplyTable
-            entries={[...entries].sort((a, b) => new Date(b.date || b.created_date) - new Date(a.date || a.created_date)).slice(0, 20)}
+            entries={(() => {
+              const cutoff = new Date();
+              cutoff.setHours(0, 0, 0, 0);
+              cutoff.setDate(cutoff.getDate() - 4); // 5 derniers jours (aujourd'hui inclus)
+              return entries
+                .filter(e => (e.date || e.created_date) && new Date(e.date || e.created_date) >= cutoff)
+                .sort((a, b) => new Date(b.date || b.created_date) - new Date(a.date || a.created_date));
+            })()}
             isLoading={loadingEntries}
             vMap={vMap}
             driverMap={driverMap}

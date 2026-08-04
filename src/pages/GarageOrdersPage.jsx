@@ -12,6 +12,10 @@ import { toast } from "sonner";
 import GarageOrderDialog from "@/components/garage-orders/GarageOrderDialog";
 import { logAudit } from "@/lib/auditLog";
 import { useAuth } from "@/lib/AuthContext";
+import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
+
+const now = new Date();
+const defaultPeriodFilter = { mode: "all", month: now.getMonth() + 1, year: now.getFullYear(), from: "", to: "" };
 
 const KpiBox = ({ icon: Icon, label, value, sub, color = "primary" }) => {
   const colors = {
@@ -61,6 +65,7 @@ export default function GarageOrdersPage() {
   const canHandleInvoice = currentUser?.role === "admin" || currentUser?.role === "finances";
   const [activeTab, setActiveTab] = useState("alertes");
   const [search, setSearch] = useState("");
+  const [periodFilter, setPeriodFilter] = useState(defaultPeriodFilter);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -246,10 +251,21 @@ export default function GarageOrdersPage() {
     .sort((a, b) => new Date(a.date_echeance || 0) - new Date(b.date_echeance || 0));
   const facturesEnRetard = facturesAPayer.filter(o => o.date_echeance && new Date(o.date_echeance) < new Date());
 
+  // Par défaut (aucun filtre de période choisi), ne montrer que les 5
+  // derniers jours — comme Campagnes > Rotations et Carburant >
+  // Approvisionnements. Choisir un mois/année/période libre dans
+  // PeriodFilter affiche cette période complète à la place.
+  const fiveDaysCutoff = new Date();
+  fiveDaysCutoff.setHours(0, 0, 0, 0);
+  fiveDaysCutoff.setDate(fiveDaysCutoff.getDate() - 4);
+  const periodRange = periodFilter.mode !== "all" ? getDateRange(periodFilter) : null;
+
   const filtered = orders.filter(o => {
     const vehicle = vMap[o.vehicle_id];
     const label = `${vehicle?.code_camion || ""} ${vehicle?.immatriculation || ""} ${o.designation || ""}`.toLowerCase();
-    return label.includes(search.toLowerCase());
+    if (!label.includes(search.toLowerCase())) return false;
+    if (periodRange) return inRange(o.created_date, periodRange);
+    return o.created_date && new Date(o.created_date) >= fiveDaysCutoff;
   });
 
   return (
@@ -368,58 +384,100 @@ export default function GarageOrdersPage() {
         </TabsContent>
 
         <TabsContent value="toutes" className="mt-4 space-y-3">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Rechercher véhicule, pièce..." value={search} onChange={e => setSearch(e.target.value)} />
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+            <div className="relative max-w-sm flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input className="pl-9" placeholder="Rechercher véhicule, pièce..." value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            <PeriodFilter filter={periodFilter} onChange={setPeriodFilter} />
           </div>
-          <div className="bg-card rounded-xl border border-border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="text-xs">Date</TableHead>
-                  <TableHead className="text-xs">Véhicule</TableHead>
-                  <TableHead className="text-xs">Pièce</TableHead>
-                  <TableHead className="text-xs text-right">Qté</TableHead>
-                  <TableHead className="text-xs">Fournisseur</TableHead>
-                  <TableHead className="text-xs text-right">Montant (FCFA)</TableHead>
-                  <TableHead className="text-xs text-center">Statut</TableHead>
-                  <TableHead className="w-10" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8"><div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" /></TableCell></TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground text-sm">Aucune commande trouvée</TableCell></TableRow>
-                ) : filtered.map(o => {
-                  const vehicle = vMap[o.vehicle_id];
-                  const StatutIcon = STATUT_ICON[o.statut];
-                  return (
-                    <TableRow key={o.id} className="hover:bg-muted/30">
-                      <TableCell className="text-xs">{(o.created_date || "").split("T")[0]}</TableCell>
-                      <TableCell className="text-xs font-semibold font-mono">
-                        {vehicle?.immatriculation || "—"}
-                      </TableCell>
-                      <TableCell className="text-xs">{o.designation}</TableCell>
-                      <TableCell className="text-xs text-right">{o.quantite}</TableCell>
-                      <TableCell className="text-xs">{supplierMap[o.supplier_id]?.nom || "—"}</TableCell>
-                      <TableCell className="text-xs text-right font-bold">{(o.montant_total || 0).toLocaleString("fr-FR")}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge className={cn("text-[10px] gap-1", STATUT_BADGE[o.statut])}>
-                          {StatutIcon && <StatutIcon className="w-3 h-3" />} {STATUT_LABEL[o.statut] || o.statut}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openOrder(o)} title="Voir détails">
-                          <Eye className="w-3.5 h-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          {periodFilter.mode === "all" && (
+            <p className="text-xs text-muted-foreground">Affichage des 5 derniers jours — utilisez le filtre de période pour voir plus.</p>
+          )}
+
+          {isLoading ? (
+            <div className="bg-card rounded-xl border border-border py-10 text-center">
+              <div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="bg-card rounded-xl border border-border py-10 text-center text-muted-foreground text-sm">
+              Aucune commande trouvée
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Regroupées par jour — même présentation que Campagnes >
+                  Rotations et Carburant > Approvisionnements. */}
+              {Object.entries(
+                [...filtered]
+                  .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0))
+                  .reduce((acc, o) => {
+                    const day = o.created_date ? new Date(o.created_date).toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : "Sans date";
+                    if (!acc[day]) acc[day] = [];
+                    acc[day].push(o);
+                    return acc;
+                  }, {})
+              ).map(([day, dayOrders]) => {
+                const totalMontant = dayOrders.reduce((s, o) => s + (Number(o.montant_total) || 0), 0);
+                return (
+                  <div key={day}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-foreground capitalize">{day}</h3>
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-semibold text-secondary">{dayOrders.length} commande{dayOrders.length > 1 ? "s" : ""}</span> — {totalMontant.toLocaleString("fr-FR")} FCFA
+                      </div>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/50">
+                            <TableHead className="text-xs">Véhicule</TableHead>
+                            <TableHead className="text-xs">Pièce</TableHead>
+                            <TableHead className="text-xs text-right">Qté</TableHead>
+                            <TableHead className="text-xs">Fournisseur</TableHead>
+                            <TableHead className="text-xs text-right">Montant (FCFA)</TableHead>
+                            <TableHead className="text-xs text-center">Statut</TableHead>
+                            <TableHead className="w-10" />
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {dayOrders.map(o => {
+                            const vehicle = vMap[o.vehicle_id];
+                            const StatutIcon = STATUT_ICON[o.statut];
+                            return (
+                              <TableRow key={o.id} className="hover:bg-muted/30">
+                                <TableCell className="text-xs font-semibold font-mono">
+                                  {vehicle?.immatriculation || "—"}
+                                </TableCell>
+                                <TableCell className="text-xs">{o.designation}</TableCell>
+                                <TableCell className="text-xs text-right">{o.quantite}</TableCell>
+                                <TableCell className="text-xs">{supplierMap[o.supplier_id]?.nom || "—"}</TableCell>
+                                <TableCell className="text-xs text-right font-bold">{(o.montant_total || 0).toLocaleString("fr-FR")}</TableCell>
+                                <TableCell className="text-center">
+                                  <Badge className={cn("text-[10px] gap-1", STATUT_BADGE[o.statut])}>
+                                    {StatutIcon && <StatutIcon className="w-3 h-3" />} {STATUT_LABEL[o.statut] || o.statut}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openOrder(o)} title="Voir détails">
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                          <TableRow className="bg-secondary/10 font-bold">
+                            <TableCell colSpan={4} className="text-right text-xs font-bold uppercase text-secondary">Total journée</TableCell>
+                            <TableCell className="text-right text-sm font-bold text-secondary">{totalMontant.toLocaleString("fr-FR")}</TableCell>
+                            <TableCell colSpan={2} />
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

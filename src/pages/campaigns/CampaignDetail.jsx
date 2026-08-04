@@ -196,6 +196,14 @@ export default function CampaignDetail() {
     );
   }
 
+  // Affichage de l'onglet Rotations limité aux 5 derniers jours (le reste de
+  // la page continue d'utiliser `rotations` en entier : compteurs, facture,
+  // rapport de clôture, numérotation de la fiche du jour...).
+  const recentCutoff = new Date();
+  recentCutoff.setHours(0, 0, 0, 0);
+  recentCutoff.setDate(recentCutoff.getDate() - 4);
+  const recentRotations = rotations.filter(r => r.date_rotation && new Date(r.date_rotation) >= recentCutoff);
+
   const bonsSysteme = rotations.length;
   const bonsPhysiques = rotations.filter(r => r.bon_physique_recu).length;
   const ecart = bonsSysteme - bonsPhysiques;
@@ -434,7 +442,7 @@ export default function CampaignDetail() {
               </Button>
             </div>
           )}
-          <CampaignRotationsTable rotations={rotations} vehicles={vehicles} drivers={drivers} campaignId={id} fuelEntryMap={fuelEntryMap} />
+          <CampaignRotationsTable rotations={recentRotations} vehicles={vehicles} drivers={drivers} campaignId={id} fuelEntryMap={fuelEntryMap} />
         </TabsContent>
       </Tabs>
 
