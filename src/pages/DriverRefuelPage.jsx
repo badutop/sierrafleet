@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
-import { Zap, Truck, User, LogOut, AlertCircle, Clock, Scale, PackageCheck, Fuel, MessageCircle } from "lucide-react";
+import { Zap, Truck, User, LogOut, AlertCircle, Clock, Scale, PackageCheck, Fuel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
@@ -295,10 +295,16 @@ export default function DriverRefuelPage() {
               )}
               {cycleState.action === "refuel" && (
                 <>
-                  <div className="flex items-center justify-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
-                    <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <Fuel className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Rotations validées — station notifiée par WhatsApp</span>
+                  <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
+                    <div className="flex items-center -space-x-1.5 shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-white border border-emerald-200 flex items-center justify-center overflow-hidden">
+                        <img src="/assets/logowhatsapp.png" alt="WhatsApp" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
+                        <Fuel className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+                    <span className="text-xs text-emerald-700">Rotations validées — station notifiée par WhatsApp</span>
                   </div>
                   <button
                     type="button"
