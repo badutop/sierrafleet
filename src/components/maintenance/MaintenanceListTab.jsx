@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Eye, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MaintenanceValidationPanel from "./MaintenanceValidationPanel";
+import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
 
 const typeLabels = {
   vidange: "Vidange", revision: "Révision", pneus: "Pneus", filtres: "Filtres",
@@ -35,18 +36,32 @@ const graviteColors = {
   critique: "bg-destructive/15 text-destructive",
 };
 
-const MAX_ROWS = 20;
+const now = new Date();
+const defaultPeriodFilter = { mode: "all", month: now.getMonth() + 1, year: now.getFullYear(), from: "", to: "" };
 
 export default function MaintenanceListTab({ maintenances, isLoading, vMap, driverMap = {}, onEdit, onDelete, onStatusChange, isPending }) {
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState(defaultPeriodFilter);
+
+  // Par défaut (aucune période choisie), ne montrer que les 5 derniers
+  // jours — comme Campagnes > Rotations et Carburant > Approvisionnements.
+  // Choisir un mois/année/période libre dans PeriodFilter affiche cette
+  // période complète à la place.
+  const fiveDaysCutoff = new Date();
+  fiveDaysCutoff.setHours(0, 0, 0, 0);
+  fiveDaysCutoff.setDate(fiveDaysCutoff.getDate() - 4);
+  const periodRange = periodFilter.mode !== "all" ? getDateRange(periodFilter) : null;
+
   const filtered = maintenances.filter(m => {
     if (filterCat !== "all" && m.categorie !== filterCat) return false;
     if (filterStatut !== "all" && m.statut !== filterStatut) return false;
     const immat = vMap[m.vehicle_id]?.immatriculation || "";
     const desig = m.designation || "";
-    return (immat + desig).toLowerCase().includes(search.toLowerCase());
+    if (!(immat + desig).toLowerCase().includes(search.toLowerCase())) return false;
+    if (periodRange) return inRange(m.date_entretien, periodRange);
+    return m.date_entretien && new Date(m.date_entretien) >= fiveDaysCutoff;
   });
 
   const activeOnes = maintenances.filter(m => m.statut === "planifie" || m.statut === "en_cours");
@@ -99,69 +114,107 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, driv
           ))}
         </div>
       </div>
+      <PeriodFilter filter={periodFilter} onChange={setPeriodFilter} />
+      {periodFilter.mode === "all" && (
+        <p className="text-xs text-muted-foreground">Affichage des 5 derniers jours — utilisez le filtre de période pour voir plus.</p>
+      )}
 
-      {/* Table */}
-      <div className="bg-card rounded-xl border border-border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="text-xs">Date</TableHead>
-              <TableHead className="text-xs">Véhicule</TableHead>
-              <TableHead className="text-xs">Catégorie</TableHead>
-              <TableHead className="text-xs">Type / Désignation</TableHead>
-              <TableHead className="text-xs">Pièces</TableHead>
-              <TableHead className="text-xs text-right">Coût (FCFA)</TableHead>
-              <TableHead className="text-xs text-center">Statut</TableHead>
-              <TableHead className="w-10" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8"><div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" /></TableCell></TableRow>
-            ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground text-sm">Aucune intervention trouvée</TableCell></TableRow>
-            ) : filtered.slice(0, MAX_ROWS).map(m => {
-              const vehicle = vMap[m.vehicle_id];
-              return (
-                <TableRow key={m.id} className={cn("hover:bg-muted/30", m.categorie === "corrective" && m.gravite === "critique" && "bg-destructive/5")}>
-                  <TableCell className="text-xs">{m.date_entretien}</TableCell>
-                  <TableCell className="text-xs font-semibold font-mono">
-                    {vehicle?.immatriculation || "—"}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {m.categorie === "corrective"
-                      ? <Badge className={cn("text-[10px]", m.gravite ? graviteColors[m.gravite] : "bg-destructive/15 text-destructive")}>🚨 Corrective</Badge>
-                      : <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">🔧 Préventive</Badge>
-                    }
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <div className="font-medium">{typeLabels[m.type_entretien] || m.type_entretien}</div>
-                    {m.designation && <div className="text-muted-foreground text-[11px]">{m.designation}</div>}
-                    {m.prestataire && <div className="text-muted-foreground text-[11px]">🔧 {m.prestataire}</div>}
-                  </TableCell>
-                  <TableCell className="text-xs max-w-[120px] truncate" title={m.pieces_remplacees}>{m.pieces_remplacees || "—"}</TableCell>
-                  <TableCell className="text-xs text-right">
-                    <div className="font-bold">{(m.cout || 0).toLocaleString("fr-FR")}</div>
-                    {Number(m.cout_main_oeuvre) > 0 && (
-                      <div className="text-muted-foreground text-[10px]">dont {Number(m.cout_main_oeuvre).toLocaleString("fr-FR")} MO</div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge className={cn("text-[10px]", statutColors[m.statut])}>
-                      {statutLabels[m.statut] || m.statut}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => onEdit(m)} title="Voir détails">
-                      <Eye className="w-3.5 h-3.5" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+      {/* Table — regroupée par jour, même présentation que Campagnes >
+          Rotations et Carburant > Approvisionnements. */}
+      {isLoading ? (
+        <div className="bg-card rounded-xl border border-border py-10 text-center">
+          <div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-card rounded-xl border border-border py-10 text-center text-muted-foreground text-sm">
+          Aucune intervention trouvée
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(
+            [...filtered]
+              .sort((a, b) => new Date(b.date_entretien || 0) - new Date(a.date_entretien || 0))
+              .reduce((acc, m) => {
+                const day = m.date_entretien ? new Date(m.date_entretien).toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : "Sans date";
+                if (!acc[day]) acc[day] = [];
+                acc[day].push(m);
+                return acc;
+              }, {})
+          ).map(([day, dayEntries]) => {
+            const totalCout = dayEntries.reduce((s, m) => s + (Number(m.cout) || 0), 0);
+            return (
+              <div key={day}>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-foreground capitalize">{day}</h3>
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-secondary">{dayEntries.length} intervention{dayEntries.length > 1 ? "s" : ""}</span> — {totalCout.toLocaleString("fr-FR")} FCFA
+                  </div>
+                </div>
+                <div className="bg-card rounded-xl border border-border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="text-xs">Véhicule</TableHead>
+                        <TableHead className="text-xs">Catégorie</TableHead>
+                        <TableHead className="text-xs">Type / Désignation</TableHead>
+                        <TableHead className="text-xs">Pièces</TableHead>
+                        <TableHead className="text-xs text-right">Coût (FCFA)</TableHead>
+                        <TableHead className="text-xs text-center">Statut</TableHead>
+                        <TableHead className="w-10" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {dayEntries.map(m => {
+                        const vehicle = vMap[m.vehicle_id];
+                        return (
+                          <TableRow key={m.id} className={cn("hover:bg-muted/30", m.categorie === "corrective" && m.gravite === "critique" && "bg-destructive/5")}>
+                            <TableCell className="text-xs font-semibold font-mono">
+                              {vehicle?.immatriculation || "—"}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {m.categorie === "corrective"
+                                ? <Badge className={cn("text-[10px]", m.gravite ? graviteColors[m.gravite] : "bg-destructive/15 text-destructive")}>🚨 Corrective</Badge>
+                                : <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">🔧 Préventive</Badge>
+                              }
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              <div className="font-medium">{typeLabels[m.type_entretien] || m.type_entretien}</div>
+                              {m.designation && <div className="text-muted-foreground text-[11px]">{m.designation}</div>}
+                              {m.prestataire && <div className="text-muted-foreground text-[11px]">🔧 {m.prestataire}</div>}
+                            </TableCell>
+                            <TableCell className="text-xs max-w-[120px] truncate" title={m.pieces_remplacees}>{m.pieces_remplacees || "—"}</TableCell>
+                            <TableCell className="text-xs text-right">
+                              <div className="font-bold">{(m.cout || 0).toLocaleString("fr-FR")}</div>
+                              {Number(m.cout_main_oeuvre) > 0 && (
+                                <div className="text-muted-foreground text-[10px]">dont {Number(m.cout_main_oeuvre).toLocaleString("fr-FR")} MO</div>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge className={cn("text-[10px]", statutColors[m.statut])}>
+                                {statutLabels[m.statut] || m.statut}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => onEdit(m)} title="Voir détails">
+                                <Eye className="w-3.5 h-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      <TableRow className="bg-secondary/10 font-bold">
+                        <TableCell colSpan={4} className="text-right text-xs font-bold uppercase text-secondary">Total journée</TableCell>
+                        <TableCell className="text-right text-sm font-bold text-secondary">{totalCout.toLocaleString("fr-FR")}</TableCell>
+                        <TableCell colSpan={2} />
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
