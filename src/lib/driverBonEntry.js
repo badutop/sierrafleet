@@ -1,8 +1,9 @@
 // Logique du nouveau flux "saisie fiche du jour par le chauffeur"
-// (togglable — voir DriverBonEntryToggleCard.jsx). Volontairement séparé
-// de RotationSheetEntry.jsx et FuelValidationTab.jsx : ces deux fichiers
-// restent strictement inchangés pour que l'ancien flux reste utilisable à
-// tout moment en repassant simplement le réglage sur OFF.
+// (togglable — voir DriverBonEntryToggleCard.jsx). Volontairement séparé de
+// RotationSheetEntry.jsx, qui reste strictement inchangé pour que l'ancien
+// flux reste utilisable à tout moment en repassant simplement le réglage
+// sur OFF. FuelValidationTab.jsx a un seul point d'accroche additif
+// (canTriggerRecharge, gardé derrière ce même réglage — voir ce fichier).
 import { supabase } from "@/lib/supabaseClient";
 import { getRefuelCheckpoints, consoLitresPourClient } from "@/lib/refuelRules";
 import { logAudit } from "@/lib/auditLog";
@@ -109,24 +110,13 @@ export function computeBonFinalEcart({ poidsBonFinal, numeroBonFinal, poidsEnlev
   };
 }
 
-// Détermine la seule action que le chauffeur doit voir sur son écran
-// d'accueil (voir DriverRefuelPage.jsx) : un cycle "enlèvement → livraison/
-// bon de déchargement" par rotation, répété 3 fois, puis rechargement — le
-// chauffeur se déconnecte (et l'app vide son cache) après chaque étape, donc
-// à chaque connexion il ne doit voir qu'un seul bouton, celui de l'étape où
-// il en est.
-//
-// Parcourt les rotations de ce (client, véhicule) triées par numero_rotation,
-// par groupes de 3 : un groupe déjà rechargé (chunk[2].fuel_entry_id) est
-// "consommé" et on repart à zéro pour le groupe suivant. Dans le groupe
-// courant (pas encore rechargé) :
-//   - la dernière rotation a un bon d'enlèvement mais pas de bon de
-//     déchargement → il reste à scanner ce bon de déchargement.
-//   - le groupe a moins de 3 rotations → il reste à scanner un bon
-//     d'enlèvement (nouvelle rotation).
-//   - le groupe a ses 3 rotations, chacune avec les deux bons → le
-//     rechargement est possible.
-export function getDriverCycleState(rotations, clientId, vehicleId) {
+// Groupe de rotations (client, véhicule) courant — le plus ancien pas
+// encore rechargé (chunk[2].fuel_entry_id vide). Un groupe déjà rechargé
+// est "consommé" ; on repart à zéro pour le suivant. Factorisé hors de
+// getDriverCycleState pour que DriverBonFinalEntryFlow.jsx puisse aussi
+// savoir si un bon de déchargement vient de compléter le groupe, sans
+// dépendre du statut de validation (voir cet appelant).
+function getCurrentGroup(rotations, clientId, vehicleId) {
   const sorted = rotations
     .filter(r => r.client_id === clientId && r.vehicle_id === vehicleId)
     .sort((a, b) => (a.numero_rotation || 0) - (b.numero_rotation || 0));
@@ -142,7 +132,38 @@ export function getDriverCycleState(rotations, clientId, vehicleId) {
       }
     }
   }
+  return group;
+}
 
+// Vrai si les 3 rotations du groupe courant ont chacune leur bon
+// d'enlèvement ET leur bon de déchargement — indépendamment du statut de
+// validation (refuel_effectue). Utilisé par DriverBonFinalEntryFlow.jsx
+// pour savoir si le bon qu'il vient d'enregistrer complète le groupe (donc
+// s'il faut tenter l'auto-validation, ou laisser la main au Responsable des
+// Opérations selon l'heure — voir isWithinManualValidationHours).
+export function isGroupFullyDocumented(rotations, clientId, vehicleId) {
+  const group = getCurrentGroup(rotations, clientId, vehicleId);
+  return group.length === 3 && group.every(r => r.bon_physique_scan_url && r.bon_final_scan_url);
+}
+
+// Détermine la seule action que le chauffeur doit voir sur son écran
+// d'accueil (voir DriverRefuelPage.jsx) : un cycle "enlèvement → livraison/
+// bon de déchargement" par rotation, répété 3 fois, puis rechargement — le
+// chauffeur se déconnecte (et l'app vide son cache) après chaque étape, donc
+// à chaque connexion il ne doit voir qu'un seul bouton, celui de l'étape où
+// il en est.
+//
+// Dans le groupe courant (voir getCurrentGroup) :
+//   - la dernière rotation a un bon d'enlèvement mais pas de bon de
+//     déchargement → il reste à scanner ce bon de déchargement.
+//   - le groupe a moins de 3 rotations → il reste à scanner un bon
+//     d'enlèvement (nouvelle rotation).
+//   - le groupe a ses 3 rotations, chacune avec les deux bons, mais pas
+//     encore validé (refuel_effectue) → en attente de validation (auto ou
+//     par le Responsable des Opérations).
+//   - validé → le rechargement est possible.
+export function getDriverCycleState(rotations, clientId, vehicleId) {
+  const group = getCurrentGroup(rotations, clientId, vehicleId);
   const last = group[group.length - 1];
   if (last && last.bon_physique_scan_url && !last.bon_final_scan_url) {
     return { action: "discharge", rotationId: last.id };
@@ -150,5 +171,24 @@ export function getDriverCycleState(rotations, clientId, vehicleId) {
   if (group.length < 3) {
     return { action: "pickup" };
   }
+  // Les 3 bons de déchargement sont là, mais le checkpoint n'est pas encore
+  // validé (refuel_effectue) : soit l'auto-validation n'a pas eu lieu car
+  // hors de la fenêtre autorisée (voir isWithinManualValidationHours), soit
+  // le Responsable des Opérations n'a pas encore validé manuellement dans
+  // Carburant > Validation. Le chauffeur ne peut rien faire de plus pour
+  // l'instant.
+  if (!group[2].refuel_effectue) {
+    return { action: "waiting_validation" };
+  }
   return { action: "refuel", checkpointRotationId: group[2].id };
+}
+
+// Fenêtre horaire pendant laquelle la validation du refuel (3e bon de
+// déchargement complété) doit rester manuelle — faite par le Responsable
+// des Opérations dans Carburant > Validation — plutôt qu'automatique.
+// L'auto-validation devient ainsi l'exception (nuit/tôt le matin, quand
+// personne n'est disponible pour valider), pas la règle par défaut.
+export function isWithinManualValidationHours(date = new Date()) {
+  const hour = date.getHours();
+  return hour >= 9 && hour < 20;
 }

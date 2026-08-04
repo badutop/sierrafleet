@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { uploadFile } from "@/lib/storage";
 import { logAudit } from "@/lib/auditLog";
-import { computeBonFinalEcart, maybeAutoValidateCheckpoint, getDriverCycleState } from "@/lib/driverBonEntry";
+import { computeBonFinalEcart, maybeAutoValidateCheckpoint, isGroupFullyDocumented, isWithinManualValidationHours } from "@/lib/driverBonEntry";
 
 // Nouveau flux "chauffeur saisit lui-même" (togglable, voir
 // DriverBonEntryToggleCard.jsx) : après avoir livré la marchandise et
@@ -22,9 +22,12 @@ import { computeBonFinalEcart, maybeAutoValidateCheckpoint, getDriverCycleState 
 // dans CollecteurBonsPage.jsx.
 //
 // Si cette rotation est la 3e du groupe à obtenir son bon de déchargement,
-// le refuel est validé automatiquement (maybeAutoValidateCheckpoint) — le
-// chauffeur pourra recharger dès qu'il reviendra à l'écran principal (voir
-// getDriverCycleState / DriverRefuelPage.jsx).
+// le refuel est validé automatiquement (maybeAutoValidateCheckpoint) — SAUF
+// entre 9h et 20h (isWithinManualValidationHours), où la validation reste
+// manuelle par le Responsable des Opérations dans Carburant > Validation :
+// l'auto-validation devient l'exception (nuit/tôt le matin) plutôt que la
+// règle. Le chauffeur verra alors "en attente de validation" (voir
+// getDriverCycleState / DriverRefuelPage.jsx) jusqu'à cette validation.
 //
 // Props :
 //   rotationId — la rotation (déjà avec son bon d'enlèvement) à compléter
@@ -95,17 +98,18 @@ export default function DriverBonFinalEntryFlow({ rotationId, client, zones = []
       await logAudit("Rotation", rotationId, "update", payload, rotation, Object.keys(payload));
 
       // Si cette rotation complète les 3 bons de déchargement du groupe
-      // (client, véhicule), le refuel est validé automatiquement — relit en
-      // base plutôt que de recalculer localement, pour la même raison que
-      // DriverBonEntryFlow (compte toujours à jour, y compris juste après ce
-      // update).
+      // (client, véhicule), le refuel est validé automatiquement — SAUF
+      // entre 9h et 20h, où la validation reste manuelle (Responsable des
+      // Opérations, Carburant > Validation) : l'auto-validation devient
+      // l'exception plutôt que la règle. Relit en base plutôt que de
+      // recalculer localement, pour la même raison que DriverBonEntryFlow
+      // (compte toujours à jour, y compris juste après ce update).
       const { data: freshRotations, error: fetchErr } = await supabase
         .from("rotations").select("*")
         .eq("client_id", rotation.client_id).eq("vehicle_id", rotation.vehicle_id);
       if (fetchErr) throw fetchErr;
       const merged = freshRotations.map(r => (r.id === rotationId ? { ...r, ...payload } : r));
-      const newState = getDriverCycleState(merged, rotation.client_id, rotation.vehicle_id);
-      if (newState.action === "refuel") {
+      if (isGroupFullyDocumented(merged, rotation.client_id, rotation.vehicle_id) && !isWithinManualValidationHours()) {
         await maybeAutoValidateCheckpoint({
           allRotationsAfterInsert: merged,
           clientId: rotation.client_id,

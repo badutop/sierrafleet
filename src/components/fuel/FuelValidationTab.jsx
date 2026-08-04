@@ -12,6 +12,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getRefuelCheckpoints, consoLitresPourClient } from "@/lib/refuelRules";
 import { logAudit } from "@/lib/auditLog";
+import { useAppSetting, isSettingOn } from "@/hooks/use-app-setting";
+import { DRIVER_BON_ENTRY_KEY } from "@/lib/driverBonEntry";
 
 // Ne montre plus la liste brute des fuel_entries / rotations saisies : un
 // camion n'apparaît ici que lorsqu'il a réalisé 3 rotations d'un même client
@@ -28,13 +30,20 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
   const vMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c]));
 
+  // Nouveau flux "chauffeur saisit lui-même" (togglable) : une fois validé
+  // ici, seul le chauffeur peut déclencher le rechargement depuis son propre
+  // espace (voir DriverRefuelPage.jsx / getDriverCycleState) — le bouton
+  // "Déclencher le rechargement auto" n'a alors plus de sens pour Admin.
+  const { data: bonEntrySetting } = useAppSetting(DRIVER_BON_ENTRY_KEY);
+  const bonEntryActive = isSettingOn(bonEntrySetting);
+
   // Seuls Admin et Resp. Exploitation peuvent valider un camion pour
   // rechargement (Finances et Resp. Opérations n'y ont pas accès) — c'est
   // aussi lui qui peut ajuster le litrage théorique avant de valider (voir
   // CheckpointCard). Le déclenchement du rechargement auto lui-même reste
-  // réservé à Admin.
+  // réservé à Admin, sauf si le nouveau flux chauffeur est actif.
   const canValidateRecharge = currentUser?.role === "admin" || currentUser?.role === "responsable_exploitation";
-  const canTriggerRecharge = currentUser?.role === "admin";
+  const canTriggerRecharge = currentUser?.role === "admin" && !bonEntryActive;
 
   const validateMutation = useMutation({
     mutationFn: async ({ item, litres }) => {

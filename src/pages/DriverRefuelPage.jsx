@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
-import { Zap, Truck, User, LogOut, AlertCircle } from "lucide-react";
+import { Zap, Truck, User, LogOut, AlertCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
@@ -174,6 +174,7 @@ export default function DriverRefuelPage() {
               {bonEntryActive
                 ? (cycleState.action === "pickup" ? "Saisie Bon Enlèvement"
                   : cycleState.action === "discharge" ? "Saisie Bon Déchargement"
+                  : cycleState.action === "waiting_validation" ? "En attente de validation"
                   : "Recharge Carburant")
                 : "Rechargement Carburant"}
             </h1>
@@ -290,6 +291,13 @@ export default function DriverRefuelPage() {
                   <img src="/assets/pompe.jpeg" alt="Rechargement" className="absolute inset-0 w-full h-full object-cover" />
                   <span className="absolute inset-x-0 bottom-0 bg-secondary/90 text-white text-sm font-bold py-2">Rechargement</span>
                 </button>
+              )}
+              {cycleState.action === "waiting_validation" && (
+                <div className="w-full rounded-2xl border-2 border-dashed border-amber-400/50 bg-amber-50 p-6 flex flex-col items-center gap-2 text-center">
+                  <Clock className="w-9 h-9 text-amber-500" />
+                  <p className="text-sm font-bold text-amber-700">Vos 3 bons sont enregistrés</p>
+                  <p className="text-xs text-amber-600">En attente de validation par le Responsable des Opérations</p>
+                </div>
               )}
             </>
           ) : (
