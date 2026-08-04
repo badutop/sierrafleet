@@ -264,10 +264,15 @@ export default function FuelManagementV2() {
     const totalKm = consumptionData.reduce((s, d) => s + d.totalKm, 0);
     const ecartGlobal = totalReel - totalTheorique;
     const ecartGlobalPct = totalTheorique > 0 ? (ecartGlobal / totalTheorique) * 100 : 0;
-    const consommationMoyenne = totalKm > 0 ? (totalReel / totalKm) * 100 : 0;
     const coutMoyenParLitre = totalReel > 0 ? totalCost / totalReel : 0;
     const coutParKmGlobal = totalKm > 0 ? totalCost / totalKm : 0;
     const alertCount = consumptionData.filter(d => Math.abs(d.ecartPct) > 15).length;
+    // Consommation moyenne par camion utilisé (litres et coût correspondant)
+    // plutôt qu'un L/100km peu parlant pour ce métier (transport de vrac,
+    // rotations courtes) — voir carte KPI plus bas.
+    const nbCamionsUtilises = consumptionData.length;
+    const litresMoyenParCamion = nbCamionsUtilises > 0 ? totalReel / nbCamionsUtilises : 0;
+    const coutMoyenParCamion = nbCamionsUtilises > 0 ? totalCost / nbCamionsUtilises : 0;
 
     return {
       totalTheorique,
@@ -276,7 +281,9 @@ export default function FuelManagementV2() {
       totalKm,
       ecartGlobal,
       ecartGlobalPct,
-      consommationMoyenne,
+      nbCamionsUtilises,
+      litresMoyenParCamion,
+      coutMoyenParCamion,
       coutMoyenParLitre,
       coutParKmGlobal,
       alertCount,
@@ -354,9 +361,9 @@ export default function FuelManagementV2() {
         </Card>
         <Card className="bg-primary/15 border-primary/25">
           <CardContent className="pt-4 pb-4 text-primary">
-            <p className="text-xs opacity-80">Consommation moy. L/100</p>
-            <p className="text-2xl font-bold mt-1">{kpiData.consommationMoyenne.toFixed(1)}</p>
-            <p className="text-xs opacity-70 mt-1">flotte globale</p>
+            <p className="text-xs opacity-80">Consommation moy. / camion</p>
+            <p className="text-2xl font-bold mt-1">{Math.round(kpiData.litresMoyenParCamion)} L</p>
+            <p className="text-xs opacity-70 mt-1">soit {formatCFA(kpiData.coutMoyenParCamion)} · {kpiData.nbCamionsUtilises} camion{kpiData.nbCamionsUtilises > 1 ? "s" : ""}</p>
           </CardContent>
         </Card>
         <Card className="bg-amber-500/15 border-amber-400/25">
