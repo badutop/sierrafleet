@@ -7,11 +7,22 @@
 // la validation elle-même de réussir.
 import { supabase } from "@/lib/supabaseClient";
 
+// Evolution API a besoin de l'indicatif pays en tête (ex: "221771234567",
+// chiffres seuls) pour résoudre un contact WhatsApp — telephone_gerant est
+// un champ libre (FuelStationFormDialog.jsx ne force pas ce format), donc
+// certains numéros saisis sans le "+221" ne partaient jamais réellement.
+function toWhatsAppDigits(raw) {
+  let digits = (raw || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (!digits.startsWith("221")) digits = "221" + digits;
+  return digits;
+}
+
 export async function notifyFuelStationsAuthorized({ vehicleImmat, litres, clientName }) {
   try {
     const { data: stations, error } = await supabase.from("fuel_stations").select("telephone_gerant");
     if (error) throw error;
-    const phones = stations.map(s => s.telephone_gerant).filter(Boolean).join(",");
+    const phones = stations.map(s => toWhatsAppDigits(s.telephone_gerant)).filter(Boolean).join(",");
     if (!phones) return;
 
     const message =
