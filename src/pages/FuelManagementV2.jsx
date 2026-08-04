@@ -403,12 +403,19 @@ export default function FuelManagementV2() {
         <TabsContent value="approvisionnements" className="mt-4 space-y-6">
           <FuelSupplyTable
             entries={(() => {
+              // fuel_entries.date est une colonne "date" pure (sans heure) —
+              // new Date("2026-08-04") est interprété en UTC, alors qu'un
+              // cutoff construit localement (new Date() + setHours) ne l'est
+              // pas : sur un fuseau à l'ouest de Greenwich, un enregistrement
+              // du jour même pouvait ressortir comme "hier" et disparaître du
+              // tableau. Comparaison de chaînes AAAA-MM-JJ à la place, qui
+              // évite complètement ce piège de fuseau horaire.
               const cutoff = new Date();
-              cutoff.setHours(0, 0, 0, 0);
               cutoff.setDate(cutoff.getDate() - 4); // 5 derniers jours (aujourd'hui inclus)
+              const cutoffStr = cutoff.toLocaleDateString("sv-SE");
               return entries
-                .filter(e => (e.date || e.created_date) && new Date(e.date || e.created_date) >= cutoff)
-                .sort((a, b) => new Date(b.date || b.created_date) - new Date(a.date || a.created_date));
+                .filter(e => e.date >= cutoffStr)
+                .sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.heure || "").localeCompare(a.heure || ""));
             })()}
             isLoading={loadingEntries}
             vMap={vMap}

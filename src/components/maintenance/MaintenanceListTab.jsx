@@ -48,10 +48,15 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, driv
   // Par défaut (aucune période choisie), ne montrer que les 5 derniers
   // jours — comme Campagnes > Rotations et Carburant > Approvisionnements.
   // Choisir un mois/année/période libre dans PeriodFilter affiche cette
-  // période complète à la place.
+  // période complète à la place. date_entretien est une colonne "date" pure
+  // (sans heure) : new Date("2026-08-04") est interprété en UTC, alors qu'un
+  // cutoff construit localement (new Date() + setHours) ne l'est pas — sur
+  // un fuseau à l'ouest de Greenwich, une intervention du jour même pouvait
+  // ressortir comme "hier" et disparaître de la liste. Comparaison de
+  // chaînes AAAA-MM-JJ à la place, qui évite ce piège de fuseau horaire.
   const fiveDaysCutoff = new Date();
-  fiveDaysCutoff.setHours(0, 0, 0, 0);
   fiveDaysCutoff.setDate(fiveDaysCutoff.getDate() - 4);
+  const fiveDaysCutoffStr = fiveDaysCutoff.toLocaleDateString("sv-SE");
   const periodRange = periodFilter.mode !== "all" ? getDateRange(periodFilter) : null;
 
   const filtered = maintenances.filter(m => {
@@ -61,7 +66,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, driv
     const desig = m.designation || "";
     if (!(immat + desig).toLowerCase().includes(search.toLowerCase())) return false;
     if (periodRange) return inRange(m.date_entretien, periodRange);
-    return m.date_entretien && new Date(m.date_entretien) >= fiveDaysCutoff;
+    return m.date_entretien >= fiveDaysCutoffStr;
   });
 
   const activeOnes = maintenances.filter(m => m.statut === "planifie" || m.statut === "en_cours");
