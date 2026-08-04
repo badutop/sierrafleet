@@ -7,6 +7,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import { getRefuelCheckpoints, consoLitresPourClient } from "@/lib/refuelRules";
 import { logAudit } from "@/lib/auditLog";
+import { notifyFuelStationsAuthorized } from "@/lib/fuelStationNotify";
 
 export const DRIVER_BON_ENTRY_KEY = "chauffeur_saisie_bon_actif";
 
@@ -85,6 +86,10 @@ export async function maybeAutoValidateCheckpoint({ allRotationsAfterInsert, cli
     null,
     [...Object.keys(payload), "bon_physique_recu"]
   );
+
+  const { data: vehicle } = await supabase.from("vehicles").select("immatriculation").eq("id", vehicleId).single();
+  notifyFuelStationsAuthorized({ vehicleImmat: vehicle?.immatriculation, litres: litresValides, clientName: client?.nom });
+
   return match.checkpoint.id;
 }
 

@@ -14,6 +14,7 @@ import { getRefuelCheckpoints, consoLitresPourClient } from "@/lib/refuelRules";
 import { logAudit } from "@/lib/auditLog";
 import { useAppSetting, isSettingOn } from "@/hooks/use-app-setting";
 import { DRIVER_BON_ENTRY_KEY } from "@/lib/driverBonEntry";
+import { notifyFuelStationsAuthorized } from "@/lib/fuelStationNotify";
 
 // Ne montre plus la liste brute des fuel_entries / rotations saisies : un
 // camion n'apparaît ici que lorsqu'il a réalisé 3 rotations d'un même client
@@ -66,6 +67,12 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
       const { error: bonError } = await supabase.from("rotations").update({ bon_physique_recu: true }).in("id", rotationIds);
       if (bonError) throw bonError;
       await logAudit("Carburant", item.checkpoint.id, "update", { ...payload, bon_physique_recu: true }, null, [...Object.keys(payload), "bon_physique_recu"]);
+
+      notifyFuelStationsAuthorized({
+        vehicleImmat: vMap[item.vehicleId]?.immatriculation,
+        litres: payload.litres_valides,
+        clientName: clientMap[item.clientId]?.nom,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rotations"] });
