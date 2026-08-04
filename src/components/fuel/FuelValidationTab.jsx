@@ -70,8 +70,8 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
 
       notifyFuelStationsAuthorized({
         vehicleImmat: vMap[item.vehicleId]?.immatriculation,
+        driverId: item.checkpoint.driver_id,
         litres: payload.litres_valides,
-        clientName: clientMap[item.clientId]?.nom,
       });
     },
     onSuccess: () => {

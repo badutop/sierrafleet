@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
-import { Zap, Truck, User, LogOut, AlertCircle, Clock, Scale, PackageCheck, Fuel } from "lucide-react";
+import { Zap, Truck, User, LogOut, AlertCircle, Clock, Scale, PackageCheck, Fuel, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
@@ -294,15 +294,22 @@ export default function DriverRefuelPage() {
                 </button>
               )}
               {cycleState.action === "refuel" && (
-                <button
-                  type="button"
-                  disabled={!driver || !vehicle}
-                  onClick={() => setFlowOpen(true)}
-                  className={`relative w-full h-40 rounded-2xl border-2 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none ${stage.border}`}
-                >
-                  <img src="/assets/pompe.jpeg" alt="Rechargement" className="absolute inset-0 w-full h-full object-cover" />
-                  <span className={`absolute inset-x-0 bottom-0 text-white text-sm font-bold py-2 ${stage.caption}`}>Rechargement</span>
-                </button>
+                <>
+                  <div className="flex items-center justify-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                    <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <Fuel className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Rotations validées — station notifiée par WhatsApp</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!driver || !vehicle}
+                    onClick={() => setFlowOpen(true)}
+                    className={`relative w-full h-40 rounded-2xl border-2 overflow-hidden active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none ${stage.border}`}
+                  >
+                    <img src="/assets/pompe.jpeg" alt="Rechargement" className="absolute inset-0 w-full h-full object-cover" />
+                    <span className={`absolute inset-x-0 bottom-0 text-white text-sm font-bold py-2 ${stage.caption}`}>Rechargement</span>
+                  </button>
+                </>
               )}
               {cycleState.action === "waiting_validation" && (
                 <div className="w-full rounded-2xl border-2 border-dashed border-amber-400/50 bg-amber-50 p-6 flex flex-col items-center gap-2 text-center">

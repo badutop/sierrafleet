@@ -88,7 +88,7 @@ export async function maybeAutoValidateCheckpoint({ allRotationsAfterInsert, cli
   );
 
   const { data: vehicle } = await supabase.from("vehicles").select("immatriculation").eq("id", vehicleId).single();
-  notifyFuelStationsAuthorized({ vehicleImmat: vehicle?.immatriculation, litres: litresValides, clientName: client?.nom });
+  notifyFuelStationsAuthorized({ vehicleImmat: vehicle?.immatriculation, driverId: match.checkpoint.driver_id, litres: litresValides });
 
   return match.checkpoint.id;
 }
