@@ -6,14 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { CheckCircle, Fuel, Zap } from "lucide-react";
+import { CheckCircle, Fuel } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getRefuelCheckpoints, consoLitresPourClient } from "@/lib/refuelRules";
 import { logAudit } from "@/lib/auditLog";
-import { useAppSetting, isSettingOn } from "@/hooks/use-app-setting";
-import { DRIVER_BON_ENTRY_KEY } from "@/lib/driverBonEntry";
 import { notifyFuelStationsAuthorized } from "@/lib/fuelStationNotify";
 
 // Ne montre plus la liste brute des fuel_entries / rotations saisies : un
@@ -23,28 +21,20 @@ import { notifyFuelStationsAuthorized } from "@/lib/fuelStationNotify";
 // validés (bon_physique_recu, sur les 3 rotations à la fois) — Campagnes >
 // Rotations n'affiche plus qu'un statut passif "À valider". C'est seulement
 // après cette validation que le chauffeur peut voir ses bons dans son espace
-// et recharger. Le vrai rechargement (et son fuel_entries) se fait ensuite
-// via le module Rechargement Auto.
-export default function FuelValidationTab({ rotations, vehicles, clients = [], zones = [], onLaunchRecharge }) {
+// et recharger. Le déclenchement du rechargement lui-même est désormais
+// exclusivement réservé au chauffeur, depuis son propre espace
+// (DriverRefuelPage.jsx) — plus de bouton "Déclencher" ici pour Admin.
+export default function FuelValidationTab({ rotations, vehicles, clients = [], zones = [] }) {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   const vMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c]));
 
-  // Nouveau flux "chauffeur saisit lui-même" (togglable) : une fois validé
-  // ici, seul le chauffeur peut déclencher le rechargement depuis son propre
-  // espace (voir DriverRefuelPage.jsx / getDriverCycleState) — le bouton
-  // "Déclencher le rechargement auto" n'a alors plus de sens pour Admin.
-  const { data: bonEntrySetting } = useAppSetting(DRIVER_BON_ENTRY_KEY);
-  const bonEntryActive = isSettingOn(bonEntrySetting);
-
   // Admin, Resp. Exploitation et Resp. des Opérations peuvent valider un
   // camion pour rechargement (Finances n'y a pas accès) — c'est aussi lui
   // qui peut ajuster le litrage théorique avant de valider (voir
-  // CheckpointCard). Le déclenchement du rechargement auto lui-même reste
-  // réservé à Admin, sauf si le nouveau flux chauffeur est actif.
+  // CheckpointCard).
   const canValidateRecharge = ["admin", "responsable_exploitation", "responsable_operations"].includes(currentUser?.role);
-  const canTriggerRecharge = currentUser?.role === "admin" && !bonEntryActive;
 
   const validateMutation = useMutation({
     mutationFn: async ({ item, litres }) => {
@@ -101,10 +91,8 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
       client={clientMap[item.clientId]}
       zones={zones}
       canValidateRecharge={canValidateRecharge}
-      canTriggerRecharge={canTriggerRecharge}
       isValidating={validateMutation.isPending}
       onValidate={(item, litres) => validateMutation.mutate({ item, litres })}
-      onLaunchRecharge={onLaunchRecharge}
     />
   );
 
@@ -126,7 +114,7 @@ export default function FuelValidationTab({ rotations, vehicles, clients = [], z
   );
 }
 
-function CheckpointCard({ item, vehicle, client, zones, canValidateRecharge, canTriggerRecharge, isValidating, onValidate, onLaunchRecharge }) {
+function CheckpointCard({ item, vehicle, client, zones, canValidateRecharge, isValidating, onValidate }) {
   const theorique = consoLitresPourClient(client, zones) * 3;
   // Litrage ajusté par le Resp. Exploitation (ou Admin) avant validation —
   // pré-rempli avec le théorique (zone × 3), modifiable tant que non validé.
@@ -168,17 +156,7 @@ function CheckpointCard({ item, vehicle, client, zones, canValidateRecharge, can
             {item.validated ? (
               <>
                 <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px]"><CheckCircle className="w-3 h-3 mr-1" />Validé</Badge>
-                {canTriggerRecharge ? (
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground px-2"
-                    onClick={() => onLaunchRecharge(vehicle, item.checkpoint.id)}
-                  >
-                    <Zap className="w-3.5 h-3.5 mr-1" /> Déclencher le rechargement auto
-                  </Button>
-                ) : (
-                  <span className="text-xs text-muted-foreground italic">En attente de déclenchement</span>
-                )}
+                <span className="text-xs text-muted-foreground italic">En attente de déclenchement par le chauffeur</span>
               </>
             ) : canValidateRecharge ? (
               <Button

@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Fuel, Plus, ShieldCheck } from "lucide-react";
-import AutoRefuelFlow from "@/components/fuel/auto/AutoRefuelFlow";
 import { toast } from "sonner";
 import FuelSupplyDialog from "@/components/fuel/FuelSupplyDialog";
 import FuelSupplyTable from "@/components/fuel/FuelSupplyTable";
@@ -44,16 +43,13 @@ export default function FuelManagementV2() {
   const { user: currentUser } = useAuth();
   // Seuls Admin et Resp. Exploitation peuvent faire un approvisionnement —
   // Finances (et tout autre rôle) n'y a pas accès (voir aussi
-  // FuelValidationTab.jsx pour la validation/déclenchement du rechargement).
+  // FuelValidationTab.jsx pour la validation des bons — le déclenchement du
+  // rechargement lui-même est désormais réservé au chauffeur, DriverRefuelPage.jsx).
   const canSupply = currentUser?.role === "admin" || currentUser?.role === "responsable_exploitation";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
   const [activeTab, setActiveTab] = useState("approvisionnements");
   const [period, setPeriod] = useState("mois_courant");
-  const [autoRefuelOpen, setAutoRefuelOpen] = useState(false);
-  const [rechargeVehicle, setRechargeVehicle] = useState(null);
-  const [rechargeDriver, setRechargeDriver] = useState(null);
-  const [rechargeCheckpointId, setRechargeCheckpointId] = useState(null);
   const queryClient = useQueryClient();
 
   // Données
@@ -437,36 +433,9 @@ export default function FuelManagementV2() {
             vehicles={vehicles}
             clients={clients}
             zones={zones}
-            onLaunchRecharge={(vehicle, checkpointId) => {
-              setRechargeVehicle(vehicle);
-              setRechargeDriver(drivers.find(d => d.id === vehicle?.driver_id) || null);
-              setRechargeCheckpointId(checkpointId);
-              setAutoRefuelOpen(true);
-            }}
           />
         </TabsContent>
       </Tabs>
-
-      {/* Auto Refuel Flow */}
-      {autoRefuelOpen && (
-        <AutoRefuelFlow
-          drivers={drivers}
-          vehicles={vehicles}
-          rotations={rotations}
-          entries={entries}
-          preselectedVehicle={rechargeVehicle}
-          preselectedDriver={rechargeDriver}
-          checkpointRotationId={rechargeCheckpointId}
-          onClose={() => {
-            setAutoRefuelOpen(false);
-            setRechargeVehicle(null);
-            setRechargeDriver(null);
-            setRechargeCheckpointId(null);
-            queryClient.invalidateQueries({ queryKey: ["fuel"] });
-            queryClient.invalidateQueries({ queryKey: ["rotations"] });
-          }}
-        />
-      )}
 
       {/* Dialog */}
       <FuelSupplyDialog
