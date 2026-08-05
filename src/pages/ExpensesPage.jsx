@@ -14,6 +14,7 @@ import ExpenseValidationPanel from "@/components/expenses/ExpenseValidationPanel
 import { confirm } from "@/lib/confirm";
 import { logAudit } from "@/lib/auditLog";
 import { displayThousands, parseThousandsInput } from "@/lib/numberFormat";
+import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
 
 // "achat_pieces" n'apparaît pas dans typeLabelsForm : ce poste est généré
 // automatiquement au paiement d'une facture fournisseur (Commandes Garage),
@@ -26,9 +27,13 @@ const statutColors = { en_attente: "bg-amber-500/10 text-amber-600", valide: "bg
 
 const emptyForm = { vehicle_id: "", driver_id: "", type_frais: "peage", date_frais: "", montant: "", description: "", statut: "en_attente" };
 
+const nowExpenses = new Date();
+const defaultPeriodFilter = { mode: "month", month: nowExpenses.getMonth() + 1, quarter: Math.floor(nowExpenses.getMonth() / 3) + 1, year: nowExpenses.getFullYear(), from: "", to: "" };
+
 export default function ExpensesPage() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState(defaultPeriodFilter);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -126,11 +131,17 @@ export default function ExpensesPage() {
     vehicleMap[e.vehicle_id]?.toLowerCase().includes(search.toLowerCase());
   const matchesType = (e) => filterType === "all" || e.type_frais === filterType;
 
+  // Le filtre de période ne s'applique qu'au tableau des frais validés — les
+  // frais en attente/rejetés doivent toujours apparaître pour validation,
+  // quelle que soit leur date, sinon un filtre laisserait passer un frais
+  // à traiter sans que personne ne le voie.
+  const periodRange = periodFilter.mode !== "all" ? getDateRange(periodFilter) : null;
+
   const pendingExpenses = expenses.filter(e =>
     e.statut !== "valide" && matchesSearch(e) && matchesType(e)
   );
   const validatedExpenses = expenses.filter(e =>
-    e.statut === "valide" && matchesSearch(e) && matchesType(e)
+    e.statut === "valide" && matchesSearch(e) && matchesType(e) && inRange(e.date_frais, periodRange)
   );
 
   const totalPending = pendingExpenses.reduce((s, e) => s + (e.montant || 0), 0);
@@ -168,9 +179,19 @@ export default function ExpensesPage() {
 
       </div>
 
-      {/* Frais à valider */}
-      <div>
-        <h2 className="text-base font-semibold mb-3">En attente / Rejetés <span className="text-muted-foreground font-normal text-sm">({pendingExpenses.length} · {totalPending.toLocaleString("fr-FR")} FCFA)</span></h2>
+      {/* Frais à valider — mis en exergue (bordure + fond ambre, pastille
+          pulsante) pour rester bien visible comme une file d'attente
+          d'actions à traiter, distincte du tableau historique en dessous.
+          Jamais filtré par période : un frais à traiter doit toujours
+          apparaître, quelle que soit sa date. */}
+      <div className="rounded-2xl border-2 border-amber-400/40 bg-amber-500/5 p-4">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-amber-700 mb-3 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+          Frais à valider
+          <span className="ml-auto text-muted-foreground font-normal normal-case tracking-normal text-xs">
+            {pendingExpenses.length} · {totalPending.toLocaleString("fr-FR")} FCFA
+          </span>
+        </h2>
         <div className="grid gap-4">
           {pendingExpenses.length === 0 ? (
             <div className="bg-card rounded-xl border border-border p-10 text-center text-muted-foreground">
@@ -223,10 +244,18 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* Frais validés */}
-      {validatedExpenses.length > 0 && (
-        <div>
-          <h2 className="text-base font-semibold mb-3">Frais validés <span className="text-muted-foreground font-normal text-sm">({validatedExpenses.length} · {totalValidated.toLocaleString("fr-FR")} FCFA)</span></h2>
+      {/* Frais validés — filtrable par période (mois par défaut) pour des
+          affichages plus ciblés que la liste complète. */}
+      <div>
+        <h2 className="text-base font-semibold mb-3">Frais validés <span className="text-muted-foreground font-normal text-sm">({validatedExpenses.length} · {totalValidated.toLocaleString("fr-FR")} FCFA)</span></h2>
+        <PeriodFilter filter={periodFilter} onChange={setPeriodFilter} />
+        <div className="h-3" />
+        {validatedExpenses.length === 0 ? (
+          <div className="bg-card rounded-xl border border-border p-10 text-center text-muted-foreground">
+            <Receipt className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">Aucun frais validé pour cette période</p>
+          </div>
+        ) : (
           <div className="overflow-x-auto border rounded-lg">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 border-b">
@@ -261,8 +290,8 @@ export default function ExpensesPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto [&>button]:text-primary-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100">
