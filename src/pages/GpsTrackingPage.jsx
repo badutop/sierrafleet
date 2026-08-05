@@ -7,39 +7,39 @@ import "leaflet/dist/leaflet.css";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, RadioTower, AlertTriangle } from "lucide-react";
 
-// Icône camion vue de dessus (générée en SVG, pas une photo/logo) — orientée
-// selon le "course" renvoyé par Traccar (degrés, 0 = nord). Contrairement à
-// camionmap.jpeg (perspective 3/4), une vue de dessus reste cohérente
-// visuellement une fois pivotée à n'importe quel angle. Transition CSS sur
-// la rotation pour un rendu moins saccadé d'un rafraîchissement (~25s) à l'autre.
-// Vert repris du logo Sierra Logistics (#74c000, échantillonné depuis
-// sierra-logistics-logo.png) ; contours/lignes blancs pour bien distinguer
-// cabine, remorque et roues plutôt qu'un bloc uni.
-const SIERRA_GREEN = "#74c000";
+// Icône camion + remorque vue de côté (silhouette classique de semi-remorque,
+// générée en SVG) — plus reconnaissable qu'une vue de dessus abstraite, et la
+// remorque reste clairement visible et distincte de la cabine. Rendu fixe
+// (pas de rotation selon le cap réel) : un dessin en silhouette ne peut de
+// toute façon pas pivoter fidèlement sans avoir l'air "penché" à certains
+// angles. Palette grise reprise telle quelle du modèle d'icône fourni (pas
+// les couleurs Sierra Logistics).
 const TRUCK_SVG = `
-  <svg width="48" height="48" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));">
-    <ellipse cx="16" cy="28" rx="7" ry="2" fill="rgba(0,0,0,0.25)"/>
-    <rect x="4" y="14" width="3" height="6" rx="1" fill="#1f2937" stroke="#fff" stroke-width="0.6"/>
-    <rect x="25" y="14" width="3" height="6" rx="1" fill="#1f2937" stroke="#fff" stroke-width="0.6"/>
-    <rect x="4" y="22" width="3" height="6" rx="1" fill="#1f2937" stroke="#fff" stroke-width="0.6"/>
-    <rect x="25" y="22" width="3" height="6" rx="1" fill="#1f2937" stroke="#fff" stroke-width="0.6"/>
-    <rect x="7" y="13" width="18" height="16" rx="2" fill="${SIERRA_GREEN}" stroke="#fff" stroke-width="1.3"/>
-    <line x1="7" y1="19" x2="25" y2="19" stroke="#fff" stroke-width="0.8" opacity="0.85"/>
-    <line x1="7" y1="24" x2="25" y2="24" stroke="#fff" stroke-width="0.8" opacity="0.85"/>
-    <rect x="10" y="2" width="12" height="11" rx="3" fill="${SIERRA_GREEN}" stroke="#fff" stroke-width="1.3"/>
-    <rect x="12" y="4" width="8" height="4" rx="1" fill="#fff"/>
+  <svg width="46" height="20" viewBox="0 0 110 44" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5));">
+    <ellipse cx="55" cy="40" rx="48" ry="3" fill="rgba(0,0,0,0.25)"/>
+    <rect x="6" y="10" width="58" height="20" rx="2" fill="#e5e7eb" stroke="#374151" stroke-width="2"/>
+    <line x1="24" y1="10" x2="24" y2="30" stroke="#374151" stroke-width="1" opacity="0.5"/>
+    <line x1="42" y1="10" x2="42" y2="30" stroke="#374151" stroke-width="1" opacity="0.5"/>
+    <rect x="66" y="16" width="16" height="14" rx="2" fill="#4b5563" stroke="#374151" stroke-width="2"/>
+    <path d="M66,16 L70,6 L82,6 L82,16 Z" fill="#4b5563" stroke="#374151" stroke-width="2" stroke-linejoin="round"/>
+    <polygon points="71,8 80,8 80,14 71,14" fill="#f3f4f6"/>
+    <rect x="82" y="19" width="4" height="7" fill="#1f2937"/>
+    <circle cx="20" cy="32" r="6" fill="#1f2937" stroke="#374151" stroke-width="1.5"/>
+    <circle cx="20" cy="32" r="2" fill="#9ca3af"/>
+    <circle cx="46" cy="32" r="6" fill="#1f2937" stroke="#374151" stroke-width="1.5"/>
+    <circle cx="46" cy="32" r="2" fill="#9ca3af"/>
+    <circle cx="74" cy="32" r="6" fill="#1f2937" stroke="#374151" stroke-width="1.5"/>
+    <circle cx="74" cy="32" r="2" fill="#9ca3af"/>
   </svg>
 `;
 
-function createTruckIcon(course) {
-  return L.divIcon({
-    html: `<div style="width:48px;height:48px;transform:rotate(${course || 0}deg);transform-origin:50% 50%;transition:transform 1s ease-out;">${TRUCK_SVG}</div>`,
-    className: "",
-    iconSize: [48, 48],
-    iconAnchor: [24, 24],
-    popupAnchor: [0, -24],
-  });
-}
+const truckIcon = L.divIcon({
+  html: `<div style="width:46px;height:20px;">${TRUCK_SVG}</div>`,
+  className: "",
+  iconSize: [46, 20],
+  iconAnchor: [23, 16],
+  popupAnchor: [0, -16],
+});
 
 const DAKAR_CENTER = [14.6928, -17.4467];
 
@@ -118,7 +118,7 @@ export default function GpsTrackingPage() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           {linked.map(d => (
-            <Marker key={d.uniqueId} position={[d.latitude, d.longitude]} icon={createTruckIcon(d.course)}>
+            <Marker key={d.uniqueId} position={[d.latitude, d.longitude]} icon={truckIcon}>
               <Popup>
                 <div className="text-xs space-y-0.5">
                   <p className="font-bold">{d.vehicle.immatriculation}</p>
