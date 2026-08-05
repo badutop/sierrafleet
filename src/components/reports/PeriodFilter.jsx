@@ -8,10 +8,17 @@ const MONTHS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Aoû
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 6 }, (_, i) => currentYear - i);
 
+const QUARTERS = [
+  { value: 1, label: "T1 (Jan-Mar)" },
+  { value: 2, label: "T2 (Avr-Juin)" },
+  { value: 3, label: "T3 (Juil-Sep)" },
+  { value: 4, label: "T4 (Oct-Déc)" },
+];
+
 /**
- * PeriodFilter — filtre par mois, année ou période libre.
+ * PeriodFilter — filtre par mois, trimestre, année ou période libre.
  * Props:
- *   filter: { mode: "all"|"month"|"year"|"range", month, year, from, to }
+ *   filter: { mode: "all"|"month"|"quarter"|"year"|"range", month, quarter, year, from, to }
  *   onChange: (newFilter) => void
  */
 export default function PeriodFilter({ filter, onChange }) {
@@ -31,6 +38,7 @@ export default function PeriodFilter({ filter, onChange }) {
           <SelectContent>
             <SelectItem value="all">Toutes les données</SelectItem>
             <SelectItem value="month">Par mois</SelectItem>
+            <SelectItem value="quarter">Par trimestre</SelectItem>
             <SelectItem value="year">Par année</SelectItem>
             <SelectItem value="range">Période libre</SelectItem>
           </SelectContent>
@@ -48,6 +56,34 @@ export default function PeriodFilter({ filter, onChange }) {
               </SelectTrigger>
               <SelectContent>
                 {MONTHS.map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground">Année</Label>
+            <Select value={String(filter.year)} onValueChange={v => set({ year: Number(v) })}>
+              <SelectTrigger className="h-8 text-xs w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {YEARS.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </>
+      )}
+
+      {/* Trimestre */}
+      {filter.mode === "quarter" && (
+        <>
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground">Trimestre</Label>
+            <Select value={String(filter.quarter)} onValueChange={v => set({ quarter: Number(v) })}>
+              <SelectTrigger className="h-8 text-xs w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {QUARTERS.map(q => <SelectItem key={q.value} value={String(q.value)}>{q.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -107,6 +143,12 @@ export function getDateRange(filter) {
     const y = filter.year || now.getFullYear();
     const m = (filter.month || now.getMonth() + 1) - 1;
     return { start: new Date(y, m, 1), end: new Date(y, m + 1, 0, 23, 59, 59) };
+  }
+  if (filter.mode === "quarter") {
+    const y = filter.year || now.getFullYear();
+    const q = filter.quarter || Math.floor(now.getMonth() / 3) + 1;
+    const startMonth = (q - 1) * 3;
+    return { start: new Date(y, startMonth, 1), end: new Date(y, startMonth + 3, 0, 23, 59, 59) };
   }
   if (filter.mode === "year") {
     const y = filter.year || now.getFullYear();

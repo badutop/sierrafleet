@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import {
   Truck, Route, Fuel, Wrench, Users, TrendingUp, Activity,
   Package, AlertTriangle, CheckCircle2, BarChart3, ArrowUpRight, ArrowDownRight, LayoutDashboard, Ship
 } from "lucide-react";
+import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
 
 // Dashboard components
 import FleetStatusDonut      from "@/components/dashboard/FleetStatusDonut";
@@ -18,6 +19,25 @@ import DashboardAlerts       from "@/components/dashboard/DashboardAlerts";
 
 const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 const fmt = (n) => n.toLocaleString("fr-FR");
+
+// Période équivalente précédente, pour le calcul des tendances (▲/▼) des
+// StatCards — pas pertinent pour "all"/"range", donc pas de tendance dans
+// ces cas (comportement déjà optionnel des StatCards, voir trend={undefined}).
+function getPreviousRange(filter) {
+  if (filter.mode === "month") {
+    const d = new Date(filter.year, filter.month - 2, 1);
+    return getDateRange({ mode: "month", year: d.getFullYear(), month: d.getMonth() + 1 });
+  }
+  if (filter.mode === "quarter") {
+    const prevQ = filter.quarter === 1 ? 4 : filter.quarter - 1;
+    const prevY = filter.quarter === 1 ? filter.year - 1 : filter.year;
+    return getDateRange({ mode: "quarter", year: prevY, quarter: prevQ });
+  }
+  if (filter.mode === "year") {
+    return getDateRange({ mode: "year", year: filter.year - 1 });
+  }
+  return null;
+}
 
 function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, className }) {
   const colorMap = {
@@ -129,14 +149,14 @@ export default function Dashboard() {
   });
 
   // ── KPIs ──────────────────────────────────────────────────────────────
-  const now       = new Date();
-  const thisMonth = now.getMonth();
-  const thisYear  = now.getFullYear();
-  const prevMonth = thisMonth === 0 ? 11 : thisMonth - 1;
-  const prevYear  = thisMonth === 0 ? thisYear - 1 : thisYear;
-
-  const isThisMonth = (d) => { const dt = new Date(d); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; };
-  const isPrevMonth = (d) => { const dt = new Date(d); return dt.getMonth() === prevMonth && dt.getFullYear() === prevYear; };
+  const now = new Date();
+  const [periodFilter, setPeriodFilter] = useState({
+    mode: "month", month: now.getMonth() + 1, quarter: Math.floor(now.getMonth() / 3) + 1, year: now.getFullYear(), from: "", to: "",
+  });
+  const currentRange  = getDateRange(periodFilter);
+  const previousRange = getPreviousRange(periodFilter);
+  const inCurrentPeriod  = (d) => inRange(d, currentRange);
+  const inPreviousPeriod = (d) => previousRange ? inRange(d, previousRange) : false;
 
   // Fleet
   const disponible     = vehicles.filter(v => v.statut === "disponible").length;
@@ -146,32 +166,32 @@ export default function Dashboard() {
   const fleetRate      = vehicles.length ? Math.round(((disponible + enMission) / vehicles.length) * 100) : 0;
 
   // Fuel
-  const fuelMonth  = fuelEntries.filter(f => isThisMonth(f.date));
-  const fuelPrev   = fuelEntries.filter(f => isPrevMonth(f.date));
+  const fuelMonth  = fuelEntries.filter(f => inCurrentPeriod(f.date));
+  const fuelPrev   = fuelEntries.filter(f => inPreviousPeriod(f.date));
   const totalFuelCost  = fuelMonth.reduce((s, f) => s + (f.montant_total || 0), 0);
   const prevFuelCost   = fuelPrev.reduce((s, f)  => s + (f.montant_total || 0), 0);
-  const fuelTrend      = prevFuelCost > 0 ? Math.round(((totalFuelCost - prevFuelCost) / prevFuelCost) * 100) : undefined;
+  const fuelTrend      = previousRange && prevFuelCost > 0 ? Math.round(((totalFuelCost - prevFuelCost) / prevFuelCost) * 100) : undefined;
   const totalLitres    = fuelMonth.reduce((s, f) => s + (f.litres || 0), 0);
 
   // Campaigns
   const activeCampaigns   = campaigns.filter(c => c.statut === "en_cours").length;
   const termineeCampaigns = campaigns.filter(c => c.statut === "terminee").length;
 
-  // Rotations this month
-  const rotMonth = rotations.filter(r => isThisMonth(r.date_rotation));
-  const rotPrev  = rotations.filter(r => isPrevMonth(r.date_rotation));
-  const rotTrend = rotPrev.length > 0 ? Math.round(((rotMonth.length - rotPrev.length) / rotPrev.length) * 100) : undefined;
+  // Rotations de la période sélectionnée
+  const rotMonth = rotations.filter(r => inCurrentPeriod(r.date_rotation));
+  const rotPrev  = rotations.filter(r => inPreviousPeriod(r.date_rotation));
+  const rotTrend = previousRange && rotPrev.length > 0 ? Math.round(((rotMonth.length - rotPrev.length) / rotPrev.length) * 100) : undefined;
   const tonnageMonth = rotMonth.reduce((s, r) => s + (r.poids_charge_tonnes || 0), 0);
 
   // Maintenance
-  const maintMonth     = maintenances.filter(m => isThisMonth(m.date_entretien));
+  const maintMonth     = maintenances.filter(m => inCurrentPeriod(m.date_entretien));
   const maintCostMonth = maintMonth.reduce((s, m) => s + (m.cout || 0), 0);
 
   // Expenses
-  const expMonth = expenses.filter(e => isThisMonth(e.date_frais));
+  const expMonth = expenses.filter(e => inCurrentPeriod(e.date_frais));
   const totalExp = expMonth.reduce((s, e) => s + (e.montant || 0), 0);
 
-  // Recettes projetées (mois) — tonnage transporté x tarif client par tonne
+  // Recettes projetées (période) — tonnage transporté x tarif client par tonne
   const clientById = Object.fromEntries(clients.map(c => [c.id, c]));
   const campaignById = Object.fromEntries(campaigns.map(c => [c.id, c]));
   const totalRecettes = rotMonth.reduce((s, r) => {
@@ -199,7 +219,6 @@ export default function Dashboard() {
     }
   });
 
-  const monthLabel = now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   const activeCampaignsList = campaigns.filter(c => c.statut === "en_cours");
 
   return (
@@ -211,7 +230,7 @@ export default function Dashboard() {
             <LayoutDashboard className="w-6 h-6 text-secondary" />
             Tableau de bord
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Vue d'ensemble opérationnelle — {monthLabel}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Vue d'ensemble opérationnelle</p>
         </div>
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 max-w-[220px]"
@@ -228,12 +247,14 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <PeriodFilter filter={periodFilter} onChange={setPeriodFilter} />
+
       {/* ── Row 2 : KPI opérationnels ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-        <StatCard title="Carburant (mois)"   value={formatCFA(totalFuelCost)} subtitle={`${fmt(Math.round(totalLitres))} L`} icon={Fuel} color="orange" trend={fuelTrend} className="col-span-2" />
-        <StatCard title="Maintenance (mois)" value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="red" className="col-span-2" />
-        <StatCard title="Total Dépenses (mois)" value={formatCFA(totalExp)} subtitle={`${expMonth.length} dépense(s)`} icon={BarChart3} color="indigo" className="col-span-2" />
-        <StatCard title="Résultat (mois)" value={formatCFA(resultat)} subtitle={`Recettes ${formatCFA(totalRecettes)}`} icon={TrendingUp} color="blue" className="col-span-2" />
+        <StatCard title="Carburant (période)"   value={formatCFA(totalFuelCost)} subtitle={`${fmt(Math.round(totalLitres))} L`} icon={Fuel} color="orange" trend={fuelTrend} className="col-span-2" />
+        <StatCard title="Maintenance (période)" value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="red" className="col-span-2" />
+        <StatCard title="Total Dépenses (période)" value={formatCFA(totalExp)} subtitle={`${expMonth.length} dépense(s)`} icon={BarChart3} color="indigo" className="col-span-2" />
+        <StatCard title="Résultat (période)" value={formatCFA(resultat)} subtitle={`Recettes ${formatCFA(totalRecettes)}`} icon={TrendingUp} color="blue" className="col-span-2" />
       </div>
 
       {/* ── Row 3 : Flotte donut + Rotations trend + Fuel trend ── */}
