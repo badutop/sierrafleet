@@ -12,15 +12,21 @@ import { MapPin, RadioTower, AlertTriangle } from "lucide-react";
 // camionmap.jpeg (perspective 3/4), une vue de dessus reste cohérente
 // visuellement une fois pivotée à n'importe quel angle. Transition CSS sur
 // la rotation pour un rendu moins saccadé d'un rafraîchissement (~25s) à l'autre.
+// Vert repris du logo Sierra Logistics (#74c000, échantillonné depuis
+// sierra-logistics-logo.png) ; contours/lignes blancs pour bien distinguer
+// cabine, remorque et roues plutôt qu'un bloc uni.
+const SIERRA_GREEN = "#74c000";
 const TRUCK_SVG = `
   <svg width="48" height="48" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));">
     <ellipse cx="16" cy="28" rx="7" ry="2" fill="rgba(0,0,0,0.25)"/>
-    <rect x="5" y="14" width="3" height="6" rx="1" fill="#000"/>
-    <rect x="24" y="14" width="3" height="6" rx="1" fill="#000"/>
-    <rect x="5" y="21" width="3" height="6" rx="1" fill="#000"/>
-    <rect x="24" y="21" width="3" height="6" rx="1" fill="#000"/>
-    <rect x="8" y="12" width="16" height="16" rx="2" fill="#000"/>
-    <rect x="10" y="2" width="12" height="11" rx="3" fill="#000"/>
+    <rect x="4" y="14" width="3" height="6" rx="1" fill="#1f2937" stroke="#fff" stroke-width="0.6"/>
+    <rect x="25" y="14" width="3" height="6" rx="1" fill="#1f2937" stroke="#fff" stroke-width="0.6"/>
+    <rect x="4" y="22" width="3" height="6" rx="1" fill="#1f2937" stroke="#fff" stroke-width="0.6"/>
+    <rect x="25" y="22" width="3" height="6" rx="1" fill="#1f2937" stroke="#fff" stroke-width="0.6"/>
+    <rect x="7" y="13" width="18" height="16" rx="2" fill="${SIERRA_GREEN}" stroke="#fff" stroke-width="1.3"/>
+    <line x1="7" y1="19" x2="25" y2="19" stroke="#fff" stroke-width="0.8" opacity="0.85"/>
+    <line x1="7" y1="24" x2="25" y2="24" stroke="#fff" stroke-width="0.8" opacity="0.85"/>
+    <rect x="10" y="2" width="12" height="11" rx="3" fill="${SIERRA_GREEN}" stroke="#fff" stroke-width="1.3"/>
     <rect x="12" y="4" width="8" height="4" rx="1" fill="#fff"/>
   </svg>
 `;
