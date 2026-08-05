@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { X, Zap } from "lucide-react";
 import BonCaptureStep from "./BonCaptureStep";
 import BonValidationStep from "./BonValidationStep";
 import PumpPhotoStep from "./PumpPhotoStep";
 import AutoRefuelSuccess from "./AutoRefuelSuccess";
+import { getPendingBonGroupForVehicle } from "@/lib/refuelRules";
 
 /**
  * Orchestrateur du flow de rechargement automatique.
@@ -18,11 +19,24 @@ import AutoRefuelSuccess from "./AutoRefuelSuccess";
  *     de capture à pump. Utilisé par le nouveau cycle chauffeur
  *     (DriverRefuelPage.jsx) où ce second récap n'apporte rien de plus.
  *     false par défaut : n'affecte aucun appelant existant.
+ *   skipBonCaptureStep — si vrai, saute aussi l'étape "capture" (le récap des
+ *     3 bons déjà validés) et va directement à pump — le bouton
+ *     "Rechargement" n'apparaît de toute façon que lorsque les 3 bons sont
+ *     déjà validés (voir cycleState dans DriverRefuelPage.jsx), donc ce récap
+ *     n'apporte rien avant de recharger. Les bons sont quand même reconstitués
+ *     en interne (via getPendingBonGroupForVehicle) pour rester liés au bon
+ *     fuel_entries en fin de flow, exactement comme le ferait BonCaptureStep.
  *   onClose(fuelEntry?) — appelé à la fermeture (avec la FuelEntry créée si succès)
  */
-export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries = [], onClose, preselectedDriver = null, preselectedVehicle = null, checkpointRotationId = null, skipValidationStep = false }) {
-  const [step, setStep] = useState(checkpointRotationId ? "pump" : "capture"); // capture | validation | pump | success
-  const [bons, setBons] = useState([]); // [{file, previewUrl, ocrNumber, rotation}]
+export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries = [], onClose, preselectedDriver = null, preselectedVehicle = null, checkpointRotationId = null, skipValidationStep = false, skipBonCaptureStep = false }) {
+  const initialBons = useMemo(() => {
+    if (!skipBonCaptureStep || !preselectedVehicle) return [];
+    const group = getPendingBonGroupForVehicle(rotations, preselectedVehicle.id) || [];
+    return group.map((r, i) => ({ rotation: r, ocrNumber: r.numero_bon_client || null, previewUrl: r.bon_physique_scan_url || null, slotIndex: i }));
+  }, []);
+
+  const [step, setStep] = useState(checkpointRotationId || skipBonCaptureStep ? "pump" : "capture"); // capture | validation | pump | success
+  const [bons, setBons] = useState(initialBons); // [{file, previewUrl, ocrNumber, rotation}]
   const [selectedDriver, setSelectedDriver] = useState(preselectedDriver);
   const [selectedVehicle, setSelectedVehicle] = useState(preselectedVehicle);
   const [transaction, setTransaction] = useState(null);
@@ -55,11 +69,12 @@ export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries =
           </div>
           <div className="flex items-center gap-3">
             {/* Indicateur d'étape — bons déjà scannés/confirmés en amont
-                (Rotations de la campagne) quand checkpointRotationId est fourni,
-                donc capture/validation ne sont même pas affichées ; validation
-                sautée aussi quand skipValidationStep (récap déjà vu à capture). */}
+                (Rotations de la campagne) quand checkpointRotationId ou
+                skipBonCaptureStep, donc capture/validation ne sont même pas
+                affichées ; validation sautée aussi quand skipValidationStep
+                (récap déjà vu à capture). */}
             <div className="flex items-center gap-1">
-              {(checkpointRotationId ? ["pump", "success"] : skipValidationStep ? ["capture", "pump", "success"] : ["capture", "validation", "pump", "success"]).map((s, i, steps) => (
+              {(checkpointRotationId || skipBonCaptureStep ? ["pump", "success"] : skipValidationStep ? ["capture", "pump", "success"] : ["capture", "validation", "pump", "success"]).map((s, i, steps) => (
                 <div
                   key={s}
                   className={`w-2 h-2 rounded-full transition-all ${
@@ -104,7 +119,7 @@ export default function AutoRefuelFlow({ drivers, vehicles, rotations, entries =
               bons={bons}
               rotations={rotations}
               checkpointRotationId={checkpointRotationId}
-              onBack={() => checkpointRotationId ? onClose() : setStep(skipValidationStep ? "capture" : "validation")}
+              onBack={() => (checkpointRotationId || skipBonCaptureStep) ? onClose() : setStep(skipValidationStep ? "capture" : "validation")}
               onDone={handlePumpDone}
             />
           )}

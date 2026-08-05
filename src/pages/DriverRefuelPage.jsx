@@ -367,13 +367,16 @@ export default function DriverRefuelPage() {
         />
       )}
 
-      {/* Flow rechargement — démarre à "capture" (pas de checkpointRotationId) :
-          le chauffeur voit d'abord le récap des 3 bons (déjà validés
-          automatiquement) avant de poursuivre vers la pompe, comme avant ce
-          nouveau cycle — pertinent maintenant que chaque bon a été scanné
-          lors d'une connexion précédente et distincte. skipValidationStep
-          saute le second récap (BonValidationStep), redondant avec celui de
-          capture. Reste dans l'app à la fin (pas de déconnexion forcée), voir
+      {/* Flow rechargement — dans le nouveau cycle (bonEntryActive), le
+          bouton "Rechargement" n'apparaît de toute façon que lorsque les 3
+          bons sont déjà validés (cycleState.action === "refuel"), donc le
+          récap des 3 bons (BonCaptureStep) n'apporte rien de plus ici :
+          skipBonCaptureStep saute directement à la pompe dans ce cas
+          uniquement — le bouton legacy "Démarrer un rechargement" (sinon)
+          garde ce récap, sa condition d'éligibilité n'étant pas pré-vérifiée
+          de la même façon. skipValidationStep saute aussi le second récap
+          (BonValidationStep), redondant avec le premier, dans les deux cas.
+          Reste dans l'app à la fin (pas de déconnexion forcée), voir
           AutoRefuelFlow/AutoRefuelSuccess. */}
       {flowOpen && driver && vehicle && (
         <AutoRefuelFlow
@@ -383,6 +386,7 @@ export default function DriverRefuelPage() {
           preselectedDriver={driver}
           preselectedVehicle={vehicle}
           skipValidationStep
+          skipBonCaptureStep={bonEntryActive}
           onClose={() => {
             setFlowOpen(false);
             loadData();
