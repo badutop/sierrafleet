@@ -8,8 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
-  LogOut, Fuel, Truck, ImageIcon, ClipboardCheck, Calendar, MapPin, Droplet,
-  Coins, Package, Ship, Search, Printer, Clock, CheckCircle, AlertTriangle,
+  LogOut, Fuel, Truck, ImageIcon, ClipboardCheck, Package, Ship,
+  Search, Printer, Clock, CheckCircle, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { logAudit } from "@/lib/auditLog";
@@ -18,7 +18,6 @@ import PeriodFilter, { getDateRange, inRange } from "@/components/reports/Period
 import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR") : "—";
-const fmtDateTime = (d) => d ? new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
 // Statut dérivé d'une rotation — bon_final_verifie_le/par (nouvelles colonnes)
 // distinguent "pas encore contrôlé" de "contrôlé, sans écart", ce que
@@ -204,14 +203,6 @@ export default function CollecteurBonsPage() {
       return data;
     },
   });
-  const { data: fuelEntries = [] } = useQuery({
-    queryKey: ["fuel"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("fuel_entries").select("*").order("date", { ascending: false }).limit(500);
-      if (error) throw error;
-      return data;
-    },
-  });
   const { data: campaigns = [] } = useQuery({
     queryKey: ["campaigns"],
     queryFn: async () => {
@@ -224,7 +215,6 @@ export default function CollecteurBonsPage() {
   const vehicleMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
   const driverMap = useMemo(() => Object.fromEntries(drivers.map(d => [d.id, d])), [drivers]);
   const clientMap = useMemo(() => Object.fromEntries(clients.map(c => [c.id, c])), [clients]);
-  const fuelEntryMap = useMemo(() => Object.fromEntries(fuelEntries.map(f => [f.id, f])), [fuelEntries]);
   const campaignMap = useMemo(() => Object.fromEntries(campaigns.map(c => [c.id, c])), [campaigns]);
 
   const enrichedCheckpoints = useMemo(() => {
@@ -382,7 +372,6 @@ export default function CollecteurBonsPage() {
               const vehicle = vehicleMap[cp.vehicleId];
               const driver = driverMap[vehicle?.driver_id];
               const client = clientMap[cp.clientId];
-              const fuelEntry = fuelEntryMap[cp.fuelEntryId];
               const campaign = campaignMap[cp.rotations[0]?.campaign_id];
               const totalPoids = cp.rotations.reduce((s, r) => s + (Number(r.poids_charge_tonnes) || 0), 0);
               return (
@@ -403,35 +392,6 @@ export default function CollecteurBonsPage() {
                     <Badge className={`${STATUS_BADGE_CLASS[cp.status]} text-[10px] shrink-0`}>
                       {STATUS_LABELS[cp.status]}
                     </Badge>
-                  </div>
-
-                  <div className="px-4 py-3 border-b border-border bg-secondary/5 space-y-2">
-                    <p className="text-[11px] font-semibold text-secondary flex items-center gap-1">
-                      <Fuel className="w-3.5 h-3.5" /> Rechargement carburant
-                    </p>
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Calendar className="w-3.5 h-3.5 shrink-0" />
-                        {fmtDateTime(fuelEntry?.date ? `${fuelEntry.date}T${fuelEntry.heure || "00:00"}` : null)}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <MapPin className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{fuelEntry?.station || "—"}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Droplet className="w-3.5 h-3.5 shrink-0" />
-                        {fuelEntry?.litres ? `${Number(fuelEntry.litres).toLocaleString("fr-FR")} L` : "—"}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Coins className="w-3.5 h-3.5 shrink-0" />
-                        {fuelEntry?.montant_total ? `${Number(fuelEntry.montant_total).toLocaleString("fr-FR")} FCFA` : "—"}
-                      </div>
-                    </div>
-                    {fuelEntry?.recu_url && (
-                      <button type="button" onClick={() => window.open(fuelEntry.recu_url, "_blank")} className="block">
-                        <img src={fuelEntry.recu_url} alt="Photo de la pompe" className="h-24 rounded-lg border border-border object-cover" />
-                      </button>
-                    )}
                   </div>
 
                   <div className="p-4 space-y-3">
