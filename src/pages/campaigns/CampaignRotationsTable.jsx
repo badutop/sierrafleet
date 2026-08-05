@@ -58,6 +58,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
                 <TableHeader>
                   <TableRow className="text-xs">
                     <TableHead className="w-10 font-bold">#</TableHead>
+                    <TableHead className="font-bold">Heure</TableHead>
                     <TableHead className="font-bold">BL</TableHead>
                     <TableHead className="text-right font-bold">POIDS (T)</TableHead>
                     <TableHead className="text-right font-bold">Conso. (L)</TableHead>
@@ -83,7 +84,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
                     return (
                       <React.Fragment key={vid}>
                         <TableRow className="bg-muted/40 hover:bg-muted/40">
-                          <TableCell colSpan={7} className="py-1.5 text-xs font-bold text-foreground">
+                          <TableCell colSpan={8} className="py-1.5 text-xs font-bold text-foreground">
                             {vehicle?.immatriculation || "Sans camion"}
                             {vehicle && driverMap[vehicle.driver_id] && (
                               <span className="font-semibold text-muted-foreground"> · {driverMap[vehicle.driver_id]}</span>
@@ -94,6 +95,9 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
                         {vRots.map(r => (
                           <TableRow key={r.id} className={cn(r.refuel_declenche && "bg-amber-50 dark:bg-amber-950/20")}>
                             <TableCell className="font-bold text-sm">{r.numero_rotation}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {r.date_rotation ? new Date(r.date_rotation).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                            </TableCell>
                             <TableCell className="text-sm font-mono">{r.numero_bon_client || "—"}</TableCell>
                             <TableCell className="text-right text-sm font-semibold">{Number(r.poids_charge_tonnes || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                             <TableCell className="text-right text-sm">{r.litres_carburant_alloues || 0}</TableCell>
@@ -175,7 +179,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
                     );
                   })}
                   <TableRow className="bg-secondary/10 font-bold">
-                    <TableCell colSpan={2} className="text-right text-xs font-bold uppercase text-secondary">Total journée</TableCell>
+                    <TableCell colSpan={3} className="text-right text-xs font-bold uppercase text-secondary">Total journée</TableCell>
                     <TableCell className="text-right text-sm font-bold text-secondary">{totalPoids.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                     <TableCell colSpan={4} className="text-xs text-muted-foreground text-right">{totalPoids.toFixed(2)} T</TableCell>
                   </TableRow>
