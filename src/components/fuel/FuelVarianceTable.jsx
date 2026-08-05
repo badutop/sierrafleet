@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/lib/numberFormat";
 
 function EcartBadge({ ecartPct }) {
   const abs = Math.abs(ecartPct);
@@ -73,7 +74,7 @@ export default function FuelVarianceTable({ data, formatCFA }) {
                     surConso ? "text-destructive" : ecart < 0 ? "text-emerald-600" : "text-muted-foreground"
                   )}>
                     {surConso ? <TrendingUp className="w-3 h-3" /> : ecart < 0 ? <TrendingDown className="w-3 h-3" /> : null}
-                    {ecart >= 0 ? "+" : ""}{ecart.toLocaleString("fr-FR")}
+                    {ecart >= 0 ? "+" : ""}{formatNumber(ecart)}
                   </TableCell>
                   <TableCell className={cn(
                     "text-xs text-right font-bold",

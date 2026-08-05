@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/lib/numberFormat";
 
 const TYPES = ["carburant", "peage", "rations", "contravention", "transport", "entretien", "pneus", "achat_pieces", "autre"];
 const TYPE_LABELS = {
@@ -10,7 +11,7 @@ const TYPE_LABELS = {
   contravention: "Contravention", transport: "Transport",
   entretien: "Entretien", pneus: "Pneus", achat_pieces: "Achat pièces", autre: "Autre",
 };
-const fmt = n => n > 0 ? new Intl.NumberFormat("fr-FR").format(Math.round(n)) : "—";
+const fmt = n => n > 0 ? formatNumber(n) : "—";
 
 export default function ExpenseByVehicleTable({ expenses, vehicles, vMap, isLoading }) {
   const [expanded, setExpanded] = useState({});

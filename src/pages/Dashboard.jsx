@@ -6,6 +6,7 @@ import {
   Package, AlertTriangle, CheckCircle2, BarChart3, ArrowUpRight, ArrowDownRight, LayoutDashboard, Ship
 } from "lucide-react";
 import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
+import { formatFCFA as formatCFA } from "@/lib/numberFormat";
 
 // Dashboard components
 import FleetStatusDonut      from "@/components/dashboard/FleetStatusDonut";
@@ -17,7 +18,6 @@ import ExpenseBreakdownChart from "@/components/dashboard/ExpenseBreakdownChart"
 import TruckPerformanceCard  from "@/components/dashboard/TruckPerformanceCard";
 import DashboardAlerts       from "@/components/dashboard/DashboardAlerts";
 
-const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 const fmt = (n) => n.toLocaleString("fr-FR");
 
 // Période équivalente précédente, pour le calcul des tendances (▲/▼) des

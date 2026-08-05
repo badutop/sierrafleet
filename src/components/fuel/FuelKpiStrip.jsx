@@ -1,5 +1,6 @@
 import React from "react";
 import { Fuel, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
+import { formatNumber } from "@/lib/numberFormat";
 
 const KpiBox = ({ icon: Icon, label, value, sub, color = "primary" }) => {
   const colors = {
@@ -43,7 +44,7 @@ export default function FuelKpiStrip({ totalMontant, totalLitres, avgPrix, alert
       <KpiBox
         icon={TrendingUp}
         label="Écart global (réel − théo.)"
-        value={`${ecartSign}${totalEcart.toLocaleString("fr-FR")} L`}
+        value={`${ecartSign}${formatNumber(totalEcart)} L`}
         sub={totalEcart > 0 ? "Surconsommation" : totalEcart < 0 ? "Sous-consommation" : "Équilibré"}
         color={Math.abs(totalEcart) > 100 ? "red" : "green"}
       />

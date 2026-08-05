@@ -7,6 +7,7 @@ import { Eye, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MaintenanceValidationPanel from "./MaintenanceValidationPanel";
 import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
+import { formatNumber } from "@/lib/numberFormat";
 
 const typeLabels = {
   vidange: "Vidange", revision: "Révision", pneus: "Pneus", filtres: "Filtres",
@@ -189,7 +190,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, driv
                             </TableCell>
                             <TableCell className="text-xs max-w-[120px] truncate" title={m.pieces_remplacees}>{m.pieces_remplacees || "—"}</TableCell>
                             <TableCell className="text-xs text-right">
-                              <div className="font-bold">{(m.cout || 0).toLocaleString("fr-FR")}</div>
+                              <div className="font-bold">{formatNumber(m.cout || 0)}</div>
                               {Number(m.cout_main_oeuvre) > 0 && (
                                 <div className="text-muted-foreground text-[10px]">dont {Number(m.cout_main_oeuvre).toLocaleString("fr-FR")} MO</div>
                               )}
@@ -209,7 +210,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, driv
                       })}
                       <TableRow className="bg-secondary/10 font-bold">
                         <TableCell colSpan={4} className="text-right text-xs font-bold uppercase text-secondary">Total journée</TableCell>
-                        <TableCell className="text-right text-sm font-bold text-secondary">{totalCout.toLocaleString("fr-FR")}</TableCell>
+                        <TableCell className="text-right text-sm font-bold text-secondary">{formatNumber(totalCout)}</TableCell>
                         <TableCell colSpan={2} />
                       </TableRow>
                     </TableBody>

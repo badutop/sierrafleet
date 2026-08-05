@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { compressImageFile } from "@/lib/imageCompression";
+import { formatFCFA } from "@/lib/numberFormat";
 import { displayThousands, parseThousandsInput } from "@/lib/numberFormat";
 import { isPositiveNumber } from "@/lib/validation";
 
@@ -291,7 +292,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
             </div>
             <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
               <span className="text-muted-foreground">Montant total</span>
-              <p className="font-semibold text-sm mt-0.5">{(order.montant_total || 0).toLocaleString("fr-FR")} FCFA</p>
+              <p className="font-semibold text-sm mt-0.5">{formatFCFA(order.montant_total || 0)}</p>
             </div>
           </div>
         )}
@@ -358,7 +359,7 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
               </div>
               <div className="bg-muted/50 rounded-2xl px-3 py-3 text-xs">
                 <span className="text-muted-foreground">Montant facture</span>
-                <p className="font-semibold text-sm mt-0.5">{(order.montant_facture || 0).toLocaleString("fr-FR")} FCFA</p>
+                <p className="font-semibold text-sm mt-0.5">{formatFCFA(order.montant_facture || 0)}</p>
               </div>
               <div className={cn("col-span-2 rounded-2xl px-3 py-3 text-xs border", echeanceClass)}>
                 <span className="opacity-70">Échéance de paiement</span>

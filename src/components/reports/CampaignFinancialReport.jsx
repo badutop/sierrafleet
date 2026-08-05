@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, AlertCircle } from "lucide-react";
 import { getTvaPct } from "@/components/campaigns/CampaignInvoice";
 import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
+import { formatNumber } from "@/lib/numberFormat";
 
-const fmt = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0));
+const fmt = formatNumber;
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR") : "—";
 
 const now = new Date();

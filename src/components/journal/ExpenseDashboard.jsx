@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { TrendingUp, Fuel, BarChart3, AlertTriangle, Utensils, Truck, Wrench, Disc, ShoppingCart } from "lucide-react";
+import { formatNumber } from "@/lib/numberFormat";
 
 const TYPE_CONFIG = {
   carburant:      { label: "Carburant",       color: "bg-blue-500/15 text-blue-700 border-blue-400/20",    icon: Fuel },
@@ -13,7 +14,7 @@ const TYPE_CONFIG = {
   autre:          { label: "Autre",            color: "bg-muted text-muted-foreground border-border",        icon: BarChart3 },
 };
 
-const fmt = n => new Intl.NumberFormat("fr-FR").format(Math.round(n));
+const fmt = formatNumber;
 
 export default function ExpenseDashboard({ expenses, filterYear, filterMonth }) {
   const { total, byType, maxType } = useMemo(() => {

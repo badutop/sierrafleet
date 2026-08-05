@@ -9,6 +9,7 @@ import KpiCard from "@/components/dashboard/KpiCard";
 import BarChartSvg from "@/components/dashboard/BarChartSvg";
 import CampaignFinancialReport from "@/components/reports/CampaignFinancialReport";
 import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
+import { formatFCFA, formatNumber } from "@/lib/numberFormat";
 
 const now = new Date();
 const defaultFilter = { mode: "all", month: now.getMonth() + 1, year: now.getFullYear(), from: "", to: "" };
@@ -58,7 +59,7 @@ export default function Reports() {
   });
   const driverMap = useMemo(() => Object.fromEntries(drivers.map(d => [d.id, d])), [drivers]);
 
-  const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
+  const formatCFA = (n) => formatFCFA(n, { suffix: "" });
 
   const range = useMemo(() => getDateRange(filter), [filter]);
 
@@ -119,7 +120,7 @@ export default function Reports() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard title="Km Total" value={grandKm.toLocaleString("fr-FR")} icon={TrendingUp} color="primary" />
+            <KpiCard title="Km Total" value={formatNumber(grandKm)} icon={TrendingUp} color="primary" />
             <KpiCard title="Coût Carburant" value={formatCFA(grandFuel)} icon={Fuel} color="orange" />
             <KpiCard title="Coût Maintenance" value={formatCFA(grandMaint)} icon={Wrench} color="blue" />
             <KpiCard title="Coût Total" value={formatCFA(grandTotal)} icon={BarChart3} color="red" />

@@ -1,5 +1,6 @@
 import React from "react";
 import { Wrench, AlertTriangle, CheckCircle2, TrendingDown, Clock } from "lucide-react";
+import { formatFCFA } from "@/lib/numberFormat";
 
 const KpiBox = ({ icon: IconComp, label, value, sub, color = "primary" }) => {
   const Icon = IconComp;
@@ -25,7 +26,7 @@ const KpiBox = ({ icon: IconComp, label, value, sub, color = "primary" }) => {
 };
 
 export default function MaintenanceKpiStrip({ maintenances, vehicles, rotations }) {
-  const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
+  const formatCFA = formatFCFA;
 
   const totalCout = maintenances.reduce((s, m) => s + (m.cout || 0), 0);
   const pannes = maintenances.filter(m => m.categorie === "corrective");

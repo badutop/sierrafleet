@@ -15,8 +15,7 @@ import FuelVehiclePerformance from "@/components/fuel/FuelVehiclePerformance";
 import FuelAlertsTab from "@/components/fuel/FuelAlertsTab";
 import { useZones } from "@/hooks/use-zones";
 import { logAudit } from "@/lib/auditLog";
-
-const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
+import { formatFCFA as formatCFA } from "@/lib/numberFormat";
 
 export default function FuelSupplyPage() {
   const { user: currentUser } = useAuth();

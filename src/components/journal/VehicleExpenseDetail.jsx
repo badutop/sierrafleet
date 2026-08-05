@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatNumber } from "@/lib/numberFormat";
 
 const TYPES = ["carburant", "peage", "rations", "contravention", "transport", "entretien", "pneus", "achat_pieces", "autre"];
 const TYPE_LABELS = {
@@ -10,7 +11,7 @@ const TYPE_LABELS = {
   entretien: "Entretien", pneus: "Pneus", achat_pieces: "Achat pièces", autre: "Autre",
 };
 const MONTH_NAMES = ["", "Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
-const fmt = n => n > 0 ? new Intl.NumberFormat("fr-FR").format(Math.round(n)) : "—";
+const fmt = n => n > 0 ? formatNumber(n) : "—";
 
 export default function VehicleExpenseDetail({ vehicle, driver, expenses, filterYear, onClose }) {
   // Group expenses by month × type

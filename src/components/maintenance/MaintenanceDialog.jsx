@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { logAudit } from "@/lib/auditLog";
-import { displayThousands, parseThousandsInput } from "@/lib/numberFormat";
+import { displayThousands, parseThousandsInput, formatFCFA } from "@/lib/numberFormat";
 
 const typeLabels = {
   vidange: "Vidange", revision: "Révision générale", pneus: "Pneus", filtres: "Filtres",
@@ -335,7 +335,7 @@ export default function MaintenanceDialog({ open, onOpenChange, vehicles, driver
             )}
             <div className="flex justify-between items-center border-t border-border pt-1">
               <span className="text-muted-foreground font-semibold">Total</span>
-              <span className="font-bold text-secondary text-sm">{coutTotal.toLocaleString("fr-FR")} FCFA</span>
+              <span className="font-bold text-secondary text-sm">{formatFCFA(coutTotal)}</span>
             </div>
           </div>
 

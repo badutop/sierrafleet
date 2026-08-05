@@ -17,8 +17,7 @@ import { getRefuelCheckpoints } from "@/lib/refuelRules";
 import { useZones } from "@/hooks/use-zones";
 import { logAudit } from "@/lib/auditLog";
 import { startOfMonth, startOfYear, subMonths } from "date-fns";
-
-const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
+import { formatFCFA as formatCFA } from "@/lib/numberFormat";
 
 const PERIODS = [
   { key: "mois_courant", label: "Mois en cours" },

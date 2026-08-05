@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import ExpenseValidationPanel from "@/components/expenses/ExpenseValidationPanel";
 import { confirm } from "@/lib/confirm";
 import { logAudit } from "@/lib/auditLog";
-import { displayThousands, parseThousandsInput } from "@/lib/numberFormat";
+import { displayThousands, parseThousandsInput, formatFCFA } from "@/lib/numberFormat";
 import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
 
 // "achat_pieces" n'apparaît pas dans typeLabelsForm : ce poste est généré
@@ -223,7 +223,7 @@ export default function ExpensesPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground mb-0.5">Montant</p>
-                      <p className="text-lg font-bold text-secondary">{(e.montant || 0).toLocaleString("fr-FR")} FCFA</p>
+                      <p className="text-lg font-bold text-secondary">{formatFCFA(e.montant || 0)}</p>
                     </div>
                   </div>
                   {e.description && <p className="text-xs text-muted-foreground mt-2">Description: {e.description}</p>}
@@ -277,7 +277,7 @@ export default function ExpensesPage() {
                     <td className="px-4 py-2.5">{vehicleMap[e.vehicle_id] || "-"}</td>
                     <td className="px-4 py-2.5">{driverMap[e.driver_id] || "-"}</td>
                     <td className="px-4 py-2.5 text-muted-foreground text-xs">{e.description || "-"}</td>
-                    <td className="px-4 py-2.5 text-right font-semibold text-secondary">{(e.montant || 0).toLocaleString("fr-FR")} FCFA</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-secondary">{formatFCFA(e.montant || 0)}</td>
                     <td className="px-4 py-2.5 text-center">
                      <div className="flex gap-1 justify-center">
                        <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => openView(e)}>

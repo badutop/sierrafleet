@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Fuel, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/lib/numberFormat";
 
 export default function FuelCampaignTab({ campaigns, rotations, entries, clients, vehicles, zones = [], formatCFA }) {
   const clientMap = useMemo(() => Object.fromEntries(clients.map(c => [c.id, c])), [clients]);
@@ -73,7 +74,7 @@ export default function FuelCampaignTab({ campaigns, rotations, entries, clients
                   "text-xs text-right font-bold",
                   ecart > 0 ? "text-destructive" : ecart < 0 ? "text-emerald-600" : "text-muted-foreground"
                 )}>
-                  {ecart >= 0 ? "+" : ""}{ecart.toLocaleString("fr-FR")} L
+                  {ecart >= 0 ? "+" : ""}{formatNumber(ecart)} L
                 </TableCell>
                 <TableCell className="text-xs text-right">{formatCFA(coutReel)}</TableCell>
                 <TableCell className="text-center text-xs">

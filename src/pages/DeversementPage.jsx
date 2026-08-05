@@ -10,11 +10,10 @@ import { FileSpreadsheet, TrendingUp, TrendingDown, Scale, Search } from "lucide
 import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
 import { buildDeversementLines } from "@/lib/ohadaMapping";
 import { cn } from "@/lib/utils";
+import { formatFCFA as formatCFA } from "@/lib/numberFormat";
 
 const now = new Date();
 const defaultFilter = { mode: "month", month: now.getMonth() + 1, year: now.getFullYear(), from: "", to: "" };
-
-const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0)) + " FCFA";
 
 export default function DeversementPage() {
   const [filter, setFilter] = useState(defaultFilter);

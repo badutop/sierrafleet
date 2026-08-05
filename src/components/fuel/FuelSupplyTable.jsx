@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, Zap, Search, Eye, X } from "lucide-react";
+import { formatFCFA, formatNumber } from "@/lib/numberFormat";
 
 const statutLabels = { en_attente: "En attente", valide: "Validé", rejete: "Rejeté" };
 const statutColors = { en_attente: "bg-amber-500/10 text-amber-600", valide: "bg-emerald-500/10 text-emerald-600", rejete: "bg-destructive/10 text-destructive" };
@@ -29,8 +30,8 @@ function FuelEntryDetailSheet({ entry, vehicle, driver, onClose }) {
             <div className="flex justify-between"><span className="text-muted-foreground">Véhicule</span><span className="font-mono font-semibold">{vehicle?.immatriculation || "—"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span className="font-medium">{entry.date || "—"}{entry.heure ? ` à ${entry.heure}` : ""}</span></div>
             <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Station</span><span className="font-medium text-right">{entry.station || "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Litres</span><span className="font-bold">{(entry.litres || 0).toLocaleString("fr-FR")} L</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Montant</span><span className="font-bold">{(entry.montant_total || 0).toLocaleString("fr-FR")} FCFA</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Litres</span><span className="font-bold">{formatNumber(entry.litres || 0)} L</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Montant</span><span className="font-bold">{formatFCFA(entry.montant_total || 0)}</span></div>
             <div className="flex justify-between items-center"><span className="text-muted-foreground">Statut</span><Badge className={`text-[10px] ${statutColors[statut]}`}>{statutLabels[statut]}</Badge></div>
           </div>
           <p className="text-xs text-muted-foreground text-center pt-2 border-t">
@@ -152,7 +153,7 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, driverMap = 
                               {(e.litres || 0).toLocaleString("fr-FR")}
                             </TableCell>
                             <TableCell className="text-xs text-right font-bold">
-                              {(e.montant_total || 0).toLocaleString("fr-FR")}
+                              {formatNumber(e.montant_total || 0)}
                             </TableCell>
                             <TableCell className="text-center">
                               {isAuto ? (
@@ -186,8 +187,8 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, driverMap = 
                       })}
                       <TableRow className="bg-secondary/10 font-bold">
                         <TableCell colSpan={3} className="text-right text-xs font-bold uppercase text-secondary">Total journée</TableCell>
-                        <TableCell className="text-right text-sm font-bold text-secondary">{totalLitres.toLocaleString("fr-FR")}</TableCell>
-                        <TableCell className="text-right text-sm font-bold text-secondary">{totalMontant.toLocaleString("fr-FR")}</TableCell>
+                        <TableCell className="text-right text-sm font-bold text-secondary">{formatNumber(totalLitres)}</TableCell>
+                        <TableCell className="text-right text-sm font-bold text-secondary">{formatNumber(totalMontant)}</TableCell>
                         <TableCell colSpan={2} />
                       </TableRow>
                     </TableBody>

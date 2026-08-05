@@ -6,8 +6,9 @@ import {
 import { TrendingUp } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { formatFCFA } from "@/lib/numberFormat";
 
-const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0));
+const formatCFA = (n) => formatFCFA(n, { suffix: "" });
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;

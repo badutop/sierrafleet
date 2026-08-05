@@ -12,6 +12,7 @@ import { uploadFile } from "@/lib/storage";
 import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { compressImageFile } from "@/lib/imageCompression";
 import { isPositiveNumber } from "@/lib/validation";
+import { formatFCFA } from "@/lib/numberFormat";
 
 const emptyForm = {
   vehicle_id: "",
@@ -172,7 +173,7 @@ export default function FuelSupplyDialog({ open, onOpenChange, vehicles, drivers
               </div>
             </div>
             <div className="bg-card rounded-lg px-4 py-3 flex items-center justify-end text-sm border border-emerald-500/20">
-              Montant : <span className="font-bold text-emerald-700 text-base ml-2">{montantCalc > 0 ? montantCalc.toLocaleString("fr-FR") + " FCFA" : "—"}</span>
+              Montant : <span className="font-bold text-emerald-700 text-base ml-2">{montantCalc > 0 ? formatFCFA(montantCalc) : "—"}</span>
             </div>
           </div>
 

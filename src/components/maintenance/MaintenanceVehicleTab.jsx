@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Truck, Wrench, AlertTriangle, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatFCFA as formatCFA } from "@/lib/numberFormat";
 
 const typeLabels = {
   vidange: "Vidange", revision: "Révision", pneus: "Pneus", filtres: "Filtres",
@@ -8,8 +9,6 @@ const typeLabels = {
   panne_moteur: "Panne moteur", panne_electricite: "Panne élec.",
   panne_transmission: "Panne transm.", carrosserie: "Carrosserie", autre: "Autre",
 };
-
-const formatCFA = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 
 export default function MaintenanceVehicleTab({ vehicles, maintenances, rotations, driverMap = {} }) {
   const data = useMemo(() => {

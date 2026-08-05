@@ -13,6 +13,7 @@ import GarageOrderDialog from "@/components/garage-orders/GarageOrderDialog";
 import { logAudit } from "@/lib/auditLog";
 import { useAuth } from "@/lib/AuthContext";
 import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
+import { formatFCFA, formatNumber } from "@/lib/numberFormat";
 
 const now = new Date();
 const defaultPeriodFilter = { mode: "all", month: now.getMonth() + 1, year: now.getFullYear(), from: "", to: "" };
@@ -287,7 +288,7 @@ export default function GarageOrdersPage() {
       <div className={cn("grid grid-cols-2 gap-3", canHandleInvoice ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
         <KpiBox icon={Bell} label="Alertes en attente" value={alertes.length} sub="Pièces à commander" color="primary" />
         <KpiBox icon={Send} label="Commandes en cours" value={enCours.length} sub="Commandée / Confirmée" color="amber" />
-        <KpiBox icon={ShoppingCart} label="Montant engagé" value={`${montantEngage.toLocaleString("fr-FR")} FCFA`} sub="Commandes en cours" color="purple" />
+        <KpiBox icon={ShoppingCart} label="Montant engagé" value={formatFCFA(montantEngage)} sub="Commandes en cours" color="purple" />
         <KpiBox icon={CheckCircle2} label="Reçues ce mois" value={recuesMois.length} sub="Stock mis à jour" color="green" />
         {canHandleInvoice && (
           <KpiBox icon={Receipt} label="Factures à payer" value={facturesAPayer.length} sub={`${facturesEnRetard.length} en retard`} color={facturesEnRetard.length > 0 ? "red" : "green"} />
@@ -451,7 +452,7 @@ export default function GarageOrdersPage() {
                                 <TableCell className="text-xs">{o.designation}</TableCell>
                                 <TableCell className="text-xs text-right">{o.quantite}</TableCell>
                                 <TableCell className="text-xs">{supplierMap[o.supplier_id]?.nom || "—"}</TableCell>
-                                <TableCell className="text-xs text-right font-bold">{(o.montant_total || 0).toLocaleString("fr-FR")}</TableCell>
+                                <TableCell className="text-xs text-right font-bold">{formatNumber(o.montant_total || 0)}</TableCell>
                                 <TableCell className="text-center">
                                   <Badge className={cn("text-[10px] gap-1", STATUT_BADGE[o.statut])}>
                                     {StatutIcon && <StatutIcon className="w-3 h-3" />} {STATUT_LABEL[o.statut] || o.statut}
@@ -467,7 +468,7 @@ export default function GarageOrdersPage() {
                           })}
                           <TableRow className="bg-secondary/10 font-bold">
                             <TableCell colSpan={4} className="text-right text-xs font-bold uppercase text-secondary">Total journée</TableCell>
-                            <TableCell className="text-right text-sm font-bold text-secondary">{totalMontant.toLocaleString("fr-FR")}</TableCell>
+                            <TableCell className="text-right text-sm font-bold text-secondary">{formatNumber(totalMontant)}</TableCell>
                             <TableCell colSpan={2} />
                           </TableRow>
                         </TableBody>
