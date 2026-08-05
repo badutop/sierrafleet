@@ -1,11 +1,11 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { MapPin, RadioTower, AlertTriangle, X } from "lucide-react";
 
 // Marqueur "bulle bleue" classique (façon point de géolocalisation Google
@@ -30,6 +30,7 @@ function formatLastUpdate(iso) {
 }
 
 export default function GpsTrackingPage() {
+  const navigate = useNavigate();
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
     queryFn: async () => {
@@ -92,11 +93,6 @@ export default function GpsTrackingPage() {
 
   const mapCenter = linked.length > 0 ? [linked[0].latitude, linked[0].longitude] : DAKAR_CENTER;
 
-  // Sur mobile, la carte (60vh) occupe une bonne partie de l'écran — un
-  // bouton pour la refermer évite de devoir scroller/recharger la page
-  // pour accéder au reste (liste des appareils non rattachés, etc.).
-  const [showMap, setShowMap] = useState(true);
-
   return (
     <div className="space-y-5">
       <div>
@@ -120,45 +116,39 @@ export default function GpsTrackingPage() {
         </Card>
       )}
 
-      {showMap ? (
-        <div className="relative rounded-xl overflow-hidden border border-border" style={{ height: "60vh" }}>
-          <button
-            onClick={() => setShowMap(false)}
-            title="Fermer la carte"
-            className="absolute top-3 right-3 z-[1000] w-8 h-8 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-foreground hover:bg-muted"
-          >
-            <X className="w-4 h-4" />
-          </button>
-          <MapContainer center={mapCenter} zoom={linked.length > 0 ? 12 : 6} style={{ height: "100%", width: "100%" }}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {linked.map(d => (
-              <React.Fragment key={d.uniqueId}>
-                {trails[d.uniqueId]?.length > 1 && (
-                  <Polyline positions={trails[d.uniqueId]} pathOptions={{ color: "#2563eb", weight: 3, opacity: 0.7, dashArray: "6 8" }} />
-                )}
-                <Marker position={[d.latitude, d.longitude]} icon={truckIcon}>
-                  <Popup>
-                    <div className="text-xs space-y-0.5">
-                      <p className="font-bold">{d.vehicle.immatriculation}</p>
-                      {d.vehicle.code_camion && <p className="text-muted-foreground">{d.vehicle.code_camion}</p>}
-                      <p>Vitesse : {d.speed != null ? `${Math.round(d.speed * 1.852)} km/h` : "—"}</p>
-                      <p>{d.address || "Adresse inconnue"}</p>
-                      <p className="text-muted-foreground">Mis à jour : {formatLastUpdate(d.fixTime)}</p>
-                    </div>
-                  </Popup>
-                </Marker>
-              </React.Fragment>
-            ))}
-          </MapContainer>
-        </div>
-      ) : (
-        <Button variant="outline" className="w-full" onClick={() => setShowMap(true)}>
-          <MapPin className="w-4 h-4 mr-2" /> Afficher la carte
-        </Button>
-      )}
+      <div className="relative rounded-xl overflow-hidden border border-border" style={{ height: "60vh" }}>
+        <button
+          onClick={() => navigate("/")}
+          title="Quitter le suivi GPS"
+          className="absolute top-3 right-3 z-[1000] w-8 h-8 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-foreground hover:bg-muted"
+        >
+          <X className="w-4 h-4" />
+        </button>
+        <MapContainer center={mapCenter} zoom={linked.length > 0 ? 12 : 6} style={{ height: "100%", width: "100%" }}>
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          {linked.map(d => (
+            <React.Fragment key={d.uniqueId}>
+              {trails[d.uniqueId]?.length > 1 && (
+                <Polyline positions={trails[d.uniqueId]} pathOptions={{ color: "#2563eb", weight: 3, opacity: 0.7, dashArray: "6 8" }} />
+              )}
+              <Marker position={[d.latitude, d.longitude]} icon={truckIcon}>
+                <Popup>
+                  <div className="text-xs space-y-0.5">
+                    <p className="font-bold">{d.vehicle.immatriculation}</p>
+                    {d.vehicle.code_camion && <p className="text-muted-foreground">{d.vehicle.code_camion}</p>}
+                    <p>Vitesse : {d.speed != null ? `${Math.round(d.speed * 1.852)} km/h` : "—"}</p>
+                    <p>{d.address || "Adresse inconnue"}</p>
+                    <p className="text-muted-foreground">Mis à jour : {formatLastUpdate(d.fixTime)}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            </React.Fragment>
+          ))}
+        </MapContainer>
+      </div>
 
       {!isLoading && devices.length === 0 && !error && (
         <Card>
