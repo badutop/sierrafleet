@@ -6,30 +6,63 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { LogOut, Fuel, Truck, Camera, ImageIcon, ClipboardCheck, Calendar, MapPin, Droplet, Coins, Package, Ship } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  LogOut, Fuel, Truck, ImageIcon, ClipboardCheck, Calendar, MapPin, Droplet,
+  Coins, Package, Ship, Search, Printer, Clock, CheckCircle, AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
-import { uploadFile } from "@/lib/storage";
-import DocumentScanner from "@/components/drivers/DocumentScanner";
 import { logAudit } from "@/lib/auditLog";
 import { getCompletedRefuelCheckpoints } from "@/lib/refuelRules";
-import { useAppSetting, isSettingOn } from "@/hooks/use-app-setting";
-import { DRIVER_BON_ENTRY_KEY, computeBonFinalEcart } from "@/lib/driverBonEntry";
+import PeriodFilter, { getDateRange, inRange } from "@/components/reports/PeriodFilter";
 import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR") : "—";
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
+// Statut dérivé d'une rotation — bon_final_verifie_le/par (nouvelles colonnes)
+// distinguent "pas encore contrôlé" de "contrôlé, sans écart", ce que
+// ecart_bon_final seul ne permettait pas (false par défaut dans les deux cas).
+function getRotationStatus(r) {
+  if (!r.bon_final_scan_url) return "attente_chauffeur";
+  if (!r.bon_final_verifie_le) return "a_verifier";
+  return r.ecart_bon_final ? "verifie_ecart" : "reconciliation_ok";
+}
+
+const STATUS_LABELS = {
+  attente_chauffeur: "En attente du chauffeur",
+  a_verifier: "À vérifier",
+  verifie_ecart: "Vérifié — écart",
+  reconciliation_ok: "Réconciliation OK",
+};
+const STATUS_BADGE_CLASS = {
+  attente_chauffeur: "bg-muted text-muted-foreground",
+  a_verifier: "bg-amber-500/10 text-amber-600",
+  verifie_ecart: "bg-destructive/10 text-destructive",
+  reconciliation_ok: "bg-emerald-500/10 text-emerald-600",
+};
+
+// Statut d'un checkpoint (groupe de 3 rotations, voir refuelRules.js) =
+// agrégat de ses 3 rotations : "Réconciliation OK" seulement si les 3 le
+// sont, "Vérifié — écart" si les 3 sont contrôlées et qu'au moins une a un
+// écart, sinon "À vérifier" (inclut l'attente du chauffeur).
+function getCheckpointStatus(cp) {
+  const statuses = cp.rotations.map(getRotationStatus);
+  const allControlled = statuses.every(s => s === "reconciliation_ok" || s === "verifie_ecart");
+  if (!allControlled) return "a_verifier";
+  return statuses.some(s => s === "verifie_ecart") ? "verifie_ecart" : "reconciliation_ok";
+}
+
 // Une rotation d'un groupe déjà rechargé (voir getCompletedRefuelCheckpoints) :
-// bon d'enlèvement (Resp. Opérations) à gauche, bon final (client) à droite —
-// à scanner puis comparer. Si le nouveau flux (chauffeur_saisie_bon_actif)
-// est actif, l'IA lit aussi le bon final et l'écart est calculé
-// automatiquement (bonEntryActive) — le Collecteur n'a plus qu'à consulter
-// le résultat, en contrôle a posteriori. Sinon, "Écart constaté" reste une
-// appréciation manuelle du collecteur, avec une note libre (comportement
-// historique, inchangé).
-function RotationBonRow({ rotation, onScan, onToggleEcart, onSaveObservation, bonEntryActive }) {
+// bon d'enlèvement (Resp. Opérations) à gauche, bon de déchargement à droite
+// — désormais capturé par le chauffeur lui-même (DriverBonFinalEntryFlow.jsx),
+// plus par le Collecteur. Le Collecteur contrôle ici la conformité entre les
+// deux et enregistre son verdict : "Réconciliation OK" si tout concorde,
+// sinon "Vérifié" avec un écart constaté et une observation.
+function RotationBonRow({ rotation, isSaving, onValidate }) {
+  const status = getRotationStatus(rotation);
+  const [ecart, setEcart] = useState(!!rotation.ecart_bon_final);
   const [obs, setObs] = useState(rotation.observation_bon_final || "");
-  const hasUnsavedObs = obs !== (rotation.observation_bon_final || "");
 
   return (
     <div className="border border-border rounded-lg p-3 space-y-2 bg-background">
@@ -44,7 +77,7 @@ function RotationBonRow({ rotation, onScan, onToggleEcart, onSaveObservation, bo
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <p className="text-[10px] text-muted-foreground mb-1">Bon (Resp. Opérations)</p>
+          <p className="text-[10px] text-muted-foreground mb-1">Bon enlèvement (Resp. Opérations)</p>
           {rotation.bon_physique_scan_url ? (
             <button type="button" onClick={() => window.open(rotation.bon_physique_scan_url, "_blank")} className="block w-full">
               <img src={rotation.bon_physique_scan_url} alt="Bon d'enlèvement" className="w-full h-20 object-cover rounded border border-border" />
@@ -56,63 +89,62 @@ function RotationBonRow({ rotation, onScan, onToggleEcart, onSaveObservation, bo
           )}
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground mb-1">Bon final (client)</p>
+          <p className="text-[10px] text-muted-foreground mb-1">Bon déchargement (chauffeur)</p>
           {rotation.bon_final_scan_url ? (
             <button type="button" onClick={() => window.open(rotation.bon_final_scan_url, "_blank")} className="block w-full">
-              <img src={rotation.bon_final_scan_url} alt="Bon final" className="w-full h-20 object-cover rounded border-2 border-emerald-400" />
+              <img src={rotation.bon_final_scan_url} alt="Bon de déchargement" className="w-full h-20 object-cover rounded border-2 border-emerald-400" />
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={onScan}
-              className="w-full h-20 rounded border-2 border-dashed border-secondary/50 flex flex-col items-center justify-center gap-1 text-secondary hover:bg-secondary/5 transition-colors"
-            >
-              <Camera className="w-5 h-5" />
-              <span className="text-[10px] font-semibold">Scanner</span>
-            </button>
+            <div className="w-full h-20 rounded border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span className="text-[10px]">En attente du chauffeur</span>
+            </div>
           )}
         </div>
       </div>
 
       {rotation.bon_final_scan_url && (
         <div className="pt-2 border-t border-border space-y-1.5">
-          {bonEntryActive ? (
-            <>
-              {(rotation.poids_bon_final != null || rotation.numero_bon_final) && (
-                <p className="text-[10px] text-muted-foreground">
-                  Lu par IA : {rotation.poids_bon_final != null ? `${Number(rotation.poids_bon_final).toFixed(2)} T` : "—"}
-                  {rotation.numero_bon_final ? ` · BL ${rotation.numero_bon_final}` : ""}
-                </p>
-              )}
-              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${rotation.ecart_bon_final ? "text-destructive" : "text-emerald-600"}`}>
-                {rotation.ecart_bon_final ? "⚠ Écart détecté (auto)" : "✓ Conforme (auto)"}
-              </span>
-              {rotation.ecart_bon_final && rotation.observation_bon_final && (
-                <p className="text-xs text-destructive/90">{rotation.observation_bon_final}</p>
-              )}
-            </>
-          ) : (
+          {(rotation.poids_bon_final != null || rotation.numero_bon_final) && (
+            <p className="text-[10px] text-muted-foreground">
+              Lu par IA : {rotation.poids_bon_final != null ? `${Number(rotation.poids_bon_final).toFixed(2)} T` : "—"}
+              {rotation.numero_bon_final ? ` · BL ${rotation.numero_bon_final}` : ""}
+            </p>
+          )}
+
+          {status === "a_verifier" ? (
             <>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <Checkbox checked={rotation.ecart_bon_final} onCheckedChange={(checked) => onToggleEcart(!!checked)} />
-                <span className={rotation.ecart_bon_final ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                <Checkbox checked={ecart} onCheckedChange={(checked) => setEcart(!!checked)} />
+                <span className={ecart ? "text-destructive font-semibold" : "text-muted-foreground"}>
                   Écart constaté
                 </span>
               </label>
-              {rotation.ecart_bon_final && (
-                <div className="space-y-1">
-                  <Textarea
-                    className="text-xs min-h-[50px]"
-                    placeholder="Décrire l'écart (poids, numéro de bon...)"
-                    value={obs}
-                    onChange={e => setObs(e.target.value)}
-                  />
-                  {hasUnsavedObs && (
-                    <Button size="sm" className="h-7 text-xs" onClick={() => onSaveObservation(obs)}>
-                      Enregistrer la note
-                    </Button>
-                  )}
-                </div>
+              {ecart && (
+                <Textarea
+                  className="text-xs min-h-[50px]"
+                  placeholder="Décrire l'écart (poids, numéro de bon...)"
+                  value={obs}
+                  onChange={e => setObs(e.target.value)}
+                />
+              )}
+              <Button
+                size="sm"
+                className="h-7 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+                disabled={isSaving}
+                onClick={() => onValidate({ ecart, observation: ecart ? obs.trim() : null })}
+              >
+                Valider la vérification
+              </Button>
+            </>
+          ) : (
+            <>
+              <Badge className={`${STATUS_BADGE_CLASS[status]} text-[10px]`}>
+                {status === "reconciliation_ok" ? <CheckCircle className="w-3 h-3 mr-1" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
+                {STATUS_LABELS[status]}
+              </Badge>
+              {status === "verifie_ecart" && rotation.observation_bon_final && (
+                <p className="text-xs text-destructive/90">{rotation.observation_bon_final}</p>
               )}
             </>
           )}
@@ -122,20 +154,23 @@ function RotationBonRow({ rotation, onScan, onToggleEcart, onSaveObservation, bo
   );
 }
 
+const now = new Date();
+const defaultPeriodFilter = { mode: "all", month: now.getMonth() + 1, quarter: Math.floor(now.getMonth() / 3) + 1, year: now.getFullYear(), from: "", to: "" };
+
 // Espace dédié au Collecteur de bons — page autonome (comme /refuel pour les
 // chauffeurs), sans le menu latéral. Il y voit les transactions déjà
 // rechargées (jusqu'à la pompe, voir refuelRules.getCompletedRefuelCheckpoints)
-// avec le bon d'enlèvement scanné par le Responsable des Opérations et la
-// photo de la pompe prise par le chauffeur, et scanne pour chacune le bon
-// final délivré par le client au point de livraison.
+// et contrôle, pour chacune, la conformité entre le bon d'enlèvement (saisi
+// par le Resp. des Opérations) et le bon de déchargement (désormais scanné
+// par le chauffeur lui-même, DriverBonFinalEntryFlow.jsx — le Collecteur ne
+// scanne plus rien). Le verdict de ce contrôle ("Réconciliation OK" ou
+// "Vérifié" avec écart et observation) est filtrable et imprimable en PDF.
 export default function CollecteurBonsPage() {
   const { user: currentUser, logout } = useAuth();
   const queryClient = useQueryClient();
-  const [scanningRotationId, setScanningRotationId] = useState(null);
-  const [tab, setTab] = useState("a_traiter");
-
-  const { data: bonEntrySetting } = useAppSetting(DRIVER_BON_ENTRY_KEY);
-  const bonEntryActive = isSettingOn(bonEntrySetting);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState(defaultPeriodFilter);
 
   const { data: rotations = [], isLoading } = useQuery({
     queryKey: ["rotations"],
@@ -192,21 +227,32 @@ export default function CollecteurBonsPage() {
   const fuelEntryMap = useMemo(() => Object.fromEntries(fuelEntries.map(f => [f.id, f])), [fuelEntries]);
   const campaignMap = useMemo(() => Object.fromEntries(campaigns.map(c => [c.id, c])), [campaigns]);
 
-  const checkpoints = useMemo(() => getCompletedRefuelCheckpoints(rotations), [rotations]);
+  const enrichedCheckpoints = useMemo(() => {
+    const checkpoints = getCompletedRefuelCheckpoints(rotations);
+    return checkpoints
+      .map(cp => ({ ...cp, status: getCheckpointStatus(cp) }))
+      .sort((a, b) => new Date(b.rotations[0]?.date_rotation || 0) - new Date(a.rotations[0]?.date_rotation || 0));
+  }, [rotations]);
 
-  const { pending, done } = useMemo(() => {
-    const pending = [];
-    const done = [];
-    checkpoints.forEach(cp => {
-      const allCollected = cp.rotations.every(r => r.bon_final_scan_url);
-      (allCollected ? done : pending).push(cp);
-    });
-    pending.sort((a, b) => new Date(b.rotations[0]?.date_rotation || 0) - new Date(a.rotations[0]?.date_rotation || 0));
-    done.sort((a, b) => new Date(b.rotations[0]?.date_rotation || 0) - new Date(a.rotations[0]?.date_rotation || 0));
-    return { pending, done };
-  }, [checkpoints]);
+  const counts = useMemo(() => {
+    const c = { a_verifier: 0, reconciliation_ok: 0, verifie_ecart: 0 };
+    enrichedCheckpoints.forEach(cp => { c[cp.status]++; });
+    return c;
+  }, [enrichedCheckpoints]);
 
-  const ecartCount = useMemo(() => checkpoints.reduce((s, cp) => s + cp.rotations.filter(r => r.ecart_bon_final).length, 0), [checkpoints]);
+  const periodRange = periodFilter.mode !== "all" ? getDateRange(periodFilter) : null;
+
+  const filteredCheckpoints = useMemo(() => enrichedCheckpoints.filter(cp => {
+    if (statusFilter !== "all" && cp.status !== statusFilter) return false;
+    if (periodRange && !inRange(cp.rotations[0]?.date_rotation, periodRange)) return false;
+    if (search.trim()) {
+      const vehicle = vehicleMap[cp.vehicleId];
+      const client = clientMap[cp.clientId];
+      const haystack = `${vehicle?.immatriculation || ""} ${client?.nom || ""} ${cp.rotations.map(r => r.numero_bon_client || "").join(" ")}`.toLowerCase();
+      if (!haystack.includes(search.trim().toLowerCase())) return false;
+    }
+    return true;
+  }), [enrichedCheckpoints, statusFilter, periodRange, search, vehicleMap, clientMap]);
 
   const updateRotation = useMutation({
     mutationFn: async ({ id, payload, oldData }) => {
@@ -214,64 +260,64 @@ export default function CollecteurBonsPage() {
       if (error) throw error;
       await logAudit("Rotation", id, "update", payload, oldData, Object.keys(payload));
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["rotations"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rotations"] });
+      toast.success("Vérification enregistrée");
+    },
     onError: (err) => toast.error(`Erreur : ${err.message}`),
   });
 
-  const handleScanCapture = async (file) => {
-    const rotationId = scanningRotationId;
-    setScanningRotationId(null);
-    if (!rotationId) return;
-    try {
-      const { file_url } = await uploadFile(file, "bon-final-scans");
-      const oldData = rotations.find(r => r.id === rotationId);
-      const payload = {
-        bon_final_scan_url: file_url,
-        bon_final_collecte_le: new Date().toISOString(),
-        bon_final_collecte_par: currentUser?.id || null,
-      };
-
-      // Nouveau flux (togglable) : la même IA que pour le bon d'enlèvement
-      // lit le bon final, et l'écart est calculé automatiquement — le
-      // Collecteur n'a plus à comparer lui-même les deux bons. Best-effort :
-      // si l'extraction échoue, le scan reste enregistré (comme avant),
-      // simplement sans écart auto-détecté.
-      if (bonEntryActive) {
-        try {
-          const { data, error } = await supabase.functions.invoke("analyze-bon", { body: { image_url: file_url } });
-          if (error) throw error;
-          payload.poids_bon_final = data?.poids_tonnes ?? null;
-          payload.numero_bon_final = data?.numero_bon_client || null;
-          const { ecart, observation } = computeBonFinalEcart({
-            poidsBonFinal: data?.poids_tonnes,
-            numeroBonFinal: data?.numero_bon_client,
-            poidsEnlevement: oldData?.poids_charge_tonnes,
-            numeroEnlevement: oldData?.numero_bon_client,
-          });
-          payload.ecart_bon_final = ecart;
-          payload.observation_bon_final = observation || null;
-        } catch (err) {
-          toast.warning(`Lecture automatique indisponible pour ce bon (${err.message})`);
-        }
-      }
-
-      await updateRotation.mutateAsync({ id: rotationId, payload, oldData });
-      toast.success("Bon final scanné");
-    } catch (err) {
-      toast.error(`Erreur lors de l'envoi du scan : ${err.message}`);
-    }
-  };
-
-  const handleToggleEcart = (rotation, checked) => {
+  const handleValidate = (rotation, { ecart, observation }) => {
     updateRotation.mutate({
       id: rotation.id,
-      payload: { ecart_bon_final: checked, ...(checked ? {} : { observation_bon_final: null }) },
+      payload: {
+        ecart_bon_final: ecart,
+        observation_bon_final: ecart ? observation : null,
+        bon_final_verifie_le: new Date().toISOString(),
+        bon_final_verifie_par: currentUser?.id || null,
+      },
       oldData: rotation,
     });
   };
 
-  const handleSaveObservation = (rotation, text) => {
-    updateRotation.mutate({ id: rotation.id, payload: { observation_bon_final: text }, oldData: rotation });
+  const handlePrint = () => {
+    const rows = filteredCheckpoints.flatMap(cp => cp.rotations.map(r => {
+      const vehicle = vehicleMap[cp.vehicleId];
+      const client = clientMap[cp.clientId];
+      const status = getRotationStatus(r);
+      return `<tr>
+        <td>${vehicle?.immatriculation || "—"}</td>
+        <td>${client?.nom || "—"}</td>
+        <td>${fmtDate(r.date_rotation)}</td>
+        <td>${Number(r.poids_charge_tonnes || 0).toFixed(2)}</td>
+        <td>${r.poids_bon_final != null ? Number(r.poids_bon_final).toFixed(2) : "—"}</td>
+        <td>${STATUS_LABELS[status]}</td>
+        <td>${(r.observation_bon_final || "").replace(/</g, "&lt;")}</td>
+      </tr>`;
+    })).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Vérification des bons</title>
+      <style>
+        body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;padding:24px;}
+        h1{font-size:16px;margin:0 0 2px;}
+        p.meta{color:#666;margin:0 0 16px;}
+        table{width:100%;border-collapse:collapse;}
+        th,td{border:1px solid #ccc;padding:5px 7px;text-align:left;}
+        th{background:#f3f3f3;}
+      </style></head>
+      <body>
+        <h1>Vérification des bons — Sierra Logistics</h1>
+        <p class="meta">Généré le ${new Date().toLocaleString("fr-FR")} — ${filteredCheckpoints.length} enregistrement(s)</p>
+        <table>
+          <thead><tr><th>Véhicule</th><th>Client</th><th>Date</th><th>Poids enlèvement (T)</th><th>Poids déchargement (T)</th><th>Statut</th><th>Observation</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </body></html>`;
+
+    const w = window.open("", "_blank", "width=1000,height=800");
+    w.document.write(html);
+    w.document.close();
+    setTimeout(() => { w.print(); }, 400);
   };
 
   if (isLoading) {
@@ -282,8 +328,6 @@ export default function CollecteurBonsPage() {
     );
   }
 
-  const list = tab === "a_traiter" ? pending : done;
-
   return (
     <div className="min-h-viewport bg-background flex flex-col">
       <header className="h-14 bg-primary flex items-center justify-between px-4 flex-shrink-0">
@@ -293,48 +337,56 @@ export default function CollecteurBonsPage() {
         </button>
       </header>
 
-      <main className="flex-1 p-4 max-w-2xl w-full mx-auto space-y-4">
+      <main className="flex-1 p-4 max-w-2xl lg:max-w-5xl xl:max-w-6xl w-full mx-auto space-y-4">
         <div>
           <h1 className="text-lg font-bold flex items-center gap-2">
-            <ClipboardCheck className="w-5 h-5 text-secondary" /> Collecte des bons finaux
+            <ClipboardCheck className="w-5 h-5 text-secondary" /> Vérification des bons
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {pending.length} à traiter · {done.length} terminée{done.length !== 1 ? "s" : ""}
-            {ecartCount > 0 && <span className="text-destructive font-semibold"> · {ecartCount} écart{ecartCount !== 1 ? "s" : ""}</span>}
+            Contrôle de conformité entre bons d'enlèvement et bons de déchargement
           </p>
         </div>
 
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant={tab === "a_traiter" ? "default" : "outline"}
-            className={tab === "a_traiter" ? "bg-secondary hover:bg-secondary/90 text-secondary-foreground" : ""}
-            onClick={() => setTab("a_traiter")}
-          >
-            À traiter ({pending.length})
-          </Button>
-          <Button size="sm" variant={tab === "termines" ? "default" : "outline"} onClick={() => setTab("termines")}>
-            Terminés ({done.length})
+        <div className="flex flex-col lg:flex-row gap-2 lg:items-end">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input className="pl-9" placeholder="Rechercher véhicule, client, numéro de bon..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <div className="flex gap-1 flex-wrap">
+            {[
+              ["all", `Tout (${enrichedCheckpoints.length})`],
+              ["a_verifier", `À vérifier (${counts.a_verifier})`],
+              ["reconciliation_ok", `Réconciliation OK (${counts.reconciliation_ok})`],
+              ["verifie_ecart", `Vérifié écart (${counts.verifie_ecart})`],
+            ].map(([v, l]) => (
+              <Button key={v} size="sm" variant={statusFilter === v ? "default" : "outline"} onClick={() => setStatusFilter(v)} className={statusFilter === v ? "bg-secondary hover:bg-secondary/90 text-secondary-foreground text-xs" : "text-xs"}>
+                {l}
+              </Button>
+            ))}
+          </div>
+          <Button variant="outline" size="sm" className="text-xs" onClick={handlePrint} disabled={filteredCheckpoints.length === 0}>
+            <Printer className="w-3.5 h-3.5 mr-1.5" /> Imprimer PDF
           </Button>
         </div>
 
-        {list.length === 0 ? (
+        <PeriodFilter filter={periodFilter} onChange={setPeriodFilter} />
+
+        {filteredCheckpoints.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <Fuel className="w-12 h-12 mx-auto mb-3 opacity-20" />
-            <p className="text-sm">{tab === "a_traiter" ? "Aucune transaction en attente de collecte" : "Aucune transaction terminée"}</p>
+            <p className="text-sm">Aucun enregistrement pour ces filtres</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {list.map(cp => {
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredCheckpoints.map(cp => {
               const vehicle = vehicleMap[cp.vehicleId];
               const driver = driverMap[vehicle?.driver_id];
               const client = clientMap[cp.clientId];
               const fuelEntry = fuelEntryMap[cp.fuelEntryId];
               const campaign = campaignMap[cp.rotations[0]?.campaign_id];
-              const collectedCount = cp.rotations.filter(r => r.bon_final_scan_url).length;
               const totalPoids = cp.rotations.reduce((s, r) => s + (Number(r.poids_charge_tonnes) || 0), 0);
               return (
-                <div key={`${cp.clientId}-${cp.vehicleId}-${cp.fuelEntryId}`} className="bg-card border border-border rounded-2xl overflow-hidden">
+                <div key={`${cp.clientId}-${cp.vehicleId}-${cp.fuelEntryId}`} className="bg-card border border-border rounded-2xl overflow-hidden h-fit">
                   <div className="bg-muted/40 px-4 py-3 flex items-center gap-3 border-b border-border">
                     <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <Truck className="w-5 h-5 text-primary" />
@@ -348,8 +400,8 @@ export default function CollecteurBonsPage() {
                         )}
                       </p>
                     </div>
-                    <Badge className={collectedCount === 3 ? "bg-emerald-500/10 text-emerald-600 text-[10px] shrink-0" : "bg-amber-500/10 text-amber-600 text-[10px] shrink-0"}>
-                      {collectedCount}/3 bons
+                    <Badge className={`${STATUS_BADGE_CLASS[cp.status]} text-[10px] shrink-0`}>
+                      {STATUS_LABELS[cp.status]}
                     </Badge>
                   </div>
 
@@ -392,10 +444,8 @@ export default function CollecteurBonsPage() {
                       <RotationBonRow
                         key={r.id}
                         rotation={r}
-                        bonEntryActive={bonEntryActive}
-                        onScan={() => setScanningRotationId(r.id)}
-                        onToggleEcart={(checked) => handleToggleEcart(r, checked)}
-                        onSaveObservation={(text) => handleSaveObservation(r, text)}
+                        isSaving={updateRotation.isPending}
+                        onValidate={(result) => handleValidate(r, result)}
                       />
                     ))}
                   </div>
@@ -406,13 +456,6 @@ export default function CollecteurBonsPage() {
         )}
       </main>
 
-      {scanningRotationId && (
-        <DocumentScanner
-          onCapture={handleScanCapture}
-          onClose={() => setScanningRotationId(null)}
-          instructionText="Alignez le bon final dans le cadre"
-        />
-      )}
       <ConfirmDialogHost />
     </div>
   );
