@@ -121,9 +121,6 @@ export default function GpsTrackingPage() {
           <MapPin className="w-6 h-6 text-secondary" />
           Suivi GPS
         </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Positions en direct des véhicules équipés d'un traceur Traccar (mise à jour toutes les ~25 secondes) — la trace du trajet s'affiche tant que cette page reste ouverte
-        </p>
       </div>
 
       {error && (
