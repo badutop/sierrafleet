@@ -76,7 +76,7 @@ function RotationBonRow({ rotation, isSaving, onValidate }) {
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <p className="text-[10px] text-muted-foreground mb-1">Bon enlèvement (Resp. Opérations)</p>
+          <p className="text-[10px] text-muted-foreground mb-1">Bon enlèvement</p>
           {rotation.bon_physique_scan_url ? (
             <button type="button" onClick={() => window.open(rotation.bon_physique_scan_url, "_blank")} className="block w-full">
               <img src={rotation.bon_physique_scan_url} alt="Bon d'enlèvement" className="w-full h-20 object-cover rounded border border-border" />
@@ -88,7 +88,7 @@ function RotationBonRow({ rotation, isSaving, onValidate }) {
           )}
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground mb-1">Bon déchargement (chauffeur)</p>
+          <p className="text-[10px] text-muted-foreground mb-1">Bon déchargement</p>
           {rotation.bon_final_scan_url ? (
             <button type="button" onClick={() => window.open(rotation.bon_final_scan_url, "_blank")} className="block w-full">
               <img src={rotation.bon_final_scan_url} alt="Bon de déchargement" className="w-full h-20 object-cover rounded border-2 border-emerald-400" />
