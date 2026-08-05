@@ -78,6 +78,10 @@ Deno.serve(async (req) => {
   const authValue = 'Basic ' + btoa(`${traccarUsername}:${traccarPassword}`);
   const traccarHeaders = { Authorization: authValue };
 
+  // Statut 200 même en cas d'échec Traccar (comme pour les secrets manquants
+  // ci-dessus) : supabase-js remplace le corps JSON par un message générique
+  // ("Edge Function returned a non-2xx status code") dès que le statut HTTP
+  // n'est pas 2xx, ce qui masquerait le vrai message d'erreur côté client.
   let devicesRes: Response, positionsRes: Response;
   try {
     [devicesRes, positionsRes] = await Promise.all([
@@ -86,12 +90,12 @@ Deno.serve(async (req) => {
     ]);
   } catch (err) {
     console.error(`[traccar-positions] appel Traccar échoué: ${err}`);
-    return jsonResponse({ error: 'Serveur Traccar injoignable' }, 502);
+    return jsonResponse({ error: 'Serveur Traccar injoignable' }, 200);
   }
 
   if (!devicesRes.ok || !positionsRes.ok) {
     console.error(`[traccar-positions] Traccar a répondu devices=${devicesRes.status} positions=${positionsRes.status}`);
-    return jsonResponse({ error: 'Erreur serveur Traccar' }, 502);
+    return jsonResponse({ error: `Erreur serveur Traccar (devices=${devicesRes.status}, positions=${positionsRes.status})` }, 200);
   }
 
   const devices = await devicesRes.json();

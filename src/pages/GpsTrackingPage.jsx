@@ -7,20 +7,33 @@ import "leaflet/dist/leaflet.css";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, RadioTower, AlertTriangle } from "lucide-react";
 
-// Les icônes par défaut de Leaflet référencent des images via des chemins
-// relatifs résolus par webpack — cassé sous Vite (404 silencieux, marqueur
-// invisible). On reconstruit l'icône par défaut depuis les assets du
-// package, seule solution fiable indépendamment du bundler.
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
+// Icône camion vue de dessus (générée en SVG, pas une photo/logo) — orientée
+// selon le "course" renvoyé par Traccar (degrés, 0 = nord). Contrairement à
+// camionmap.jpeg (perspective 3/4), une vue de dessus reste cohérente
+// visuellement une fois pivotée à n'importe quel angle. Transition CSS sur
+// la rotation pour un rendu moins saccadé d'un rafraîchissement (~25s) à l'autre.
+const TRUCK_SVG = `
+  <svg width="48" height="48" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));">
+    <ellipse cx="16" cy="28" rx="7" ry="2" fill="rgba(0,0,0,0.25)"/>
+    <rect x="5" y="14" width="3" height="6" rx="1" fill="#000"/>
+    <rect x="24" y="14" width="3" height="6" rx="1" fill="#000"/>
+    <rect x="5" y="21" width="3" height="6" rx="1" fill="#000"/>
+    <rect x="24" y="21" width="3" height="6" rx="1" fill="#000"/>
+    <rect x="8" y="12" width="16" height="16" rx="2" fill="#000"/>
+    <rect x="10" y="2" width="12" height="11" rx="3" fill="#000"/>
+    <rect x="12" y="4" width="8" height="4" rx="1" fill="#fff"/>
+  </svg>
+`;
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
+function createTruckIcon(course) {
+  return L.divIcon({
+    html: `<div style="width:48px;height:48px;transform:rotate(${course || 0}deg);transform-origin:50% 50%;transition:transform 1s ease-out;">${TRUCK_SVG}</div>`,
+    className: "",
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+    popupAnchor: [0, -24],
+  });
+}
 
 const DAKAR_CENTER = [14.6928, -17.4467];
 
@@ -99,7 +112,7 @@ export default function GpsTrackingPage() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           {linked.map(d => (
-            <Marker key={d.uniqueId} position={[d.latitude, d.longitude]}>
+            <Marker key={d.uniqueId} position={[d.latitude, d.longitude]} icon={createTruckIcon(d.course)}>
               <Popup>
                 <div className="text-xs space-y-0.5">
                   <p className="font-bold">{d.vehicle.immatriculation}</p>
