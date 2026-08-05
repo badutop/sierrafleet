@@ -31,6 +31,7 @@ import CollecteurBonsPage from '@/pages/CollecteurBonsPage';
 import AuditLogPage from '@/pages/AuditLogPage';
 import LandingPage from '@/pages/LandingPage';
 import DeversementPage from '@/pages/DeversementPage';
+import GpsTrackingPage from '@/pages/GpsTrackingPage';
 import { useViewportHeight } from '@/hooks/use-viewport-height';
 
 function App() {
@@ -81,6 +82,7 @@ function App() {
                 <Route path="/clients" element={<ClientsPage />} />
                 <Route path="/audit-log" element={<AuditLogPage />} />
                 <Route path="/deversement" element={<DeversementPage />} />
+                <Route path="/gps" element={<GpsTrackingPage />} />
               </Route>
             </Route>
 

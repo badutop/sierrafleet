@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Truck, Pencil, Trash2, FileText, User, IdCard, Settings2, CalendarClock, ArrowLeft, Save } from "lucide-react";
+import { Plus, Search, Truck, Pencil, Trash2, FileText, User, IdCard, Settings2, CalendarClock, ArrowLeft, Save, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import VehicleDocuments from "@/components/vehicles/VehicleDocuments";
@@ -22,7 +22,7 @@ const statusLabels = { disponible: "Disponible", en_mission: "En mission", en_ma
 const statusColors = { disponible: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", en_mission: "bg-blue-500/10 text-blue-600 border-blue-500/20", en_maintenance: "bg-amber-500/10 text-amber-600 border-amber-500/20", hors_service: "bg-destructive/10 text-destructive border-destructive/20" };
 const typeLabels = { camion: "Camion", utilitaire: "Utilitaire", liaison: "Liaison", remorque: "Remorque", bc: "BC - Benne Céréalière" };
 
-const emptyForm = { code_camion: "", immatriculation: "", marque: "", modele: "", type_vehicule: "camion", annee: "", couleur: "", km_actuel: "", capacite_charge_tonnes: "", date_assurance: "", date_visite_technique: "", date_carte_grise: "", driver_id: "" };
+const emptyForm = { code_camion: "", immatriculation: "", marque: "", modele: "", type_vehicule: "camion", annee: "", couleur: "", km_actuel: "", capacite_charge_tonnes: "", date_assurance: "", date_visite_technique: "", date_carte_grise: "", driver_id: "", traccar_uid: "" };
 
 // Génère le prochain code camion séquentiel (ex: CT-0009) — même logique que
 // generateNextClientCode dans ClientsPage.jsx, pour une numérotation interne
@@ -136,6 +136,7 @@ export default function Vehicles() {
     numFields.forEach(f => { data[f] = (data[f] === "" || data[f] === undefined) ? null : Number(data[f]); });
     dateFields.forEach(f => { if (data[f] === "") data[f] = null; });
     if (data.driver_id === "") data.driver_id = null;
+    if (data.traccar_uid === "") data.traccar_uid = null;
     if (editingVehicle) updateMutation.mutate({ id: editingVehicle.id, data, oldData: editingVehicle });
     else createMutation.mutate(data);
   };
@@ -361,6 +362,13 @@ export default function Vehicles() {
                   <Input type="date" className="mt-1 bg-card" value={form.date_carte_grise || ""} onChange={e => setForm({ ...form, date_carte_grise: e.target.value })} />
                 </div>
               </div>
+            </div>
+
+            {/* Suivi GPS */}
+            <div>
+              <Label className="text-xs flex items-center gap-1"><MapPin className="w-3 h-3" />ID Traccar (uniqueId)</Label>
+              <Input className="mt-1 bg-card" placeholder="ex: sf-001" value={form.traccar_uid || ""} onChange={e => setForm({ ...form, traccar_uid: e.target.value })} />
+              <p className="text-[11px] text-muted-foreground mt-1">Identifie le traceur GPS Traccar rattaché à ce véhicule — voir Suivi GPS.</p>
             </div>
 
             {/* Affectation */}
