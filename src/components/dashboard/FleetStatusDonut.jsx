@@ -16,7 +16,7 @@ export default function FleetStatusDonut({ vehicles }) {
   const total = vehicles.length;
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5 flex flex-col">
+    <div className="bg-card rounded-xl border border-sidebar p-5 flex flex-col">
       <h3 className="text-sm font-semibold text-card-foreground mb-1">État de la flotte</h3>
       <p className="text-xs text-muted-foreground mb-4">{total} véhicule{total > 1 ? "s" : ""} au total</p>
       <div className="relative flex-1" style={{ minHeight: 200 }}>

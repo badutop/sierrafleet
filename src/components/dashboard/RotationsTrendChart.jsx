@@ -24,7 +24,7 @@ export default function RotationsTrendChart({ rotations }) {
   const avg = data.length ? Math.round(data.reduce((s, d) => s + d.Rotations, 0) / data.length) : 0;
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
+    <div className="bg-card rounded-xl border border-sidebar p-5">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold text-card-foreground">Rotations quotidiennes</h3>
         <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">moy. {avg}/j</span>

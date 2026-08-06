@@ -11,7 +11,7 @@ export default function DashboardAlerts({ alerts }) {
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
+    <div className="bg-card rounded-xl border border-sidebar p-5">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center">
           <AlertTriangle className="w-4 h-4 text-red-700" />

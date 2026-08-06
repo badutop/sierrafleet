@@ -40,18 +40,20 @@ function getPreviousRange(filter) {
 }
 
 function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, className }) {
+  // Le cadre (border-sidebar) est commun à toutes les StatCards — seul le
+  // fond reste teinté par couleur, pour rester assorti au menu latéral.
   const colorMap = {
-    green:   { card: "bg-emerald-500/15 border-emerald-400/20", bg: "bg-emerald-500/20", text: "text-emerald-700", bar: "bg-emerald-500" },
-    blue:    { card: "bg-blue-500/15 border-blue-400/20",       bg: "bg-blue-500/20",    text: "text-blue-700",    bar: "bg-blue-500" },
-    orange:  { card: "bg-amber-500/15 border-amber-400/20",     bg: "bg-amber-500/20",   text: "text-amber-700",   bar: "bg-amber-500" },
-    red:     { card: "bg-red-500/15 border-red-400/20",         bg: "bg-red-500/20",     text: "text-red-700",     bar: "bg-red-500" },
-    indigo:  { card: "bg-indigo-500/15 border-indigo-400/20",   bg: "bg-indigo-500/20",  text: "text-indigo-700",  bar: "bg-indigo-500" },
-    primary: { card: "bg-primary/15 border-primary/20",         bg: "bg-primary/20",     text: "text-primary",     bar: "bg-primary" },
+    green:   { card: "bg-emerald-500/15", bg: "bg-emerald-500/20", text: "text-emerald-700", bar: "bg-emerald-500" },
+    blue:    { card: "bg-blue-500/15",    bg: "bg-blue-500/20",    text: "text-blue-700",    bar: "bg-blue-500" },
+    orange:  { card: "bg-amber-500/15",   bg: "bg-amber-500/20",   text: "text-amber-700",   bar: "bg-amber-500" },
+    red:     { card: "bg-red-500/15",     bg: "bg-red-500/20",     text: "text-red-700",     bar: "bg-red-500" },
+    indigo:  { card: "bg-indigo-500/15",  bg: "bg-indigo-500/20",  text: "text-indigo-700",  bar: "bg-indigo-500" },
+    primary: { card: "bg-primary/15",     bg: "bg-primary/20",     text: "text-primary",     bar: "bg-primary" },
   };
   const c = colorMap[color] || colorMap.primary;
 
   return (
-    <div className={`${c.card} rounded-xl border p-5 hover:shadow-md transition-shadow group ${className || ""}`}>
+    <div className={`${c.card} rounded-xl border border-sidebar p-5 hover:shadow-md transition-shadow group ${className || ""}`}>
       <div className="flex items-start justify-between mb-3">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${c.bg}`}>
           <Icon className={`w-5 h-5 ${c.text}`} />

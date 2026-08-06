@@ -33,7 +33,7 @@ export default function TruckPerformanceCard({ vehicles, rotations, fuelEntries 
   const maxRot = top[0]?.rotations || 1;
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
+    <div className="bg-card rounded-xl border border-sidebar p-5">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
           <Truck className="w-4 h-4 text-indigo-500" />

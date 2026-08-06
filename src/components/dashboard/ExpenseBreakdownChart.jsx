@@ -26,13 +26,13 @@ export default function ExpenseBreakdownChart({ expenses }) {
   const total = data.reduce((s, d) => s + d.value, 0);
 
   if (!data.length) return (
-    <div className="bg-card rounded-xl border border-border p-5 flex items-center justify-center h-full min-h-[200px]">
+    <div className="bg-card rounded-xl border border-sidebar p-5 flex items-center justify-center h-full min-h-[200px]">
       <p className="text-xs text-muted-foreground">Aucune dépense enregistrée</p>
     </div>
   );
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
+    <div className="bg-card rounded-xl border border-sidebar p-5">
       <h3 className="text-sm font-semibold text-card-foreground mb-1">Répartition des dépenses</h3>
       <p className="text-xs text-muted-foreground mb-3">Total : {fmt(total)} FCFA</p>
       <div className="flex items-center gap-4">

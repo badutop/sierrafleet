@@ -30,7 +30,7 @@ export default function CampaignProgressChart({ campaigns }) {
   });
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
+    <div className="bg-card rounded-xl border border-sidebar p-5">
       <h3 className="text-sm font-semibold text-card-foreground mb-1">Avancement des campagnes</h3>
       <p className="text-xs text-muted-foreground mb-4">% tonnage réalisé vs prévu</p>
       <ResponsiveContainer width="100%" height={180}>

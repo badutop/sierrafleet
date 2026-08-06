@@ -31,7 +31,7 @@ export default function FuelTrendChart({ fuelEntries }) {
   }, [fuelEntries]);
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
+    <div className="bg-card rounded-xl border border-sidebar p-5">
       <h3 className="text-sm font-semibold text-card-foreground mb-1">Consommation carburant</h3>
       <p className="text-xs text-muted-foreground mb-4">6 derniers mois — litres</p>
       <ResponsiveContainer width="100%" height={180}>

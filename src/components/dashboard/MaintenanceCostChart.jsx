@@ -34,7 +34,7 @@ export default function MaintenanceCostChart({ maintenances }) {
   const formatK = (v) => v >= 1000 ? `${Math.round(v / 1000)}k` : String(v);
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
+    <div className="bg-card rounded-xl border border-sidebar p-5">
       <h3 className="text-sm font-semibold text-card-foreground mb-1">Coûts de maintenance</h3>
       <p className="text-xs text-muted-foreground mb-4">5 derniers mois — FCFA</p>
       <ResponsiveContainer width="100%" height={180}>
