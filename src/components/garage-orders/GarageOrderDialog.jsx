@@ -134,7 +134,12 @@ export default function GarageOrderDialog({ open, onOpenChange, order, vMap, dri
     });
   };
 
-  const echeanceDays = order.date_echeance ? Math.ceil((new Date(order.date_echeance) - new Date()) / 86400000) : null;
+  // Comparaison en chaînes de date locales (sv-SE = AAAA-MM-JJ) plutôt qu'en
+  // objets Date bruts, pour éviter le piège de fuseau horaire déjà rencontré
+  // ailleurs dans l'app (voir MaintenanceListTab.jsx) sur des colonnes "date" pures.
+  const echeanceDays = order.date_echeance
+    ? Math.round((new Date(order.date_echeance + "T00:00:00") - new Date(new Date().toLocaleDateString("sv-SE") + "T00:00:00")) / 86400000)
+    : null;
   const echeanceClass = echeanceDays === null ? "border-border bg-muted/50"
     : echeanceDays < 0 ? "border-destructive/30 bg-destructive/10 text-destructive"
     : echeanceDays <= 7 ? "border-amber-400/30 bg-amber-500/10 text-amber-700"
