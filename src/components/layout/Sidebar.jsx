@@ -49,12 +49,12 @@ export function getVisibleNavItems(currentUser) {
     ? moduleFilteredItems.filter(item => item.path !== "/clients")
     : moduleFilteredItems;
 
-  // Le Tableau de bord est réservé à Admin et Finances, quels que soient
-  // les modules assignés — les autres rôles (Resp. Opérations, Resp.
-  // Exploitation, Exécuteur Dépenses ; Chauffeur et Collecteur de bons ne
+  // Le Tableau de bord est réservé à Admin, Finances et Resp. Exploitation,
+  // quels que soient les modules assignés — les autres rôles (Resp.
+  // Opérations, Exécuteur Dépenses ; Chauffeur et Collecteur de bons ne
   // voient de toute façon jamais cette barre latérale, voir AppLayout.jsx)
   // ne doivent jamais l'avoir.
-  const canSeeDashboard = !currentUser || currentUser.role === "admin" || currentUser.role === "finances";
+  const canSeeDashboard = !currentUser || currentUser.role === "admin" || currentUser.role === "finances" || currentUser.role === "responsable_exploitation";
   return roleFilteredItems.filter(item => canSeeDashboard || item.path !== "/");
 }
 

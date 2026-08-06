@@ -11,7 +11,6 @@ import ConfirmDialogHost from "@/components/ui/ConfirmDialogHost";
 // leur simple premier module accessible dans l'ordre de la barre latérale.
 const ROLE_LANDING_PAGE = {
   responsable_operations: "/campaigns",
-  responsable_exploitation: "/fuel",
 };
 
 export default function AppLayout() {
@@ -31,19 +30,21 @@ export default function AppLayout() {
       location.pathname === "/" &&
       currentUser &&
       currentUser.role !== "admin" &&
-      currentUser.role !== "finances"
+      currentUser.role !== "finances" &&
+      currentUser.role !== "responsable_exploitation"
     ) {
-      // Le Tableau de bord est réservé à Admin et Finances (voir
-      // Sidebar.jsx/getVisibleNavItems) — la route elle-même n'a aucune
-      // protection, donc un autre rôle atterrissant sur "/" (connexion,
-      // lien direct...) est redirigé : vers sa page dédiée si définie
-      // (Resp. Opérations -> Campagnes, Resp. Exploitation -> Carburant),
-      // sinon vers son premier module réellement accessible.
+      // Le Tableau de bord est réservé à Admin, Finances et Resp.
+      // Exploitation (voir Sidebar.jsx/getVisibleNavItems) — la route
+      // elle-même n'a aucune protection, donc un autre rôle atterrissant sur
+      // "/" (connexion, lien direct...) est redirigé : vers sa page dédiée
+      // si définie (Resp. Opérations -> Campagnes), sinon vers son premier
+      // module réellement accessible.
       const target = ROLE_LANDING_PAGE[currentUser.role]
         || getVisibleNavItems(currentUser).find(item => item.path && item.path !== "/")?.path;
       if (target) navigate(target, { replace: true });
     }
-    // L'admin reste sur l'app principale mais peut accéder aux deux directement par leur URL
+    // L'admin, Finances et Resp. Exploitation restent sur l'app principale
+    // mais peuvent accéder aux deux directement par leur URL
   }, [currentUser, location.pathname]);
 
   return (
