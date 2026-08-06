@@ -142,7 +142,7 @@ export default function Drivers() {
         />
       </div>
 
-      <Card className="border-sidebar">
+      <Card className="border-sidebar overflow-hidden">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
