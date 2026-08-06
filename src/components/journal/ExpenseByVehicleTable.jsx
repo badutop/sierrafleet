@@ -43,19 +43,19 @@ export default function ExpenseByVehicleTable({ expenses, vehicles, vMap, isLoad
   const toggle = (vid) => setExpanded(prev => ({ ...prev, [vid]: !prev[vid] }));
 
   if (isLoading) return (
-    <div className="bg-card rounded-xl border border-border flex items-center justify-center py-16">
+    <div className="bg-card rounded-xl border border-sidebar flex items-center justify-center py-16">
       <div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin" />
     </div>
   );
 
   if (rows.length === 0) return (
-    <div className="bg-card rounded-xl border border-border text-center py-16 text-muted-foreground text-sm">
+    <div className="bg-card rounded-xl border border-sidebar text-center py-16 text-muted-foreground text-sm">
       Aucune dépense enregistrée pour cette période.
     </div>
   );
 
   return (
-    <div className="bg-card rounded-xl border border-border overflow-x-auto">
+    <div className="bg-card rounded-xl border border-sidebar overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">

@@ -37,7 +37,7 @@ export default function VehicleExpenseDetail({ vehicle, driver, expenses, filter
   }, [expenses]);
 
   return (
-    <div className="bg-card rounded-xl border border-border">
+    <div className="bg-card rounded-xl border border-sidebar">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <div>

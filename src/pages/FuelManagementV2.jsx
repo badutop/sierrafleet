@@ -340,28 +340,28 @@ export default function FuelManagementV2() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="bg-blue-500/15 border-blue-400/25">
+        <Card className="bg-blue-500/15 border-sidebar">
           <CardContent className="pt-4 pb-4 text-blue-700">
             <p className="text-xs opacity-80">Litres approvisionnés</p>
             <p className="text-2xl font-bold mt-1">{Math.round(filteredEntries.reduce((s, e) => s + (e.litres || 0), 0))} L</p>
             <p className="text-xs opacity-70 mt-1">{filteredEntries.length} entrées</p>
           </CardContent>
         </Card>
-        <Card className="bg-secondary/15 border-secondary/25">
+        <Card className="bg-secondary/15 border-sidebar">
           <CardContent className="pt-4 pb-4 text-secondary">
             <p className="text-xs opacity-80">Coût total</p>
             <p className="text-xl font-bold mt-1">{formatCFA(filteredEntries.reduce((s, e) => s + (e.montant_total || 0), 0))}</p>
             <p className="text-xs opacity-70 mt-1">{PERIODS.find(p => p.key === period)?.label}</p>
           </CardContent>
         </Card>
-        <Card className="bg-primary/15 border-primary/25">
+        <Card className="bg-primary/15 border-sidebar">
           <CardContent className="pt-4 pb-4 text-primary">
             <p className="text-xs opacity-80">Consommation moy. / camion</p>
             <p className="text-2xl font-bold mt-1">{Math.round(kpiData.litresMoyenParCamion)} L</p>
             <p className="text-xs opacity-70 mt-1">soit {formatCFA(kpiData.coutMoyenParCamion)} · {kpiData.nbCamionsUtilises} camion{kpiData.nbCamionsUtilises > 1 ? "s" : ""}</p>
           </CardContent>
         </Card>
-        <Card className="bg-amber-500/15 border-amber-400/25">
+        <Card className="bg-amber-500/15 border-sidebar">
           <CardContent className="pt-4 pb-4 text-amber-700">
             <p className="text-xs opacity-80">En attente de validation</p>
             <p className="text-2xl font-bold mt-1">{pendingValidationCount}</p>

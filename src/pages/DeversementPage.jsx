@@ -155,7 +155,7 @@ export default function DeversementPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card className="bg-destructive/15 border-destructive/25">
+        <Card className="bg-destructive/15 border-sidebar">
           <CardContent className="pt-4 pb-4 flex items-center justify-between text-destructive">
             <div>
               <p className="text-xs opacity-80">Total charges</p>
@@ -164,7 +164,7 @@ export default function DeversementPage() {
             <TrendingDown className="w-7 h-7 opacity-70" />
           </CardContent>
         </Card>
-        <Card className="bg-emerald-500/15 border-emerald-400/25">
+        <Card className="bg-emerald-500/15 border-sidebar">
           <CardContent className="pt-4 pb-4 flex items-center justify-between text-emerald-700">
             <div>
               <p className="text-xs opacity-80">Total produits</p>
@@ -173,7 +173,7 @@ export default function DeversementPage() {
             <TrendingUp className="w-7 h-7 opacity-70" />
           </CardContent>
         </Card>
-        <Card className={resultat >= 0 ? "bg-emerald-500/15 border-emerald-400/25" : "bg-destructive/15 border-destructive/25"}>
+        <Card className={cn("border-sidebar", resultat >= 0 ? "bg-emerald-500/15" : "bg-destructive/15")}>
           <CardContent className={cn("pt-4 pb-4 flex items-center justify-between", resultat >= 0 ? "text-emerald-700" : "text-destructive")}>
             <div>
               <p className="text-xs opacity-80">Résultat net</p>
@@ -201,7 +201,7 @@ export default function DeversementPage() {
 
       {/* Grand livre par compte */}
       {groupedByCompte.length === 0 ? (
-        <div className="bg-card rounded-xl border border-border py-14 text-center text-muted-foreground">
+        <div className="bg-card rounded-xl border border-sidebar py-14 text-center text-muted-foreground">
           <FileSpreadsheet className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p className="text-sm">Aucune écriture pour cette période</p>
         </div>
@@ -221,7 +221,7 @@ export default function DeversementPage() {
                   <span className="font-semibold">{group.lines.length} écriture{group.lines.length > 1 ? "s" : ""}</span> — {formatCFA(group.total)}
                 </div>
               </div>
-              <div className="bg-card rounded-xl border border-border overflow-x-auto">
+              <div className="bg-card rounded-xl border border-sidebar overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="text-xs">

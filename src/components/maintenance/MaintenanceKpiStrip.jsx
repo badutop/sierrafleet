@@ -4,15 +4,18 @@ import { formatFCFA } from "@/lib/numberFormat";
 
 const KpiBox = ({ icon: IconComp, label, value, sub, color = "primary" }) => {
   const Icon = IconComp;
+  // Le cadre (border-sidebar, ajouté sur le conteneur ci-dessous) est commun
+  // à toutes les KpiBox — seul le fond/texte reste teinté par couleur, pour
+  // rester assorti au menu latéral.
   const colors = {
-    primary: "bg-primary/15 text-primary border-primary/25",
-    orange: "bg-secondary/15 text-secondary border-secondary/25",
-    red: "bg-destructive/15 text-destructive border-destructive/25",
-    green: "bg-emerald-500/15 text-emerald-700 border-emerald-400/25",
-    amber: "bg-amber-500/15 text-amber-700 border-amber-400/25",
+    primary: "bg-primary/15 text-primary",
+    orange: "bg-secondary/15 text-secondary",
+    red: "bg-destructive/15 text-destructive",
+    green: "bg-emerald-500/15 text-emerald-700",
+    amber: "bg-amber-500/15 text-amber-700",
   };
   return (
-    <div className={`rounded-xl border p-4 flex items-center gap-3 ${colors[color]}`}>
+    <div className={`rounded-xl border border-sidebar p-4 flex items-center gap-3 ${colors[color]}`}>
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${colors[color]}`}>
         <Icon className="w-5 h-5" />
       </div>

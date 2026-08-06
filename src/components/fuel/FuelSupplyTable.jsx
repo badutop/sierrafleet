@@ -89,11 +89,11 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, driverMap = 
       </div>
 
       {isLoading ? (
-        <div className="bg-card rounded-xl border border-border py-10 text-center">
+        <div className="bg-card rounded-xl border border-sidebar py-10 text-center">
           <div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-card rounded-xl border border-border py-10 text-center text-muted-foreground text-sm">
+        <div className="bg-card rounded-xl border border-sidebar py-10 text-center text-muted-foreground text-sm">
           Aucun enregistrement trouvé
         </div>
       ) : (
@@ -118,7 +118,7 @@ export default function FuelSupplyTable({ entries, isLoading, vMap, driverMap = 
                     <span className="font-semibold text-secondary">{dayEntries.length} transaction{dayEntries.length > 1 ? "s" : ""}</span> — {totalLitres.toLocaleString("fr-FR")} L
                   </div>
                 </div>
-                <div className="bg-card rounded-xl border border-border overflow-x-auto">
+                <div className="bg-card rounded-xl border border-sidebar overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">

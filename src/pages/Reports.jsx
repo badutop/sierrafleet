@@ -128,7 +128,7 @@ export default function Reports() {
 
           <BarChartSvg data={paretoData} title="Coût total par véhicule (×1000 FCFA)" />
 
-          <div className="bg-card rounded-xl border border-border overflow-x-auto">
+          <div className="bg-card rounded-xl border border-sidebar overflow-x-auto">
             <div className="p-4 border-b border-border">
               <h3 className="font-semibold text-sm">Coût de revient par véhicule</h3>
             </div>

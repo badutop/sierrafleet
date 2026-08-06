@@ -170,12 +170,12 @@ export default function CampaignFinancialReport() {
       {/* KPI globaux */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "CA Total HT", value: fmt(totals.caHT) + " FCFA", color: "text-primary", card: "bg-primary/15 border-primary/25" },
-          { label: "Dépenses totales", value: fmt(totals.coutTotal) + " FCFA", color: "text-destructive", card: "bg-destructive/15 border-destructive/25" },
-          { label: "Marge brute", value: fmt(totals.marge) + " FCFA", color: totals.marge >= 0 ? "text-emerald-700" : "text-destructive", card: totals.marge >= 0 ? "bg-emerald-500/15 border-emerald-400/25" : "bg-destructive/15 border-destructive/25" },
-          { label: "Taux de marge", value: tauxMargeGlobal !== null ? tauxMargeGlobal.toFixed(1) + "%" : "—", color: (tauxMargeGlobal ?? 0) >= 0 ? "text-emerald-700" : "text-destructive", card: (tauxMargeGlobal ?? 0) >= 0 ? "bg-emerald-500/15 border-emerald-400/25" : "bg-destructive/15 border-destructive/25" },
+          { label: "CA Total HT", value: fmt(totals.caHT) + " FCFA", color: "text-primary", card: "bg-primary/15" },
+          { label: "Dépenses totales", value: fmt(totals.coutTotal) + " FCFA", color: "text-destructive", card: "bg-destructive/15" },
+          { label: "Marge brute", value: fmt(totals.marge) + " FCFA", color: totals.marge >= 0 ? "text-emerald-700" : "text-destructive", card: totals.marge >= 0 ? "bg-emerald-500/15" : "bg-destructive/15" },
+          { label: "Taux de marge", value: tauxMargeGlobal !== null ? tauxMargeGlobal.toFixed(1) + "%" : "—", color: (tauxMargeGlobal ?? 0) >= 0 ? "text-emerald-700" : "text-destructive", card: (tauxMargeGlobal ?? 0) >= 0 ? "bg-emerald-500/15" : "bg-destructive/15" },
         ].map((kpi, i) => (
-          <div key={i} className={`border rounded-xl p-4 ${kpi.card}`}>
+          <div key={i} className={`border border-sidebar rounded-xl p-4 ${kpi.card}`}>
             <p className={`text-xs mb-1 opacity-80 ${kpi.color}`}>{kpi.label}</p>
             <p className={`text-lg font-bold ${kpi.color}`}>{kpi.value}</p>
           </div>
@@ -187,7 +187,7 @@ export default function CampaignFinancialReport() {
       </p>
 
       {/* Tableau */}
-      <div className="bg-card rounded-xl border border-border overflow-x-auto">
+      <div className="bg-card rounded-xl border border-sidebar overflow-x-auto">
         <div className="p-4 border-b border-border flex items-center justify-between">
           <h3 className="font-semibold text-sm">Rentabilité par campagne</h3>
           <span className="text-xs text-muted-foreground">{rows.length} campagne{rows.length > 1 ? "s" : ""}</span>

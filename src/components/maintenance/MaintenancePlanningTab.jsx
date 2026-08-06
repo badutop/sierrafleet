@@ -142,7 +142,7 @@ export default function MaintenancePlanningTab({ maintenances, vehicles, rotatio
               const vehicle = vMap[m.vehicle_id];
               const days = daysUntil(m.date_entretien);
               return (
-                <div key={m.id} className="border border-border rounded-xl bg-card overflow-hidden">
+                <div key={m.id} className="border border-sidebar rounded-xl bg-card overflow-hidden">
                   {/* En-tête carte */}
                   <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
                     <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />

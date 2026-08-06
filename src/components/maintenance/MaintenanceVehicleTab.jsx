@@ -47,7 +47,7 @@ export default function MaintenanceVehicleTab({ vehicles, maintenances, rotation
       {data.map(({ vehicle, pannes, preventives, totalCout, totalMainOeuvre, totalImmob, coutParRotation, enCours, topPanne, nbRotations }) => (
         <div key={vehicle.id} className={cn(
           "bg-card border rounded-xl p-4 space-y-3",
-          enCours ? "border-amber-400/40" : pannes.length > 2 ? "border-destructive/30" : "border-border"
+          enCours ? "border-amber-400/40" : pannes.length > 2 ? "border-destructive/30" : "border-sidebar"
         )}>
           {/* Header */}
           <div className="flex items-start justify-between">

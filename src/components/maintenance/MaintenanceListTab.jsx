@@ -75,7 +75,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, driv
   return (
     <div className="space-y-4">
       {/* Panneau Chef de garage */}
-      <div className="rounded-xl border border-border bg-muted/20 p-4">
+      <div className="rounded-xl border border-sidebar bg-muted/20 p-4">
         <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
           Panneau Chef de garage — Interventions à valider
@@ -128,11 +128,11 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, driv
       {/* Table — regroupée par jour, même présentation que Campagnes >
           Rotations et Carburant > Approvisionnements. */}
       {isLoading ? (
-        <div className="bg-card rounded-xl border border-border py-10 text-center">
+        <div className="bg-card rounded-xl border border-sidebar py-10 text-center">
           <div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-card rounded-xl border border-border py-10 text-center text-muted-foreground text-sm">
+        <div className="bg-card rounded-xl border border-sidebar py-10 text-center text-muted-foreground text-sm">
           Aucune intervention trouvée
         </div>
       ) : (
@@ -156,7 +156,7 @@ export default function MaintenanceListTab({ maintenances, isLoading, vMap, driv
                     <span className="font-semibold text-secondary">{dayEntries.length} intervention{dayEntries.length > 1 ? "s" : ""}</span> — {totalCout.toLocaleString("fr-FR")} FCFA
                   </div>
                 </div>
-                <div className="bg-card rounded-xl border border-border overflow-x-auto">
+                <div className="bg-card rounded-xl border border-sidebar overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">

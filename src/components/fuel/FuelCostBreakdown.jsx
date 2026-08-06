@@ -35,7 +35,7 @@ export default function FuelCostBreakdown({ consumptionData, rotationFuelData, f
       {/* KPI Coûts — le coût total est déjà affiché en en-tête de la page
           Carburant, on ne le répète pas ici (juste les métriques en plus). */}
       <div className="grid grid-cols-2 gap-3">
-        <Card className="bg-orange-500/15 border-orange-400/25">
+        <Card className="bg-orange-500/15 border-sidebar">
           <CardContent className="pt-4 pb-4 text-orange-700">
             <p className="text-xs opacity-80">Coût/km moyen</p>
             <p className="text-xl font-bold mt-1">
@@ -43,7 +43,7 @@ export default function FuelCostBreakdown({ consumptionData, rotationFuelData, f
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-blue-500/15 border-blue-400/25">
+        <Card className="bg-blue-500/15 border-sidebar">
           <CardContent className="pt-4 pb-4 text-blue-700">
             <p className="text-xs opacity-80">Prix/litre moyen</p>
             <p className="text-xl font-bold mt-1">
@@ -54,7 +54,7 @@ export default function FuelCostBreakdown({ consumptionData, rotationFuelData, f
       </div>
 
       {/* Graphique Coûts par véhicule */}
-      <Card>
+      <Card className="border-sidebar">
         <CardHeader>
           <CardTitle className="text-sm flex items-center gap-2">
             <DollarSign className="w-4 h-4" />
@@ -81,7 +81,7 @@ export default function FuelCostBreakdown({ consumptionData, rotationFuelData, f
       </Card>
 
       {/* Top 5 Véhicules par coût */}
-      <Card>
+      <Card className="border-sidebar">
         <CardHeader>
           <CardTitle className="text-sm">Top 5 véhicules (par coût carburant)</CardTitle>
         </CardHeader>
@@ -108,7 +108,7 @@ export default function FuelCostBreakdown({ consumptionData, rotationFuelData, f
       </Card>
 
       {/* Tableau détaillé coûts */}
-      <Card>
+      <Card className="border-sidebar">
         <CardHeader>
           <CardTitle className="text-sm">Détail par véhicule</CardTitle>
         </CardHeader>

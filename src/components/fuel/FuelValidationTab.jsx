@@ -123,7 +123,7 @@ function CheckpointCard({ item, vehicle, client, zones, canValidateRecharge, isV
   const dernierBon = item.checkpoint.date_rotation ? format(new Date(item.checkpoint.date_rotation), "d MMM yyyy", { locale: fr }) : "—";
 
   return (
-    <Card className="border">
+    <Card className="border border-sidebar">
       <CardContent className="pt-4 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">

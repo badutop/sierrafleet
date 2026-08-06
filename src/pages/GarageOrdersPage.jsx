@@ -19,15 +19,18 @@ const now = new Date();
 const defaultPeriodFilter = { mode: "all", month: now.getMonth() + 1, year: now.getFullYear(), from: "", to: "" };
 
 const KpiBox = ({ icon: Icon, label, value, sub, color = "primary" }) => {
+  // Le cadre (border-sidebar, ajouté sur le conteneur ci-dessous) est commun
+  // à toutes les KpiBox — seul le fond/texte reste teinté par couleur, pour
+  // rester assorti au menu latéral.
   const colors = {
-    primary: "bg-primary/15 text-primary border-primary/25",
-    amber: "bg-amber-500/15 text-amber-700 border-amber-400/25",
-    purple: "bg-purple-500/15 text-purple-700 border-purple-400/25",
-    green: "bg-emerald-500/15 text-emerald-700 border-emerald-400/25",
-    red: "bg-destructive/15 text-destructive border-destructive/25",
+    primary: "bg-primary/15 text-primary",
+    amber: "bg-amber-500/15 text-amber-700",
+    purple: "bg-purple-500/15 text-purple-700",
+    green: "bg-emerald-500/15 text-emerald-700",
+    red: "bg-destructive/15 text-destructive",
   };
   return (
-    <div className={`rounded-xl border p-4 flex items-center gap-3 ${colors[color]}`}>
+    <div className={`rounded-xl border border-sidebar p-4 flex items-center gap-3 ${colors[color]}`}>
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${colors[color]}`}>
         <Icon className="w-5 h-5" />
       </div>
@@ -312,7 +315,7 @@ export default function GarageOrdersPage() {
         </TabsList>
 
         <TabsContent value="alertes" className="mt-4">
-          <div className="rounded-xl border border-border bg-muted/20 p-4">
+          <div className="rounded-xl border border-sidebar bg-muted/20 p-4">
             <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
               Pièces à commander
@@ -325,7 +328,7 @@ export default function GarageOrdersPage() {
                 {alertes.map(o => {
                   const vehicle = vMap[o.vehicle_id];
                   return (
-                    <div key={o.id} className="bg-card border border-border rounded-xl p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow" onClick={() => openOrder(o)}>
+                    <div key={o.id} className="bg-card border border-sidebar rounded-xl p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow" onClick={() => openOrder(o)}>
                       <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                         <Bell className="w-3.5 h-3.5 text-amber-500" /> Pièce manquante en stock
                       </div>
@@ -345,7 +348,7 @@ export default function GarageOrdersPage() {
           </div>
 
           {canHandleInvoice && (
-            <div className="rounded-xl border border-border bg-muted/20 p-4 mt-3">
+            <div className="rounded-xl border border-sidebar bg-muted/20 p-4 mt-3">
               <h3 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
                 <Receipt className="w-3.5 h-3.5 text-orange-600" />
                 Factures à payer
@@ -369,7 +372,7 @@ export default function GarageOrdersPage() {
                       : null;
                     const enRetard = echeanceDays !== null && echeanceDays < 0;
                     return (
-                      <div key={o.id} className={cn("bg-card border rounded-xl p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow", enRetard ? "border-destructive/40" : "border-border")} onClick={() => openOrder(o)}>
+                      <div key={o.id} className={cn("bg-card border rounded-xl p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow", enRetard ? "border-destructive/40" : "border-sidebar")} onClick={() => openOrder(o)}>
                         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                           <Receipt className="w-3.5 h-3.5 text-orange-600" /> Facture fournisseur
                         </div>
@@ -410,11 +413,11 @@ export default function GarageOrdersPage() {
           )}
 
           {isLoading ? (
-            <div className="bg-card rounded-xl border border-border py-10 text-center">
+            <div className="bg-card rounded-xl border border-sidebar py-10 text-center">
               <div className="w-6 h-6 border-2 border-muted border-t-secondary rounded-full animate-spin mx-auto" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="bg-card rounded-xl border border-border py-10 text-center text-muted-foreground text-sm">
+            <div className="bg-card rounded-xl border border-sidebar py-10 text-center text-muted-foreground text-sm">
               Aucune commande trouvée
             </div>
           ) : (
@@ -440,7 +443,7 @@ export default function GarageOrdersPage() {
                         <span className="font-semibold text-secondary">{dayOrders.length} commande{dayOrders.length > 1 ? "s" : ""}</span> — {totalMontant.toLocaleString("fr-FR")} FCFA
                       </div>
                     </div>
-                    <div className="bg-card rounded-xl border border-border overflow-x-auto">
+                    <div className="bg-card rounded-xl border border-sidebar overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/50">

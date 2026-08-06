@@ -50,7 +50,7 @@ export default function FuelMonthlyChart({ entries }) {
 
   if (monthlyData.length === 0) {
     return (
-      <Card>
+      <Card className="border-sidebar">
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
           Pas encore de données mensuelles à afficher.
         </CardContent>
@@ -59,7 +59,7 @@ export default function FuelMonthlyChart({ entries }) {
   }
 
   return (
-    <Card>
+    <Card className="border-sidebar">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-secondary" />

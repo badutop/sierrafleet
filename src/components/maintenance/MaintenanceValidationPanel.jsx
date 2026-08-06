@@ -39,7 +39,7 @@ export default function MaintenanceValidationPanel({ maintenance, vMap, driverMa
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+    <div className="bg-card border border-sidebar rounded-xl p-4 space-y-3">
       {/* Titre Chef de garage */}
       <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
         <ShieldCheck className="w-3.5 h-3.5 text-primary" />

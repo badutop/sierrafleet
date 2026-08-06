@@ -7,7 +7,7 @@ export default function BarChartSvg({ data, title }) {
   const chartH = 160;
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
+    <div className="bg-card rounded-xl border border-sidebar p-5">
       <h3 className="text-sm font-semibold text-card-foreground mb-4">{title}</h3>
       <svg viewBox={`0 0 ${data.length * (barWidth + 12) + 20} ${chartH + 40}`} className="w-full h-48">
         {data.map((d, i) => {
