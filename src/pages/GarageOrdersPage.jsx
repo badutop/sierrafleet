@@ -359,7 +359,15 @@ export default function GarageOrdersPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {facturesAPayer.map(o => {
                     const vehicle = vMap[o.vehicle_id];
-                    const enRetard = o.date_echeance && new Date(o.date_echeance) < new Date();
+                    // Comparaison en chaînes de date locales (sv-SE = AAAA-MM-JJ)
+                    // plutôt qu'en objets Date bruts, pour éviter le piège de
+                    // fuseau horaire déjà rencontré ailleurs dans l'app (voir
+                    // MaintenanceListTab.jsx) sur des colonnes "date" pures.
+                    const todayStr = new Date().toLocaleDateString("sv-SE");
+                    const echeanceDays = o.date_echeance
+                      ? Math.round((new Date(o.date_echeance + "T00:00:00") - new Date(todayStr + "T00:00:00")) / 86400000)
+                      : null;
+                    const enRetard = echeanceDays !== null && echeanceDays < 0;
                     return (
                       <div key={o.id} className={cn("bg-card border rounded-xl p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow", enRetard ? "border-destructive/40" : "border-border")} onClick={() => openOrder(o)}>
                         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
@@ -371,6 +379,11 @@ export default function GarageOrdersPage() {
                         </p>
                         <Badge className={cn("text-[10px]", enRetard ? "bg-destructive/15 text-destructive border-destructive/30" : "bg-amber-500/15 text-amber-700 border-amber-400/30")}>
                           Échéance : {o.date_echeance ? new Date(o.date_echeance).toLocaleDateString("fr-FR") : "—"}
+                          {echeanceDays !== null && (
+                            echeanceDays > 0 ? ` — Dans ${echeanceDays} j`
+                              : echeanceDays === 0 ? " — Aujourd'hui"
+                              : ` — En retard de ${Math.abs(echeanceDays)} j`
+                          )}
                         </Badge>
                         <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1.5">
                           <Banknote className="w-3.5 h-3.5" /> Marquer payée
