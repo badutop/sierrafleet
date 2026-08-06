@@ -192,16 +192,16 @@ export default function ClientsPage() {
       {isLoading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" /></div>
       ) : (
-        <Card className="border-primary/20">
+        <Card>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow className="bg-primary/5 hover:bg-primary/5">
-                  <TableHead className="text-primary">Client</TableHead>
-                  <TableHead className="text-primary"><span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />Contact</span></TableHead>
-                  <TableHead className="text-primary"><span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />Zone</span></TableHead>
-                  <TableHead className="text-primary"><span className="inline-flex items-center gap-1"><Warehouse className="w-3 h-3" />Adresse</span></TableHead>
-                  <TableHead className="text-right text-primary">Actions</TableHead>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead><span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />Contact</span></TableHead>
+                  <TableHead><span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />Zone</span></TableHead>
+                  <TableHead><span className="inline-flex items-center gap-1"><Warehouse className="w-3 h-3" />Adresse</span></TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
