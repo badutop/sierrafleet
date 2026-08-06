@@ -34,7 +34,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
   }, {});
 
   if (rotations.length === 0) return (
-    <div className="bg-card rounded-xl border border-border py-14 text-center text-muted-foreground">
+    <div className="bg-card rounded-xl border border-sidebar py-14 text-center text-muted-foreground">
       <RotateCw className="w-10 h-10 mx-auto mb-3 opacity-30" />
       <p className="text-sm">Aucune rotation enregistrée</p>
       <p className="text-xs mt-1">Démarrez la campagne et saisissez la fiche du jour</p>
@@ -53,7 +53,7 @@ export default function CampaignRotationsTable({ rotations, vehicles, drivers, f
                 <span className="font-semibold text-secondary">{rots.length} rotations</span> — {totalPoids.toFixed(2)} T
               </div>
             </div>
-            <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="bg-card rounded-xl border border-sidebar overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="text-xs">

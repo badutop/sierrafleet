@@ -245,7 +245,7 @@ export default function CampaignDetail() {
             <p className="text-sm text-muted-foreground">{client?.nom || "—"} · {campaign.type_marchandise}{campaign.navire ? ` · Navire: ${campaign.navire}` : ""}</p>
           </div>
         </div>
-        <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
+        <div className="bg-card border border-sidebar rounded-2xl p-5 space-y-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Factures clients</p>
           {campaignClients.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucun client associé à cette campagne.</p>
@@ -338,12 +338,12 @@ export default function CampaignDetail() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Rotations réalisées", value: campaign.nombre_rotations_realisees || 0, sub: rotationsPrevues ? `/ ${rotationsPrevues} prévues` : null, icon: RotateCw, color: "text-primary", card: "bg-primary/15 border-primary/25" },
-          { label: "Tonnage livré (T)", value: tonnageT, icon: Truck, color: "text-secondary", card: "bg-secondary/15 border-secondary/25" },
-          { label: "Bons système", value: bonsSysteme, icon: ClipboardList, color: "text-blue-700", card: "bg-blue-500/15 border-blue-400/25" },
-          { label: ecart > 0 ? `Écart (${ecart})` : "Bons OK", value: bonsPhysiques, icon: ecart > 0 ? AlertTriangle : CheckCircle, color: ecart > 0 ? "text-destructive" : "text-emerald-700", card: ecart > 0 ? "bg-destructive/15 border-destructive/25" : "bg-emerald-500/15 border-emerald-400/25" },
+          { label: "Rotations réalisées", value: campaign.nombre_rotations_realisees || 0, sub: rotationsPrevues ? `/ ${rotationsPrevues} prévues` : null, icon: RotateCw, color: "text-primary", card: "bg-primary/15" },
+          { label: "Tonnage livré (T)", value: tonnageT, icon: Truck, color: "text-secondary", card: "bg-secondary/15" },
+          { label: "Bons système", value: bonsSysteme, icon: ClipboardList, color: "text-blue-700", card: "bg-blue-500/15" },
+          { label: ecart > 0 ? `Écart (${ecart})` : "Bons OK", value: bonsPhysiques, icon: ecart > 0 ? AlertTriangle : CheckCircle, color: ecart > 0 ? "text-destructive" : "text-emerald-700", card: ecart > 0 ? "bg-destructive/15" : "bg-emerald-500/15" },
         ].map((kpi, i) => (
-          <Card key={i} className={cn("border", kpi.card)}>
+          <Card key={i} className={cn("border border-sidebar", kpi.card)}>
             <CardContent className="pt-5 pb-4">
               <div className="flex items-center justify-between">
                 <div className={kpi.color}>
@@ -358,7 +358,7 @@ export default function CampaignDetail() {
       </div>
 
       {/* Progress bars */}
-      <Card>
+      <Card className="border-sidebar">
         <CardContent className="pt-4 pb-4 space-y-4">
           <div>
             <div className="flex justify-between text-sm mb-2">
@@ -407,7 +407,7 @@ export default function CampaignDetail() {
         const capaciteTheorique = capaciteMoyenne > 0 ? (capaciteMoyenne / vehicleIds.length) * rotations.length : 0;
         if (capaciteTheorique === 0) return null;
         return (
-          <Card>
+          <Card className="border-sidebar">
             <CardContent className="pt-4 pb-4">
               <FillEfficiencyBar poidsReel={poidsReel} capaciteTheorique={capaciteTheorique} label="Efficacité remplissage (poids réel vs capacité théorique)" />
             </CardContent>
