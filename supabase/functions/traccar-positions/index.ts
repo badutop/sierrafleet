@@ -98,8 +98,19 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: `Erreur serveur Traccar (devices=${devicesRes.status}, positions=${positionsRes.status})` }, 200);
   }
 
-  const devices = await devicesRes.json();
-  const positions = await positionsRes.json();
+  // Le parsing JSON peut lui aussi échouer (corps vide, page HTML inattendue
+  // renvoyée par Traccar avec un statut 200...) — protégé pour la même
+  // raison que le fetch ci-dessus : une exception non gérée ici ferait
+  // renvoyer un 500 par Deno.serve, masqué à son tour côté client.
+  let devices: Record<string, unknown>[], positions: Record<string, unknown>[];
+  try {
+    devices = await devicesRes.json();
+    positions = await positionsRes.json();
+  } catch (err) {
+    console.error(`[traccar-positions] réponse Traccar illisible: ${err}`);
+    return jsonResponse({ error: 'Réponse du serveur Traccar illisible' }, 200);
+  }
+
   const positionByDeviceId = new Map(positions.map((p: Record<string, unknown>) => [p.deviceId, p]));
 
   const merged = devices.map((d: Record<string, unknown>) => {
