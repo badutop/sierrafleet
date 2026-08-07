@@ -40,18 +40,18 @@ function getPreviousRange(filter) {
 }
 
 function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, className }) {
-  // Fond plein (au lieu d'une simple teinte pastel) pour donner beaucoup
-  // plus de présence aux 4 StatCards du tableau de bord — texte/icône en
-  // blanc en conséquence. Le cadre (border-sidebar) reste commun à toutes.
-  // Opacité à 90% (pas 100%) : un peu moins criard, surtout pour les tons
-  // chauds comme l'ambre/le teal.
+  // Fond plein (au lieu d'une simple teinte pastel) pour donner de la
+  // présence aux 4 StatCards du tableau de bord — texte/icône en blanc en
+  // conséquence. Le cadre (border-sidebar) reste commun à toutes. Nuance
+  // 600 (plus profonde que 500, moins "néon") à 80% d'opacité : nettement
+  // moins vive tout en gardant assez de contraste pour le texte blanc.
   const colorMap = {
-    green:   { card: "bg-emerald-500/90", bg: "bg-white/20", text: "text-white" },
-    blue:    { card: "bg-blue-500/90",    bg: "bg-white/20", text: "text-white" },
-    orange:  { card: "bg-amber-500/90",   bg: "bg-white/20", text: "text-white" },
-    teal:    { card: "bg-teal-500/90",    bg: "bg-white/20", text: "text-white" },
-    indigo:  { card: "bg-indigo-500/90",  bg: "bg-white/20", text: "text-white" },
-    primary: { card: "bg-primary/90",     bg: "bg-white/20", text: "text-primary-foreground" },
+    green:   { card: "bg-emerald-600/80", bg: "bg-white/20", text: "text-white" },
+    blue:    { card: "bg-blue-600/80",    bg: "bg-white/20", text: "text-white" },
+    orange:  { card: "bg-amber-600/80",   bg: "bg-white/20", text: "text-white" },
+    teal:    { card: "bg-teal-600/80",    bg: "bg-white/20", text: "text-white" },
+    indigo:  { card: "bg-indigo-600/80",  bg: "bg-white/20", text: "text-white" },
+    primary: { card: "bg-primary/80",     bg: "bg-white/20", text: "text-primary-foreground" },
   };
   const c = colorMap[color] || colorMap.primary;
 
