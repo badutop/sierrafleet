@@ -40,29 +40,29 @@ function getPreviousRange(filter) {
 }
 
 function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, className }) {
-  // Fond plein (au lieu d'une simple teinte pastel) pour donner de la
-  // présence aux 4 StatCards du tableau de bord — texte/icône en blanc en
-  // conséquence. Le cadre (border-sidebar) reste commun à toutes. Nuance
-  // 600 (plus profonde que 500, moins "néon") à 80% d'opacité : nettement
-  // moins vive tout en gardant assez de contraste pour le texte blanc.
+  // Retour à une teinte pastel douce (fond très léger, texte foncé de la
+  // couleur) après plusieurs allers-retours sur un fond plein jugé trop vif
+  // quelle que soit l'opacité — ce dosage-ci est lisible et calme sans
+  // dépendre d'un pourcentage précis. Le cadre (border-sidebar) reste
+  // commun à toutes les StatCards.
   const colorMap = {
-    green:   { card: "bg-emerald-600/80", bg: "bg-white/20", text: "text-white" },
-    blue:    { card: "bg-blue-600/80",    bg: "bg-white/20", text: "text-white" },
-    orange:  { card: "bg-amber-600/80",   bg: "bg-white/20", text: "text-white" },
-    teal:    { card: "bg-teal-600/80",    bg: "bg-white/20", text: "text-white" },
-    indigo:  { card: "bg-indigo-600/80",  bg: "bg-white/20", text: "text-white" },
-    primary: { card: "bg-primary/80",     bg: "bg-white/20", text: "text-primary-foreground" },
+    green:   { card: "bg-emerald-500/15", bg: "bg-emerald-500/20", text: "text-emerald-800" },
+    blue:    { card: "bg-blue-500/15",    bg: "bg-blue-500/20",    text: "text-blue-800" },
+    orange:  { card: "bg-amber-500/15",   bg: "bg-amber-500/20",   text: "text-amber-800" },
+    teal:    { card: "bg-teal-500/15",    bg: "bg-teal-500/20",    text: "text-teal-800" },
+    indigo:  { card: "bg-indigo-500/15",  bg: "bg-indigo-500/20",  text: "text-indigo-800" },
+    primary: { card: "bg-primary/15",     bg: "bg-primary/20",     text: "text-primary" },
   };
   const c = colorMap[color] || colorMap.primary;
 
   return (
-    <div className={`${c.card} rounded-xl border border-sidebar p-5 hover:shadow-lg transition-shadow group ${className || ""}`}>
+    <div className={`${c.card} rounded-xl border border-sidebar p-5 hover:shadow-md transition-shadow group ${className || ""}`}>
       <div className="flex items-start justify-between mb-3">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${c.bg}`}>
           <Icon className={`w-5 h-5 ${c.text}`} />
         </div>
         {trend !== undefined && (
-          <div className={`flex items-center gap-0.5 text-xs font-semibold ${c.text} bg-white/20 rounded-full px-1.5 py-0.5`}>
+          <div className={`flex items-center gap-0.5 text-xs font-semibold ${trend >= 0 ? "text-emerald-700" : "text-red-700"}`}>
             {trend >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
             {Math.abs(trend)}%
           </div>
