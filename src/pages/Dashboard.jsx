@@ -43,13 +43,15 @@ function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel
   // Fond plein (au lieu d'une simple teinte pastel) pour donner beaucoup
   // plus de présence aux 4 StatCards du tableau de bord — texte/icône en
   // blanc en conséquence. Le cadre (border-sidebar) reste commun à toutes.
+  // Opacité à 90% (pas 100%) : un peu moins criard, surtout pour les tons
+  // chauds comme l'ambre/le teal.
   const colorMap = {
-    green:   { card: "bg-emerald-500", bg: "bg-white/20", text: "text-white" },
-    blue:    { card: "bg-blue-500",    bg: "bg-white/20", text: "text-white" },
-    orange:  { card: "bg-amber-500",   bg: "bg-white/20", text: "text-white" },
-    red:     { card: "bg-red-500",     bg: "bg-white/20", text: "text-white" },
-    indigo:  { card: "bg-indigo-500",  bg: "bg-white/20", text: "text-white" },
-    primary: { card: "bg-primary",     bg: "bg-white/20", text: "text-primary-foreground" },
+    green:   { card: "bg-emerald-500/90", bg: "bg-white/20", text: "text-white" },
+    blue:    { card: "bg-blue-500/90",    bg: "bg-white/20", text: "text-white" },
+    orange:  { card: "bg-amber-500/90",   bg: "bg-white/20", text: "text-white" },
+    teal:    { card: "bg-teal-500/90",    bg: "bg-white/20", text: "text-white" },
+    indigo:  { card: "bg-indigo-500/90",  bg: "bg-white/20", text: "text-white" },
+    primary: { card: "bg-primary/90",     bg: "bg-white/20", text: "text-primary-foreground" },
   };
   const c = colorMap[color] || colorMap.primary;
 
@@ -255,7 +257,7 @@ export default function Dashboard() {
       {/* ── Row 2 : KPI opérationnels ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
         <StatCard title="Carburant (période)"   value={formatCFA(totalFuelCost)} subtitle={`${fmt(Math.round(totalLitres))} L`} icon={Fuel} color="orange" trend={fuelTrend} className="col-span-2" />
-        <StatCard title="Maintenance (période)" value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="red" className="col-span-2" />
+        <StatCard title="Maintenance (période)" value={formatCFA(maintCostMonth)} subtitle={`${maintMonth.length} intervention(s)`} icon={Wrench} color="teal" className="col-span-2" />
         <StatCard title="Total Dépenses (période)" value={formatCFA(totalExp)} subtitle={`${expMonth.length} dépense(s)`} icon={BarChart3} color="indigo" className="col-span-2" />
         <StatCard title="Résultat (période)" value={formatCFA(resultat)} subtitle={`Recettes ${formatCFA(totalRecettes)}`} icon={TrendingUp} color="blue" className="col-span-2" />
       </div>
