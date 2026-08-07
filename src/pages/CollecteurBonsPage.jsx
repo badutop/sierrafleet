@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   LogOut, Fuel, Truck, ImageIcon, ClipboardCheck, Package, Ship,
@@ -42,6 +43,50 @@ const STATUS_BADGE_CLASS = {
   reconciliation_ok: "bg-emerald-500/10 text-emerald-600",
 };
 
+// Tolérance de poids en tonnes en dessous de laquelle une différence entre
+// le bon d'enlèvement et le bon de déchargement n'est pas jugée
+// significative (variance normale de pesée au pont-bascule) — au-delà,
+// l'écart est signalé automatiquement au Collecteur.
+const POIDS_TOLERANCE_T = 0.5;
+
+// Compare le bon d'enlèvement (poids_charge_tonnes / numero_bon_client /
+// date_rotation, saisis par le Resp. des Opérations ou le chauffeur) au bon
+// de déchargement (poids_bon_final / numero_bon_final, lus par l'IA sur la
+// photo du chauffeur ; bon_final_collecte_le, l'horodatage de cette photo)
+// et retourne la liste des écarts détectés automatiquement. Une valeur
+// finale manquante (lecture IA ratée) est elle aussi signalée — c'est
+// justement le cas où le Collecteur doit se baser sur l'image réelle.
+function getRotationAnomalies(r) {
+  if (!r.bon_final_scan_url) return [];
+  const anomalies = [];
+
+  if (r.poids_charge_tonnes != null) {
+    if (r.poids_bon_final == null) {
+      anomalies.push({ field: "poids", label: "Poids", pickup: `${Number(r.poids_charge_tonnes).toFixed(2)} T`, final: "non lisible par l'IA" });
+    } else if (Math.abs(Number(r.poids_bon_final) - Number(r.poids_charge_tonnes)) > POIDS_TOLERANCE_T) {
+      anomalies.push({ field: "poids", label: "Poids", pickup: `${Number(r.poids_charge_tonnes).toFixed(2)} T`, final: `${Number(r.poids_bon_final).toFixed(2)} T` });
+    }
+  }
+
+  if (r.numero_bon_client) {
+    if (!r.numero_bon_final) {
+      anomalies.push({ field: "bl", label: "N° de BL", pickup: r.numero_bon_client, final: "non lisible par l'IA" });
+    } else if (r.numero_bon_final.trim() !== r.numero_bon_client.trim()) {
+      anomalies.push({ field: "bl", label: "N° de BL", pickup: r.numero_bon_client, final: r.numero_bon_final });
+    }
+  }
+
+  if (r.date_rotation && r.bon_final_collecte_le) {
+    const dPickup = new Date(r.date_rotation).toISOString().slice(0, 10);
+    const dFinal = new Date(r.bon_final_collecte_le).toISOString().slice(0, 10);
+    if (dPickup !== dFinal) {
+      anomalies.push({ field: "date", label: "Date", pickup: fmtDate(r.date_rotation), final: fmtDate(r.bon_final_collecte_le) });
+    }
+  }
+
+  return anomalies;
+}
+
 // Statut d'un checkpoint (groupe de 3 rotations, voir refuelRules.js) =
 // agrégat de ses 3 rotations : "Réconciliation OK" seulement si les 3 le
 // sont, "Vérifié — écart" si les 3 sont contrôlées et qu'au moins une a un
@@ -61,8 +106,16 @@ function getCheckpointStatus(cp) {
 // sinon "Vérifié" avec un écart constaté et une observation.
 function RotationBonRow({ rotation, isSaving, onValidate }) {
   const status = getRotationStatus(rotation);
-  const [ecart, setEcart] = useState(!!rotation.ecart_bon_final);
-  const [obs, setObs] = useState(rotation.observation_bon_final || "");
+  const anomalies = useMemo(() => getRotationAnomalies(rotation), [rotation]);
+  const [ecart, setEcart] = useState(!!rotation.ecart_bon_final || anomalies.length > 0);
+  const [obs, setObs] = useState(rotation.observation_bon_final || (anomalies.length > 0
+    ? `Écart détecté automatiquement — ${anomalies.map(a => `${a.label} : ${a.pickup} (enlèvement) vs ${a.final} (déchargement)`).join(" ; ")}.`
+    : ""));
+  // Valeurs du bon de déchargement, corrigibles par le Collecteur d'après
+  // l'image réelle — pré-remplies avec ce que l'IA a lu, envoyées telles
+  // quelles à la validation (no-op si non modifiées).
+  const [poidsCorrige, setPoidsCorrige] = useState(rotation.poids_bon_final != null ? String(rotation.poids_bon_final) : "");
+  const [numeroCorrige, setNumeroCorrige] = useState(rotation.numero_bon_final || "");
 
   return (
     <div className="border border-border rounded-lg p-3 space-y-2 bg-background">
@@ -114,6 +167,31 @@ function RotationBonRow({ rotation, isSaving, onValidate }) {
 
           {status === "a_verifier" ? (
             <>
+              {anomalies.length > 0 && (
+                <div className="rounded-lg border border-amber-400/40 bg-amber-500/10 p-2.5 space-y-2">
+                  <p className="text-[11px] font-semibold text-amber-700 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Écart détecté automatiquement
+                  </p>
+                  <ul className="space-y-0.5">
+                    {anomalies.map(a => (
+                      <li key={a.field} className="text-[11px] text-amber-800">
+                        {a.label} — enlèvement : <strong>{a.pickup}</strong> · déchargement (lu par IA) : <strong>{a.final}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-[10px] text-amber-700/80">Vérifiez l'image du bon de déchargement ci-dessus et corrigez si besoin :</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[10px]">Poids réel (T)</Label>
+                      <Input type="number" step="0.01" className="h-7 text-xs bg-card" value={poidsCorrige} onChange={e => setPoidsCorrige(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">N° de BL réel</Label>
+                      <Input className="h-7 text-xs bg-card" value={numeroCorrige} onChange={e => setNumeroCorrige(e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+              )}
               <label className="flex items-center gap-2 text-xs cursor-pointer">
                 <Checkbox checked={ecart} onCheckedChange={(checked) => setEcart(!!checked)} />
                 <span className={ecart ? "text-destructive font-semibold" : "text-muted-foreground"}>
@@ -132,7 +210,12 @@ function RotationBonRow({ rotation, isSaving, onValidate }) {
                 size="sm"
                 className="h-7 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground"
                 disabled={isSaving}
-                onClick={() => onValidate({ ecart, observation: ecart ? obs.trim() : null })}
+                onClick={() => onValidate({
+                  ecart,
+                  observation: ecart ? obs.trim() : null,
+                  poidsBonFinal: poidsCorrige.trim() !== "" ? Number(poidsCorrige) : null,
+                  numeroBonFinal: numeroCorrige.trim() || null,
+                })}
               >
                 Valider la vérification
               </Button>
@@ -291,7 +374,7 @@ export default function CollecteurBonsPage() {
     onError: (err) => toast.error(`Erreur : ${err.message}`),
   });
 
-  const handleValidate = (rotation, { ecart, observation }) => {
+  const handleValidate = (rotation, { ecart, observation, poidsBonFinal, numeroBonFinal }) => {
     updateRotation.mutate({
       id: rotation.id,
       payload: {
@@ -299,6 +382,11 @@ export default function CollecteurBonsPage() {
         observation_bon_final: ecart ? observation : null,
         bon_final_verifie_le: new Date().toISOString(),
         bon_final_verifie_par: currentUser?.id || null,
+        // Valeurs éventuellement corrigées par le Collecteur d'après
+        // l'image réelle du bon de déchargement (voir RotationBonRow) —
+        // remplacent la lecture IA d'origine si elle était fausse ou absente.
+        ...(poidsBonFinal != null ? { poids_bon_final: poidsBonFinal } : {}),
+        ...(numeroBonFinal != null ? { numero_bon_final: numeroBonFinal } : {}),
       },
       oldData: rotation,
     });
