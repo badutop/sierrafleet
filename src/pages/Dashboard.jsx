@@ -68,10 +68,10 @@ function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel
           </div>
         )}
       </div>
-      <p className={`text-lg font-semibold truncate ${c.text}`}>{value}</p>
-      <p className={`text-xs mt-0.5 ${c.text} opacity-80`}>{title}</p>
-      {subtitle && <p className={`text-[11px] mt-0.5 ${c.text} opacity-60`}>{subtitle}</p>}
-      {trendLabel && <p className={`text-[10px] mt-1 ${c.text} opacity-50`}>{trendLabel}</p>}
+      <p className={`text-2xl font-bold truncate ${c.text}`}>{value}</p>
+      <p className={`text-xs mt-1 ${c.text} opacity-80`}>{title}</p>
+      {subtitle && <p className={`text-xs mt-0.5 ${c.text} opacity-60`}>{subtitle}</p>}
+      {trendLabel && <p className={`text-[11px] mt-1 ${c.text} opacity-50`}>{trendLabel}</p>}
     </div>
   );
 }
