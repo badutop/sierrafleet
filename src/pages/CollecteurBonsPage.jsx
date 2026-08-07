@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   LogOut, Fuel, Truck, ImageIcon, ClipboardCheck, Package, Ship,
   Search, Printer, Clock, CheckCircle, AlertTriangle,
@@ -164,12 +165,19 @@ const defaultPeriodFilter = { mode: "all", month: now.getMonth() + 1, quarter: M
 // par le chauffeur lui-même, DriverBonFinalEntryFlow.jsx — le Collecteur ne
 // scanne plus rien). Le verdict de ce contrôle ("Réconciliation OK" ou
 // "Vérifié" avec écart et observation) est filtrable et imprimable en PDF.
+//
+// La vérification se fait toujours campagne par campagne, et uniquement
+// pour une campagne en cours (statut "en_cours") — dès qu'une campagne est
+// terminée ou archivée, elle disparaît du sélecteur et n'est plus
+// accessible ici. Sans cela, la page mélangeait les bons de toutes les
+// campagnes (actives ou non), ce qui prêtait à confusion.
 export default function CollecteurBonsPage() {
   const { user: currentUser, logout } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState(defaultPeriodFilter);
+  const [selectedCampaignId, setSelectedCampaignId] = useState(null);
 
   const { data: rotations = [], isLoading } = useQuery({
     queryKey: ["rotations"],
@@ -203,7 +211,7 @@ export default function CollecteurBonsPage() {
       return data;
     },
   });
-  const { data: campaigns = [] } = useQuery({
+  const { data: campaigns = [], isLoading: loadingCampaigns } = useQuery({
     queryKey: ["campaigns"],
     queryFn: async () => {
       const { data, error } = await supabase.from("campaigns").select("*");
@@ -215,14 +223,40 @@ export default function CollecteurBonsPage() {
   const vehicleMap = useMemo(() => Object.fromEntries(vehicles.map(v => [v.id, v])), [vehicles]);
   const driverMap = useMemo(() => Object.fromEntries(drivers.map(d => [d.id, d])), [drivers]);
   const clientMap = useMemo(() => Object.fromEntries(clients.map(c => [c.id, c])), [clients]);
-  const campaignMap = useMemo(() => Object.fromEntries(campaigns.map(c => [c.id, c])), [campaigns]);
+
+  // Seules les campagnes en_cours sont proposées à la vérification — une
+  // campagne terminée/clôturée sort donc automatiquement de la liste.
+  const activeCampaigns = useMemo(
+    () => campaigns
+      .filter(c => c.statut === "en_cours")
+      .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0)),
+    [campaigns]
+  );
+
+  // Sélectionne automatiquement une campagne en cours (la plus récente) si
+  // aucune n'est choisie, ou si celle choisie n'est plus en cours (terminée
+  // pendant que le Collecteur avait la page ouverte).
+  useEffect(() => {
+    if (activeCampaigns.length === 0) {
+      if (selectedCampaignId !== null) setSelectedCampaignId(null);
+      return;
+    }
+    if (!selectedCampaignId || !activeCampaigns.some(c => c.id === selectedCampaignId)) {
+      setSelectedCampaignId(activeCampaigns[0].id);
+    }
+  }, [activeCampaigns, selectedCampaignId]);
+
+  const campaignRotations = useMemo(
+    () => selectedCampaignId ? rotations.filter(r => r.campaign_id === selectedCampaignId) : [],
+    [rotations, selectedCampaignId]
+  );
 
   const enrichedCheckpoints = useMemo(() => {
-    const checkpoints = getCompletedRefuelCheckpoints(rotations);
+    const checkpoints = getCompletedRefuelCheckpoints(campaignRotations);
     return checkpoints
       .map(cp => ({ ...cp, status: getCheckpointStatus(cp) }))
       .sort((a, b) => new Date(b.rotations[0]?.date_rotation || 0) - new Date(a.rotations[0]?.date_rotation || 0));
-  }, [rotations]);
+  }, [campaignRotations]);
 
   const counts = useMemo(() => {
     const c = { a_verifier: 0, reconciliation_ok: 0, verifie_ecart: 0 };
@@ -310,7 +344,7 @@ export default function CollecteurBonsPage() {
     setTimeout(() => { w.print(); }, 400);
   };
 
-  if (isLoading) {
+  if (isLoading || loadingCampaigns) {
     return (
       <div className="min-h-viewport bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-muted border-t-secondary rounded-full animate-spin" />
@@ -337,82 +371,105 @@ export default function CollecteurBonsPage() {
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-2 lg:items-end">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Rechercher véhicule, client, numéro de bon..." value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-          <div className="flex gap-1 flex-wrap">
-            {[
-              ["all", `Tout (${enrichedCheckpoints.length})`],
-              ["a_verifier", `À vérifier (${counts.a_verifier})`],
-              ["reconciliation_ok", `Réconciliation OK (${counts.reconciliation_ok})`],
-              ["verifie_ecart", `Vérifié écart (${counts.verifie_ecart})`],
-            ].map(([v, l]) => (
-              <Button key={v} size="sm" variant={statusFilter === v ? "default" : "outline"} onClick={() => setStatusFilter(v)} className={statusFilter === v ? "bg-secondary hover:bg-secondary/90 text-secondary-foreground text-xs" : "text-xs"}>
-                {l}
-              </Button>
-            ))}
-          </div>
-          <Button variant="outline" size="sm" className="text-xs" onClick={handlePrint} disabled={filteredCheckpoints.length === 0}>
-            <Printer className="w-3.5 h-3.5 mr-1.5" /> Imprimer PDF
-          </Button>
-        </div>
-
-        <PeriodFilter filter={periodFilter} onChange={setPeriodFilter} />
-
-        {filteredCheckpoints.length === 0 ? (
+        {activeCampaigns.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
-            <Fuel className="w-12 h-12 mx-auto mb-3 opacity-20" />
-            <p className="text-sm">Aucun enregistrement pour ces filtres</p>
+            <Ship className="w-12 h-12 mx-auto mb-3 opacity-20" />
+            <p className="text-sm">Aucune campagne en cours</p>
+            <p className="text-xs mt-1">La vérification des bons n'est accessible que pour une campagne en cours.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredCheckpoints.map(cp => {
-              const vehicle = vehicleMap[cp.vehicleId];
-              const driver = driverMap[vehicle?.driver_id];
-              const client = clientMap[cp.clientId];
-              const campaign = campaignMap[cp.rotations[0]?.campaign_id];
-              const totalPoids = cp.rotations.reduce((s, r) => s + (Number(r.poids_charge_tonnes) || 0), 0);
-              return (
-                <div key={`${cp.clientId}-${cp.vehicleId}-${cp.fuelEntryId}`} className="bg-card border border-border rounded-2xl overflow-hidden h-fit">
-                  <div className="bg-muted/40 px-4 py-3 flex items-center gap-3 border-b border-border">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Truck className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-sm font-mono truncate">{vehicle?.immatriculation || "—"}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {driver ? `${driver.prenom} ${driver.nom}` : "Chauffeur inconnu"} · {client?.nom || "Client inconnu"}
-                        {campaign?.nom_campagne && (
-                          <span className="inline-flex items-center gap-0.5"> · <Ship className="w-3 h-3 inline" /> {campaign.nom_campagne}</span>
-                        )}
-                      </p>
-                    </div>
-                    <Badge className={`${STATUS_BADGE_CLASS[cp.status]} text-[10px] shrink-0`}>
-                      {STATUS_LABELS[cp.status]}
-                    </Badge>
-                  </div>
+          <>
+            {/* Campagne à vérifier — seules les campagnes en_cours sont
+                proposées ; une seule campagne à la fois est affichée pour
+                éviter de mélanger les bons de plusieurs campagnes. */}
+            <div className="flex items-center gap-2">
+              <Ship className="w-4 h-4 text-muted-foreground shrink-0" />
+              {activeCampaigns.length > 1 ? (
+                <Select value={selectedCampaignId || undefined} onValueChange={setSelectedCampaignId}>
+                  <SelectTrigger className="w-full sm:w-72 bg-card"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {activeCampaigns.map(c => <SelectItem key={c.id} value={c.id}>{c.nom_campagne}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="text-sm font-semibold">{activeCampaigns[0].nom_campagne}</span>
+              )}
+            </div>
 
-                  <div className="p-4 space-y-3">
-                    <div className="flex items-center justify-between text-xs font-semibold text-foreground bg-muted/30 rounded-lg px-3 py-2">
-                      <span className="flex items-center gap-1.5"><Package className="w-3.5 h-3.5 text-primary" /> Tonnage total des bons d'enlèvement</span>
-                      <span className="text-primary">{totalPoids.toFixed(2)} T</span>
-                    </div>
+            <div className="flex flex-col lg:flex-row gap-2 lg:items-end">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input className="pl-9" placeholder="Rechercher véhicule, client, numéro de bon..." value={search} onChange={e => setSearch(e.target.value)} />
+              </div>
+              <div className="flex gap-1 flex-wrap">
+                {[
+                  ["all", `Tout (${enrichedCheckpoints.length})`],
+                  ["a_verifier", `À vérifier (${counts.a_verifier})`],
+                  ["reconciliation_ok", `Réconciliation OK (${counts.reconciliation_ok})`],
+                  ["verifie_ecart", `Vérifié écart (${counts.verifie_ecart})`],
+                ].map(([v, l]) => (
+                  <Button key={v} size="sm" variant={statusFilter === v ? "default" : "outline"} onClick={() => setStatusFilter(v)} className={statusFilter === v ? "bg-secondary hover:bg-secondary/90 text-secondary-foreground text-xs" : "text-xs"}>
+                    {l}
+                  </Button>
+                ))}
+              </div>
+              <Button variant="outline" size="sm" className="text-xs" onClick={handlePrint} disabled={filteredCheckpoints.length === 0}>
+                <Printer className="w-3.5 h-3.5 mr-1.5" /> Imprimer PDF
+              </Button>
+            </div>
 
-                    {cp.rotations.map(r => (
-                      <RotationBonRow
-                        key={r.id}
-                        rotation={r}
-                        isSaving={updateRotation.isPending}
-                        onValidate={(result) => handleValidate(r, result)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+            <PeriodFilter filter={periodFilter} onChange={setPeriodFilter} />
+
+            {filteredCheckpoints.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <Fuel className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p className="text-sm">Aucun enregistrement pour ces filtres</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredCheckpoints.map(cp => {
+                  const vehicle = vehicleMap[cp.vehicleId];
+                  const driver = driverMap[vehicle?.driver_id];
+                  const client = clientMap[cp.clientId];
+                  const totalPoids = cp.rotations.reduce((s, r) => s + (Number(r.poids_charge_tonnes) || 0), 0);
+                  return (
+                    <div key={`${cp.clientId}-${cp.vehicleId}-${cp.fuelEntryId}`} className="bg-card border border-border rounded-2xl overflow-hidden h-fit">
+                      <div className="bg-muted/40 px-4 py-3 flex items-center gap-3 border-b border-border">
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Truck className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-sm font-mono truncate">{vehicle?.immatriculation || "—"}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {driver ? `${driver.prenom} ${driver.nom}` : "Chauffeur inconnu"} · {client?.nom || "Client inconnu"}
+                          </p>
+                        </div>
+                        <Badge className={`${STATUS_BADGE_CLASS[cp.status]} text-[10px] shrink-0`}>
+                          {STATUS_LABELS[cp.status]}
+                        </Badge>
+                      </div>
+
+                      <div className="p-4 space-y-3">
+                        <div className="flex items-center justify-between text-xs font-semibold text-foreground bg-muted/30 rounded-lg px-3 py-2">
+                          <span className="flex items-center gap-1.5"><Package className="w-3.5 h-3.5 text-primary" /> Tonnage total des bons d'enlèvement</span>
+                          <span className="text-primary">{totalPoids.toFixed(2)} T</span>
+                        </div>
+
+                        {cp.rotations.map(r => (
+                          <RotationBonRow
+                            key={r.id}
+                            rotation={r}
+                            isSaving={updateRotation.isPending}
+                            onValidate={(result) => handleValidate(r, result)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </main>
 
