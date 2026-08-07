@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import { ShieldCheck, Download, Clock, User } from "lucide-react";
 import { format } from "date-fns";
 import AuditStatCards from "@/components/audit/AuditStatCards";
 import AuditFilters from "@/components/audit/AuditFilters";
+
+const PAGE_SIZE = 25;
 
 const actionLabels = { create: "Création", update: "Modification", delete: "Suppression" };
 const actionColors = {
@@ -35,6 +37,7 @@ export default function AuditLogPage() {
   const [entityFilter, setEntityFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ["audit-logs"],
@@ -58,6 +61,15 @@ export default function AuditLogPage() {
     const matchesDate = !dateFilter || (l.created_date && l.created_date.slice(0, 10) === dateFilter);
     return matchesAction && matchesEntity && matchesUser && matchesDate;
   }), [logs, actionFilter, entityFilter, userFilter, dateFilter]);
+
+  // Revenir à 25 lignes affichées à chaque changement de filtre — sinon un
+  // "Voir plus" déjà déplié sur un filtre précédent resterait déplié sur le
+  // suivant, ce qui n'a pas de sens (le nouvel ensemble filtré est différent).
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [actionFilter, entityFilter, userFilter, dateFilter]);
+
+  const visibleLogs = filtered.slice(0, visibleCount);
 
   const handleReset = () => {
     setActionFilter("all"); setEntityFilter("all"); setUserFilter(""); setDateFilter("");
@@ -120,7 +132,7 @@ export default function AuditLogPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map(log => (
+                  {visibleLogs.map(log => (
                     <TableRow key={log.id}>
                       <TableCell className="whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-xs">
@@ -155,6 +167,16 @@ export default function AuditLogPage() {
                 <div className="text-center py-16 text-muted-foreground">
                   <ShieldCheck className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p>Aucun évènement trouvé</p>
+                </div>
+              )}
+              {visibleCount < filtered.length && (
+                <div className="flex flex-col items-center gap-2 py-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    {visibleLogs.length} sur {filtered.length} évènements affichés
+                  </p>
+                  <Button variant="outline" size="sm" onClick={() => setVisibleCount(c => c + PAGE_SIZE)}>
+                    Voir plus
+                  </Button>
                 </div>
               )}
             </>
