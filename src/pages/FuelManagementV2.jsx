@@ -341,7 +341,7 @@ export default function FuelManagementV2() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="bg-blue-500/15 border-sidebar">
-          <CardContent className="pt-4 pb-4 text-blue-700">
+          <CardContent className="pt-4 pb-4 text-blue-800">
             <p className="text-sm opacity-80">Litres approvisionnés</p>
             <p className="text-2xl font-bold mt-1">{Math.round(filteredEntries.reduce((s, e) => s + (e.litres || 0), 0))} L</p>
             <p className="text-sm opacity-70 mt-1">{filteredEntries.length} entrées</p>
@@ -362,7 +362,7 @@ export default function FuelManagementV2() {
           </CardContent>
         </Card>
         <Card className="bg-amber-500/15 border-sidebar">
-          <CardContent className="pt-4 pb-4 text-amber-700">
+          <CardContent className="pt-4 pb-4 text-amber-800">
             <p className="text-sm opacity-80">En attente de validation</p>
             <p className="text-2xl font-bold mt-1">{pendingValidationCount}</p>
             <p className="text-sm opacity-70 mt-1">camions éligibles</p>
