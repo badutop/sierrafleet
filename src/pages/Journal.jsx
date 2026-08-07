@@ -113,46 +113,48 @@ export default function Journal() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-secondary" />
-            Journal des Dépenses
-          </h1>
-          <p className="text-sm text-muted-foreground">Tableau détaillé par camion — carburant, péage, rations, contraventions, entretien garage, pneus…</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <BookOpen className="w-6 h-6 text-secondary" />
+          Journal des Dépenses
+        </h1>
+        <p className="text-sm text-muted-foreground">Tableau détaillé par camion — carburant, péage, rations, contraventions, entretien garage, pneus…</p>
+      </div>
+
+      {/* Filtres */}
+      <div className="bg-muted border border-sidebar rounded-xl p-4 space-y-3">
         <div className="flex gap-2 flex-wrap items-center">
           <Select value={filterYear} onValueChange={setFilterYear}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-28 bg-card"><SelectValue /></SelectTrigger>
             <SelectContent>{YEARS.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
           </Select>
           <Select value={filterMonth} onValueChange={setFilterMonth}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-40 bg-card"><SelectValue /></SelectTrigger>
             <SelectContent>{MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
           </Select>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input className="pl-9 w-44" placeholder="Camion..." value={search} onChange={e => setSearch(e.target.value)} />
+            <Input className="pl-9 w-44 bg-card" placeholder="Camion..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
-      </div>
 
-      {/* Vehicle picker for detail view */}
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-muted-foreground whitespace-nowrap">Détail par véhicule :</span>
-        <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
-          <SelectTrigger className="w-72">
-            <SelectValue placeholder="— Sélectionner un véhicule —" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">— Vue globale (tous véhicules) —</SelectItem>
-            {vehicles.map(v => (
-              <SelectItem key={v.id} value={v.id}>
-                {v.immatriculation}{driverMap[v.driver_id] && ` — ${driverMap[v.driver_id].prenom} ${driverMap[v.driver_id].nom}`}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Vehicle picker for detail view */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">Détail par véhicule :</span>
+          <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+            <SelectTrigger className="w-72 bg-card">
+              <SelectValue placeholder="— Sélectionner un véhicule —" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">— Vue globale (tous véhicules) —</SelectItem>
+              {vehicles.map(v => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.immatriculation}{driverMap[v.driver_id] && ` — ${driverMap[v.driver_id].prenom} ${driverMap[v.driver_id].nom}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* If a vehicle is selected: show detail view */}
