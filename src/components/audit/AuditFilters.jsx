@@ -12,13 +12,13 @@ export default function AuditFilters({
   userFilter, setUserFilter, dateFilter, setDateFilter, onReset,
 }) {
   return (
-    <div className="bg-card border border-sidebar rounded-xl p-4 space-y-3">
+    <div className="bg-muted border border-sidebar rounded-xl p-4 space-y-3">
       <h3 className="text-sm font-semibold text-foreground">Filtres</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
         <div>
           <Label className="text-xs">Action</Label>
           <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger className="mt-1"><SelectValue placeholder="Toutes les actions" /></SelectTrigger>
+            <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Toutes les actions" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les actions</SelectItem>
               {Object.entries(actionLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
@@ -28,7 +28,7 @@ export default function AuditFilters({
         <div>
           <Label className="text-xs">Type d'entité</Label>
           <Select value={entityFilter} onValueChange={setEntityFilter}>
-            <SelectTrigger className="mt-1"><SelectValue placeholder="Tous les types" /></SelectTrigger>
+            <SelectTrigger className="mt-1 bg-card"><SelectValue placeholder="Tous les types" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les types</SelectItem>
               {entities.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
@@ -37,11 +37,11 @@ export default function AuditFilters({
         </div>
         <div>
           <Label className="text-xs">Utilisateur</Label>
-          <Input className="mt-1" placeholder="Email utilisateur..." value={userFilter} onChange={e => setUserFilter(e.target.value)} />
+          <Input className="mt-1 bg-card" placeholder="Email utilisateur..." value={userFilter} onChange={e => setUserFilter(e.target.value)} />
         </div>
         <div>
           <Label className="text-xs">Date</Label>
-          <Input type="date" className="mt-1" value={dateFilter} onChange={e => setDateFilter(e.target.value)} />
+          <Input type="date" className="mt-1 bg-card" value={dateFilter} onChange={e => setDateFilter(e.target.value)} />
         </div>
       </div>
       <Button variant="outline" size="sm" onClick={onReset}>
