@@ -25,14 +25,14 @@ export default function PeriodFilter({ filter, onChange }) {
   const set = (patch) => onChange({ ...filter, ...patch });
 
   return (
-    <div className="flex flex-wrap items-end gap-3 p-3 bg-muted/40 rounded-xl border border-border">
+    <div className="flex flex-wrap items-end gap-3 p-3 bg-muted rounded-xl border border-border">
       <CalendarRange className="w-4 h-4 text-muted-foreground mt-1 shrink-0" />
 
       {/* Mode */}
       <div className="flex flex-col gap-1">
         <Label className="text-xs text-muted-foreground">Période</Label>
         <Select value={filter.mode} onValueChange={v => set({ mode: v })}>
-          <SelectTrigger className="h-8 text-xs w-36">
+          <SelectTrigger className="h-8 text-xs w-36 bg-card">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -51,7 +51,7 @@ export default function PeriodFilter({ filter, onChange }) {
           <div className="flex flex-col gap-1">
             <Label className="text-xs text-muted-foreground">Mois</Label>
             <Select value={String(filter.month)} onValueChange={v => set({ month: Number(v) })}>
-              <SelectTrigger className="h-8 text-xs w-32">
+              <SelectTrigger className="h-8 text-xs w-32 bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -62,7 +62,7 @@ export default function PeriodFilter({ filter, onChange }) {
           <div className="flex flex-col gap-1">
             <Label className="text-xs text-muted-foreground">Année</Label>
             <Select value={String(filter.year)} onValueChange={v => set({ year: Number(v) })}>
-              <SelectTrigger className="h-8 text-xs w-24">
+              <SelectTrigger className="h-8 text-xs w-24 bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -79,7 +79,7 @@ export default function PeriodFilter({ filter, onChange }) {
           <div className="flex flex-col gap-1">
             <Label className="text-xs text-muted-foreground">Trimestre</Label>
             <Select value={String(filter.quarter)} onValueChange={v => set({ quarter: Number(v) })}>
-              <SelectTrigger className="h-8 text-xs w-36">
+              <SelectTrigger className="h-8 text-xs w-36 bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -90,7 +90,7 @@ export default function PeriodFilter({ filter, onChange }) {
           <div className="flex flex-col gap-1">
             <Label className="text-xs text-muted-foreground">Année</Label>
             <Select value={String(filter.year)} onValueChange={v => set({ year: Number(v) })}>
-              <SelectTrigger className="h-8 text-xs w-24">
+              <SelectTrigger className="h-8 text-xs w-24 bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -106,7 +106,7 @@ export default function PeriodFilter({ filter, onChange }) {
         <div className="flex flex-col gap-1">
           <Label className="text-xs text-muted-foreground">Année</Label>
           <Select value={String(filter.year)} onValueChange={v => set({ year: Number(v) })}>
-            <SelectTrigger className="h-8 text-xs w-24">
+            <SelectTrigger className="h-8 text-xs w-24 bg-card">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -121,11 +121,11 @@ export default function PeriodFilter({ filter, onChange }) {
         <>
           <div className="flex flex-col gap-1">
             <Label className="text-xs text-muted-foreground">Du</Label>
-            <Input type="date" className="h-8 text-xs w-36" value={filter.from} onChange={e => set({ from: e.target.value })} />
+            <Input type="date" className="h-8 text-xs w-36 bg-card" value={filter.from} onChange={e => set({ from: e.target.value })} />
           </div>
           <div className="flex flex-col gap-1">
             <Label className="text-xs text-muted-foreground">Au</Label>
-            <Input type="date" className="h-8 text-xs w-36" value={filter.to} onChange={e => set({ to: e.target.value })} />
+            <Input type="date" className="h-8 text-xs w-36 bg-card" value={filter.to} onChange={e => set({ to: e.target.value })} />
           </div>
           {filter.from && filter.to && filter.from > filter.to && (
             <p className="text-[11px] text-destructive self-center">La date "Au" doit être postérieure à "Du"</p>
