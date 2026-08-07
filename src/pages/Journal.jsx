@@ -139,10 +139,10 @@ export default function Journal() {
         </div>
 
         {/* Vehicle picker for detail view */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground whitespace-nowrap">Détail par véhicule :</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">Véhicule :</span>
           <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
-            <SelectTrigger className="w-72 bg-card">
+            <SelectTrigger className="w-full sm:w-72 bg-card">
               <SelectValue placeholder="— Sélectionner un véhicule —" />
             </SelectTrigger>
             <SelectContent>
